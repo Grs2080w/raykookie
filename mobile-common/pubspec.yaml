@@ -1,0 +1,25 @@
+name: raykookie_common
+description: "Código compartilhado dos apps raykookie (cliente e gestão): API, sessão, modelos, cálculos e componentes visuais."
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  intl: ^0.20.3
+  flutter_secure_storage: ^11.2.0
+  shared_preferences: ^2.5.5
+  flutter_svg: ^2.3.0
+  package_info_plus: ^10.2.1
+  url_launcher: ^6.3.2
+  share_plus: ^13.3.1
+  http_parser: ^4.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

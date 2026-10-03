@@ -1,0 +1,26 @@
+{
+  "client": {
+    "app": "client",
+    "name": "raykookie",
+    "version": "1.0.0",
+    "build": 17,
+    "file": "raykookie-cliente-1.0.0+17.apk",
+    "size": 39062947,
+    "sha256": "fce52ae20c3971a2d235e828473f841e840c76177ff95d4a7bb441a78f5d503a",
+    "date": "2026-10-03T18:58:51.034Z",
+    "sourceHash": "43a3b05972e84321debd25da39f2a2813c6f523c1607529cbde909bea309ee12",
+    "apiBase": "https://raykookie.kntap.com.br"
+  },
+  "server": {
+    "app": "server",
+    "name": "raykookie gestão",
+    "version": "1.1.0",
+    "build": 16,
+    "file": "raykookie-gestao-1.1.0+16.apk",
+    "size": 57407380,
+    "sha256": "8f8fca83242a2ede31001edd8d0dca581fa501e6f9178253d8b6838ec4a8a04e",
+    "date": "2026-10-03T23:25:49.025Z",
+    "sourceHash": "ca0b7d0c4ff363288830acdbc0ca11b12c65bc170da362af7d674ac5e2a48630",
+    "apiBase": "https://raykookie.kntap.com.br"
+  }
+}

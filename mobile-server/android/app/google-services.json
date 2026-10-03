@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "475420272707",
+    "project_id": "raykookie",
+    "storage_bucket": "raykookie.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:475420272707:android:16a99dacc06ab59f67ccf6",
+        "android_client_info": {
+          "package_name": "br.com.kntap.raykookie_gestao"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6hoRnMQ8ZTqM05UvAtjk2YlVdpLAcd0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
