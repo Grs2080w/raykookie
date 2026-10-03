@@ -1,0 +1,257 @@
+# Entrega contínua. Todo push na main: roda o CI inteiro e, se passar, publica SÓ o que mudou:
+#   • apps Android (cliente / gestão): compilados e ASSINADOS na nuvem, conferidos contra o fingerprint de produção,
+#     depois registrados em downloads/ do servidor (o site e os apps leem o manifesto de lá);
+#   • site + API: release nova no servidor, backup do banco, migrations, troca atômica, health check e rollback automático.
+# O servidor é alcançado por um runner self-hosted (sem abrir porta nenhuma). Tudo que é segredo do servidor (.env) fica nele.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: "Quais apps compilar e publicar"
+        type: choice
+        options: [both, client, server, none]
+        default: both
+      web:
+        description: "Publicar o site/API?"
+        type: choice
+        options: [deploy, skip]
+        default: deploy
+
+permissions:
+  contents: read
+
+# um deploy por vez e NUNCA cancelado no meio (o seguinte entra na fila)
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21"
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    with:
+      skip_build_check: true
+
+  plan:
+    name: O que publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      web: ${{ steps.d.outputs.web }}
+      apps: ${{ steps.d.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: c
+        if: github.event_name == 'push'
+        run: bash infra/ci/changes.sh "${{ github.event.before }}" "${{ github.sha }}"
+      - id: d
+        name: Decide
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_APPS: ${{ inputs.apps }}
+          IN_WEB: ${{ inputs.web }}
+          C_WEB: ${{ steps.c.outputs.web }}
+          C_CLIENT: ${{ steps.c.outputs.client }}
+          C_SERVER: ${{ steps.c.outputs.server }}
+          C_DOCS: ${{ steps.c.outputs.docs_only }}
+        run: |
+          if [ "$EVENT" = push ]; then
+            web="$C_WEB"; client="$C_CLIENT"; server="$C_SERVER"
+            [ "$C_DOCS" = true ] && { web=false; client=false; server=false; }
+          else
+            web=false; [ "$IN_WEB" = deploy ] && web=true
+            client=false; server=false
+            case "$IN_APPS" in both) client=true; server=true ;; client) client=true ;; server) server=true ;; esac
+          fi
+          apps='[]'
+          [ "$client" = true ] && apps="$(jq -c '. + [{"app":"client","dir":"mobile-client","label":"cliente"}]' <<<"$apps")"
+          [ "$server" = true ] && apps="$(jq -c '. + [{"app":"server","dir":"mobile-server","label":"gestão"}]' <<<"$apps")"
+          {
+            echo "web=$web"
+            echo "apps=$apps"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### O que será publicado"
+            echo "- site/API: **$web**"
+            echo "- apps: \`$apps\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-apps:
+    name: APK ${{ matrix.label }}
+    needs: [ci, plan]
+    if: ${{ needs.plan.outputs.apps != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production # os segredos de assinatura só existem aqui (e só em jobs da main)
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.apps) }}
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+      API_BASE: ${{ vars.API_BASE || 'https://raykookie.kntap.com.br' }}
+      GOOGLE_SERVER_CLIENT_ID: ${{ vars.GOOGLE_SERVER_CLIENT_ID }}
+      GOOGLE_SERVICES_JSON_CLIENT_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_CLIENT_BASE64 }}
+      GOOGLE_SERVICES_JSON_SERVER_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_SERVER_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ matrix.app }}-${{ hashFiles('mobile-*/android/**/*.gradle*', 'mobile-*/android/gradle/wrapper/gradle-wrapper.properties', 'mobile-*/pubspec.lock') }}
+          restore-keys: gradle-${{ runner.os }}-${{ matrix.app }}-
+
+      - name: Versão
+        id: v
+        working-directory: ${{ matrix.dir }}
+        run: |
+          name="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml | head -1)"
+          [ -n "$name" ] || { echo "::error::sem 'version: X.Y.Z' no pubspec.yaml"; exit 1; }
+          # versionCode precisa SEMPRE crescer (o Android não atualiza para trás): offset + nº da execução do CD.
+          # Se o workflow for recriado e o contador voltar a 1, aumente a variável ANDROID_BUILD_OFFSET.
+          build=$(( ${{ vars.ANDROID_BUILD_OFFSET || 100 }} + ${{ github.run_number }} ))
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "APK ${{ matrix.label }}: $name+$build" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assinatura e google-services
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          bash infra/ci/android-signing.sh setup
+          b64var="GOOGLE_SERVICES_JSON_${APP^^}_BASE64"
+          if [ -n "${!b64var:-}" ]; then
+            printf '%s' "${!b64var}" | base64 -d > "${{ matrix.dir }}/android/app/google-services.json"
+            echo "google-services.json do ${{ matrix.label }} vindo do segredo"
+          fi
+
+      - name: Compila o APK de release
+        working-directory: ${{ matrix.dir }}
+        run: |
+          flutter pub get --enforce-lockfile
+          defines=(--dart-define="API_BASE=$API_BASE")
+          [ -n "$GOOGLE_SERVER_CLIENT_ID" ] && defines+=(--dart-define="GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID")
+          flutter build apk --release --target-platform android-arm64,android-arm \
+            --build-name "${{ steps.v.outputs.name }}" --build-number "${{ steps.v.outputs.build }}" "${defines[@]}"
+
+      - name: Confere a assinatura (chave de produção) e fecha o pacote
+        id: pkg
+        run: |
+          apk="${{ matrix.dir }}/build/app/outputs/flutter-apk/app-release.apk"
+          bash infra/ci/android-signing.sh verify "$apk"
+          mkdir -p out
+          cp "$apk" out/app.apk
+          sha="$(sha256sum out/app.apk | cut -d' ' -f1)"
+          jq -n --arg app '${{ matrix.app }}' --arg version '${{ steps.v.outputs.name }}' --argjson build ${{ steps.v.outputs.build }} \
+                --arg sha "$sha" --arg commit '${{ github.sha }}' --argjson size "$(stat -c %s out/app.apk)" \
+                '{app:$app,version:$version,build:$build,sha256:$sha,size:$size,commit:$commit}' > out/release.json
+          cat out/release.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.app }}
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Apaga keystore e key.properties
+        if: always()
+        run: bash infra/ci/android-signing.sh cleanup
+
+  deploy:
+    name: Deploy no servidor
+    needs: [ci, plan, build-apps]
+    if: >-
+      ${{ always() && needs.ci.result == 'success' && needs.plan.result == 'success' &&
+      (needs.build-apps.result == 'success' || needs.build-apps.result == 'skipped') &&
+      (needs.plan.outputs.web == 'true' || needs.plan.outputs.apps != '[]') }}
+    runs-on: [self-hosted, linux, rayka-prod]
+    timeout-minutes: 45
+    environment: production
+    env:
+      API_BASE: ${{ vars.API_BASE || 'https://raykookie.kntap.com.br' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Site e API (release nova, backup, migrations, troca atômica, health check)
+        if: needs.plan.outputs.web == 'true'
+        run: bash infra/ci/deploy.sh "$GITHUB_WORKSPACE"
+      - uses: actions/download-artifact@v4
+        if: needs.plan.outputs.apps != '[]'
+        with:
+          pattern: apk-*
+          path: artifacts
+      - name: Registra os APKs em downloads/ (site e apps leem o manifesto)
+        if: needs.plan.outputs.apps != '[]'
+        run: |
+          shopt -s nullglob
+          for dir in artifacts/apk-*; do
+            r="$dir/release.json"
+            node infra/ci/publish-prebuilt.mjs \
+              --app "$(node -p "require('./$r').app")" --apk "$dir/app.apk" \
+              --version "$(node -p "require('./$r').version")" --build "$(node -p "require('./$r').build")" \
+              --sha256 "$(node -p "require('./$r').sha256")" --commit "$GITHUB_SHA" --api-base "$API_BASE" \
+              --downloads "${RAYKA_ROOT:-/srv/rayka}/shared/downloads"
+          done
+      - name: Confere no ar
+        run: |
+          curl -fsS --max-time 10 http://127.0.0.1:10005/api/health
+          echo
+          curl -fsS --max-time 10 -o /dev/null -w 'site: HTTP %{http_code}\n' http://127.0.0.1:10005/
+
+  release:
+    name: Release no GitHub
+    needs: [plan, deploy]
+    if: ${{ needs.deploy.result == 'success' && needs.plan.outputs.apps != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: apk-*
+          path: artifacts
+      - name: Cria uma Release por app (histórico e cópia de segurança dos APKs publicados)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for dir in artifacts/apk-*; do
+            app="$(jq -r .app "$dir/release.json")"; ver="$(jq -r .version "$dir/release.json")"; build="$(jq -r .build "$dir/release.json")"
+            sha="$(jq -r .sha256 "$dir/release.json")"
+            tag="${app}-v${ver}-b${build}"
+            file="raykookie-${app}-${ver}+${build}.apk"
+            cp "$dir/app.apk" "$file"; echo "$sha  $file" > "$file.sha256"
+            if gh release view "$tag" >/dev/null 2>&1; then echo "release $tag já existe"; continue; fi
+            gh release create "$tag" "$file" "$file.sha256" --target "$GITHUB_SHA" --title "raykookie ${app} ${ver} (build ${build})" \
+              --notes "APK assinado, publicado em ${GITHUB_SHA::8}. sha256: \`$sha\`"
+          done

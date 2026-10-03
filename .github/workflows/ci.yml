@@ -1,0 +1,207 @@
+# Testes e verificações. Roda em todo pull request, em todo push fora da main e é reaproveitado pelo CD (main).
+# O job "ci-ok" no fim é o ÚNICO que precisa ser marcado como obrigatório na proteção da branch main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+    inputs:
+      skip_build_check:
+        description: "pula o build de conferência dos apps (o CD já compila os APKs de release)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21" # o JDK 26 quebra o Gradle; o projeto usa o 21
+
+jobs:
+  plan:
+    name: O que mudou
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      apps: ${{ steps.m.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: c
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          bash infra/ci/changes.sh "$base" "${{ github.sha }}"
+      - id: m
+        name: Apps afetados (matriz do build de conferência)
+        env:
+          CLIENT: ${{ steps.c.outputs.client }}
+          SERVER: ${{ steps.c.outputs.server }}
+        run: |
+          apps='[]'
+          [ "$CLIENT" = true ] && apps="$(jq -c '. + [{"app":"client","dir":"mobile-client"}]' <<<"$apps")"
+          [ "$SERVER" = true ] && apps="$(jq -c '. + [{"app":"server","dir":"mobile-server"}]' <<<"$apps")"
+          echo "apps=$apps" >> "$GITHUB_OUTPUT"
+
+  lint:
+    name: Scripts e workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Testes dos scripts do pipeline (registro de APK, o que mudou, deploy/rollback com projeto de mentira)
+        run: |
+          node --test infra/ci/publish-prebuilt.test.mjs
+          bash infra/ci/changes.test.sh
+          bash infra/ci/deploy.test.sh
+      - name: shellcheck
+        run: shellcheck -S warning -x infra/ci/*.sh
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color
+
+  backend:
+    name: Backend (tipos + testes com Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rayka_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/rayka_test
+      NO_COLOR: "1"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - name: Migrations no banco de teste
+        run: DATABASE_URL="$TEST_DATABASE_URL" npm run migrate
+      - name: Testes
+        run: |
+          npm test 2>&1 | tee test.log
+          # sem TEST_DATABASE_URL os testes de integração são PULADOS em silêncio: aqui isso é falha
+          if grep -Eq '[0-9]+ (skipped|todo)' test.log; then echo "::error::há testes pulados: os de integração precisam rodar"; exit 1; fi
+
+  web:
+    name: Frontend + build do site/API
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: backend
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npx tsc --noEmit
+        working-directory: frontend
+      # compila sem nenhum .env (como no servidor de build): pega página que lê banco/segredo na compilação
+      - run: npm run build
+        working-directory: backend
+      - run: npm run build
+        working-directory: frontend
+
+  flutter:
+    name: Flutter ${{ matrix.pkg }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [mobile-common, mobile-client, mobile-server]
+    defaults:
+      run:
+        working-directory: ${{ matrix.pkg }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      # --enforce-lockfile: o CI nunca resolve versões novas sozinho (reprodutível); atualize o pubspec.lock de propósito
+      - run: flutter pub get --enforce-lockfile
+      # avisos e erros reprovam; "infos" de estilo antigos não (33 no app de gestão hoje; reduza aos poucos)
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+
+  android-check:
+    name: Build de conferência ${{ matrix.app }}
+    needs: [plan, flutter]
+    if: ${{ !inputs.skip_build_check && needs.plan.outputs.apps != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.apps) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ matrix.app }}-${{ hashFiles('mobile-*/android/**/*.gradle*', 'mobile-*/android/gradle/wrapper/gradle-wrapper.properties', 'mobile-*/pubspec.lock') }}
+          restore-keys: gradle-${{ runner.os }}-${{ matrix.app }}-
+      - name: Compila (debug, só arm64) para pegar erro de build do Android cedo
+        working-directory: ${{ matrix.dir }}
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter build apk --debug --target-platform android-arm64
+
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [plan, lint, backend, web, flutter, android-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tudo precisa ter passado (ou sido corretamente pulado)
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' >/dev/null

@@ -1,0 +1,30 @@
+# Volta o site/API para a release anterior (ou outra) no servidor. Dispare em Actions → Rollback → Run workflow.
+# O banco não volta (as migrations são aditivas); os backups estão em /srv/rayka/backups.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Pasta da release (vazio = a anterior). Ex.: releases/20261003-171500-ab12cd34"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: [self-hosted, linux, rayka-prod]
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rollback
+        env:
+          TARGET: ${{ inputs.release }}
+        run: bash infra/ci/rollback.sh "$TARGET"

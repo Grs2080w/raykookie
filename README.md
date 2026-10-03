@@ -39,6 +39,11 @@ bash infra/check.sh            # backend + frontend + mobile
 bash infra/check.sh --fast     # só tipos e testes, sem build
 ```
 
+## Pipeline (GitHub Actions)
+
+Testes em todo PR e, na `main`, publicação automática do site/API e dos apps Android (só o que mudou), com assinatura dos APKs, backup do banco,
+health check e rollback. Desenho, segredos e passo a passo para ligar: [docs/CI-CD.md](docs/CI-CD.md).
+
 ## Subir em produção (systemd)
 
 ```bash

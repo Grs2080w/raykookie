@@ -1,0 +1,4 @@
+# etiquetas do runner self-hosted que fica no servidor de produção (veja docs/CI-CD.md)
+self-hosted-runner:
+  labels:
+    - rayka-prod
