@@ -10,10 +10,11 @@ import 'features/customer/brand.dart';
 import 'router.dart';
 
 class RaykookieApp extends StatefulWidget {
-  const RaykookieApp({super.key, required this.session, this.initialLocation = '/', this.push});
+  const RaykookieApp({super.key, required this.session, this.initialLocation = '/', this.push, this.theme});
   final Session session;
   final CustomerPush? push; // avisos do pedido; nulo nos testes = sem avisos
   final String initialLocation;
+  final ThemeController? theme; // nulo (ex.: testes) = um controller novo, sem persistência
   @override
   State<RaykookieApp> createState() => _RaykookieAppState();
 }
@@ -21,6 +22,7 @@ class RaykookieApp extends StatefulWidget {
 class _RaykookieAppState extends State<RaykookieApp> {
   late final GoRouter _router = buildRouter(widget.session, initialLocation: widget.initialLocation);
   late final CustomerPush _push = widget.push ?? CustomerPush();
+  late final ThemeController _theme = widget.theme ?? ThemeController();
 
   @override
   void initState() {
@@ -39,16 +41,21 @@ class _RaykookieAppState extends State<RaykookieApp> {
         providers: [
           ChangeNotifierProvider.value(value: widget.session),
           ChangeNotifierProvider<CustomerPush>.value(value: _push),
+          ChangeNotifierProvider.value(value: _theme),
         ],
-        child: MaterialApp.router(
-          title: 'Raykookie',
-          debugShowCheckedModeBanner: false,
-          routerConfig: _router,
-          scaffoldMessengerKey: messengerKey,
-          theme: brandTheme, // a loja é sempre clara, com o rosa da marca
-          locale: const Locale('pt', 'BR'),
-          supportedLocales: const [Locale('pt', 'BR')],
-          localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
+        child: Consumer<ThemeController>(
+          builder: (context, theme, _) => MaterialApp.router(
+            title: 'Raykookie',
+            debugShowCheckedModeBanner: false,
+            routerConfig: _router,
+            scaffoldMessengerKey: messengerKey,
+            theme: brandTheme,
+            darkTheme: brandDarkTheme,
+            themeMode: theme.mode,
+            locale: const Locale('pt', 'BR'),
+            supportedLocales: const [Locale('pt', 'BR')],
+            localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
+          ),
         ),
       );
 }

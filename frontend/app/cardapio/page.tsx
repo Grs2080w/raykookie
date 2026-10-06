@@ -5,6 +5,7 @@ import { ShareMenu } from '@/components/ShareMenu';
 import { MenuList } from '@/components/site/MenuList';
 import { apiPublic } from '@/lib/server-api';
 import type { Menu } from '@shared/types';
+import { leadDaysLabel } from '@shared/shop';
 
 export const dynamic = 'force-dynamic'; // o cardápio vem das receitas do painel
 
@@ -42,7 +43,7 @@ export default async function Page() {
 
       <footer className="border-t border-line bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-8 text-center text-sm text-muted md:flex-row md:justify-between md:px-8">
-          <p>Confeitaria feita à mão · Encomendas com 2 dias de antecedência.</p>
+          <p>Confeitaria feita à mão · Encomendas com {leadDaysLabel()}.</p>
           <nav aria-label="Documentos legais" className="flex gap-1 font-semibold">
             <Link href="/termos" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Termos de Serviço</Link>
             <Link href="/privacidade" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Privacidade</Link>

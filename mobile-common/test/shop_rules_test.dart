@@ -22,8 +22,8 @@ void main() {
       expect(check(base(), {}), contains('pelo menos um item'));
     });
     test('exige antecedência mínima e data', () {
-      expect(check(base()..scheduledFor = '2026-10-02', {'1': 1}), contains('antecedência'));
-      expect(check(base()..scheduledFor = '2026-10-03', {'1': 1}), isNull);
+      expect(check(base()..scheduledFor = '2026-10-01', {'1': 1}), contains('antecedência'));
+      expect(check(base()..scheduledFor = '2026-10-02', {'1': 1}), isNull);
       expect(check(base()..scheduledFor = '', {'1': 1}), contains('data'));
     });
     test('entrega exige endereço completo', () {

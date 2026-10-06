@@ -167,6 +167,15 @@ class _MyDataScreenState extends State<MyDataScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 40), children: [
                       Text('Aqui você vê o que guardamos sobre você e exerce seus direitos da LGPD, sem precisar falar com ninguém.', style: TextStyle(color: c.muted)),
+                      _card('Aparência', [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Tema escuro', style: TextStyle(fontWeight: FontWeight.w700)),
+                          value: Theme.of(context).brightness == Brightness.dark,
+                          activeTrackColor: c.pink,
+                          onChanged: (_) => context.read<ThemeController>().toggle(Theme.of(context).brightness),
+                        ),
+                      ]),
                       _card('O que guardamos sobre você', [
                         Text('E-mail: ${d['email']}'),
                         Text('Login: ${[if (d['has_password'] == true) 'e-mail e senha', if (d['has_google'] == true) 'Google'].join(' e ')}'),

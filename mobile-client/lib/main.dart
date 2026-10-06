@@ -9,10 +9,13 @@ import 'core/customer_push.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Intl.defaultLocale = 'pt_BR';
+  final prefs = await SharedPreferences.getInstance();
+  final theme = ThemeController(prefs);
+  await theme.load();
   final session = Session(store: const SecureTokenStore());
   // Sem internet, não trava a abertura do app: segue com o que estiver salvo.
   await session.load().timeout(const Duration(seconds: 8), onTimeout: () {});
-  final push = FirebaseCustomerPush(session: session, prefs: await SharedPreferences.getInstance());
+  final push = FirebaseCustomerPush(session: session, prefs: prefs);
   await push.init().timeout(const Duration(seconds: 8), onTimeout: () {}); // sem Firebase neste build: segue sem avisos
-  runApp(RaykookieApp(session: session, push: push));
+  runApp(RaykookieApp(session: session, theme: theme, push: push));
 }

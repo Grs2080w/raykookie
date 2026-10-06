@@ -12,7 +12,7 @@ import { api } from '@/lib/client';
 import type { Customer, Menu } from '@shared/types';
 import { money } from '@/lib/format';
 import {
-  cartTotal, formatCep, formatPhone, FULFILLMENT, LEAD_DAYS, MAX_QTY, onlyDigits, PAYMENT_METHODS, parseShopOrder, photoKind,
+  cartTotal, formatCep, formatPhone, FULFILLMENT, LEAD_DAYS, leadDaysLabel, MAX_QTY, onlyDigits, PAYMENT_METHODS, parseShopOrder, photoKind,
   TIME_WINDOWS, 
 } from '@shared/shop';
 import { addDays } from '@shared/text';
@@ -168,7 +168,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
           </Card>
         )}
         <Card className="mt-3 grid gap-4 p-4 sm:grid-cols-2">
-          <Field label={f.fulfillment === 'entrega' ? 'Data da entrega' : 'Data da retirada'} hint={`Encomendas com pelo menos ${LEAD_DAYS} dias de antecedência.`}>
+          <Field label={f.fulfillment === 'entrega' ? 'Data da entrega' : 'Data da retirada'} hint={`Encomendas com pelo menos ${leadDaysLabel()}.`}>
             {(id) => <Input id={id} type="date" min={minDate} value={f.scheduled_for} onChange={(e) => set({ scheduled_for: e.target.value })} />}
           </Field>
           <Field label="Período">

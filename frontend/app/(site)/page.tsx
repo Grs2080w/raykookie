@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Photo, type PhotoKind } from '@/components/site/Photo';
 import { money } from '@/lib/format';
-import { LEAD_DAYS, photoKind } from '@shared/shop';
+import { leadDaysLabel, photoKind } from '@shared/shop';
 import { apiPublic } from '@/lib/server-api';
 import { AppDownload } from '@/components/AppDownload';
 import { MobileOrderBar } from '@/components/site/MobileOrderBar';
 import { MenuList } from '@/components/site/MenuList';
+import { InstagramCard } from '@/components/site/InstagramCard';
 import { ShareMenu } from '@/components/ShareMenu';
 import type { AppReleases, Menu } from '@shared/types';
 
@@ -21,10 +22,10 @@ const PEDIR = '/cliente';
 // o cardápio vem das receitas do painel; a página é refeita a cada 30 s
 export const dynamic = 'force-dynamic'; // o cardápio é buscado do backend (cache de 30 s no fetch)
 
-const GALLERY: { kind: PhotoKind; label: string; tall?: boolean }[] = [
-  { kind: 'cookie', label: 'Cookies recém-saídos do forno', tall: true },
+const GALLERY: { kind: PhotoKind; label: string; tall?: boolean; src?: string }[] = [
+  { kind: 'cookie', label: 'Cookies recém-saídos do forno', tall: true, src: '/fotos/cookie-destaque.jpg' },
   { kind: 'bolo', label: 'Bolo decorado para festa' },
-  { kind: 'brownie', label: 'Brownies com casquinha crocante' },
+  { kind: 'brownie', label: 'Brownies com casquinha crocante', src: '/fotos/brownie-destaque.jpg' },
   { kind: 'torta', label: 'Torta de limão maçaricada', tall: true },
   { kind: 'embalagem', label: 'Caixa de presente' },
   { kind: 'bancada', label: 'Nossa bancada de trabalho' },
@@ -86,8 +87,8 @@ export default async function Landing() {
             </div>
             <div className="grid grid-cols-2 gap-3" aria-hidden={false}>
               <Photo kind="bolo" label="Bolo decorado" className="row-span-2 min-h-64" />
-              <Photo kind="cookie" label="Cookies" className="aspect-square" />
-              <Photo kind="brownie" label="Brownies" className="aspect-square" />
+              <Photo kind="cookie" src="/fotos/cookie-destaque.jpg" label="Cookies" className="aspect-square" />
+              <Photo kind="brownie" src="/fotos/brownie-destaque.jpg" label="Brownies" className="aspect-square" />
             </div>
           </div>
         </section>
@@ -98,7 +99,7 @@ export default async function Landing() {
             {[
               { i: Heart, t: 'Feito à mão', d: 'Cada receita é preparada do zero, sem pressa.' },
               { i: Wheat, t: 'Ingredientes selecionados', d: 'Chocolate de verdade, manteiga e frutas frescas.' },
-              { i: CalendarClock, t: 'Sob encomenda', d: `Peça com pelo menos ${LEAD_DAYS} dias de antecedência.` },
+              { i: CalendarClock, t: 'Sob encomenda', d: `Peça com pelo menos ${leadDaysLabel()}.` },
             ].map(({ i: Icon, t, d }) => (
               <li key={t} className="flex items-start gap-3.5">
                 <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-pink-tint text-pink-strong"><Icon size={22} /></span>
@@ -127,7 +128,7 @@ export default async function Landing() {
           <ul className="mx-auto mt-6 flex max-w-6xl snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-8 [&::-webkit-scrollbar]:hidden">
             {GALLERY.map((g) => (
               <li key={g.label} className={`w-[72%] shrink-0 snap-center sm:w-[44%] md:w-auto ${g.tall ? 'md:row-span-2' : ''}`}>
-                <Photo kind={g.kind} label={g.label} className={g.tall ? 'aspect-[3/4] md:h-full md:min-h-96' : 'aspect-[4/3]'} />
+                <Photo kind={g.kind} src={g.src} label={g.label} className={g.tall ? 'aspect-[3/4] md:h-full md:min-h-96' : 'aspect-[4/3]'} />
               </li>
             ))}
           </ul>
@@ -156,6 +157,11 @@ export default async function Landing() {
               ))}
             </ul>
           </div>
+        </section>
+
+        {/* Instagram */}
+        <section id="instagram" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-12">
+          <InstagramCard />
         </section>
 
         {/* App para baixar */}
@@ -198,7 +204,7 @@ export default async function Landing() {
       <footer className="border-t border-line bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-10 text-center md:flex-row md:justify-between md:px-8">
           <Logo tone="claro" imgClassName="h-9" />
-          <p className="text-sm text-muted">Confeitaria feita à mão · Encomendas com {LEAD_DAYS} dias de antecedência.</p>
+          <p className="text-sm text-muted">Confeitaria feita à mão · Encomendas com {leadDaysLabel()}.</p>
           <nav aria-label="Documentos legais" className="flex gap-1 text-sm font-semibold">
             <Link href="/termos" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Termos de Serviço</Link>
             <Link href="/privacidade" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Privacidade</Link>

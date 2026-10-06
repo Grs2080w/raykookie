@@ -357,7 +357,7 @@ class _OrderFormState extends State<_OrderForm> {
                   child: Column(children: [
                     LabeledField(
                       label: _form.fulfillment == 'entrega' ? 'Data da entrega' : 'Data da retirada',
-                      hint: 'Encomendas com pelo menos ${AppConfig.leadDays} dias de antecedência.',
+                      hint: 'Encomendas com pelo menos ${AppConfig.leadDaysLabel}.',
                       child: InkWell(
                         onTap: _pickDate, borderRadius: BorderRadius.circular(14),
                         child: InputDecorator(

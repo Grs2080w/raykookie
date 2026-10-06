@@ -130,7 +130,7 @@ String? validateOrderStep(int step, OrderForm f, Map<String, int> cart, List<Men
       if (f.scheduledFor.isEmpty) return 'Escolha a data desejada.';
       final t = today ?? todayIso();
       if (f.scheduledFor.compareTo(addDaysIso(t, AppConfig.leadDays)) < 0) {
-        return 'Fazemos tudo sob encomenda: escolha uma data com pelo menos ${AppConfig.leadDays} dias de antecedência.';
+        return 'Fazemos tudo sob encomenda: escolha uma data com pelo menos ${AppConfig.leadDaysLabel}.';
       }
       if (f.scheduledFor.compareTo(addDaysIso(t, 180)) > 0) return 'Escolha uma data nos próximos 6 meses.';
       if (!timeWindows.any((w) => w.id == f.timeWindow)) return 'Escolha o período do dia.';

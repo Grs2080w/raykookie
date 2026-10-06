@@ -28,7 +28,7 @@ describe('documentos legais', () => {
     expect(LEGAL_PATH).toEqual({ termos: '/termos', privacidade: '/privacidade' });
   });
   it('a regra de antecedência e de quantidade do texto acompanha a loja', () => {
-    expect(JSON.stringify(LEGAL_DOCS.termos)).toMatch(/2 dias de antecedência/);
+    expect(JSON.stringify(LEGAL_DOCS.termos)).toMatch(/1 dia de antecedência/);
     expect(JSON.stringify(LEGAL_DOCS.termos)).toMatch(/50 unidades/);
   });
   it('só aceita documentos conhecidos', () => {

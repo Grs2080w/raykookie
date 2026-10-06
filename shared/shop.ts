@@ -33,7 +33,9 @@ export const TIME_WINDOWS = [
 ] as const;
 
 /** Antecedência mínima da encomenda, em dias. */
-export const LEAD_DAYS = 2;
+export const LEAD_DAYS = 1;
+/** "1 dia de antecedência" / "2 dias de antecedência" — LEAD_DAYS já com o plural certo. */
+export const leadDaysLabel = () => `${LEAD_DAYS} ${LEAD_DAYS === 1 ? 'dia' : 'dias'} de antecedência`;
 export const MAX_QTY = 50;
 
 // Status que o cliente enxerga (vêm do painel: novo, producao, pronto, entregue, cancelado).
@@ -114,7 +116,7 @@ export function parseShopOrder(b: any, today: string, menu: MenuItem[]): { error
 
   const scheduled_for = isoDate(b?.scheduled_for);
   if (!scheduled_for) return { error: 'Escolha a data desejada.' };
-  if (scheduled_for < addDays(today, LEAD_DAYS)) return { error: `Fazemos tudo sob encomenda: escolha uma data com pelo menos ${LEAD_DAYS} dias de antecedência.` };
+  if (scheduled_for < addDays(today, LEAD_DAYS)) return { error: `Fazemos tudo sob encomenda: escolha uma data com pelo menos ${leadDaysLabel()}.` };
   if (scheduled_for > addDays(today, 180)) return { error: 'Escolha uma data nos próximos 6 meses.' };
   const time_window = pick(TIME_WINDOWS, cleanText(b?.time_window));
   if (!time_window) return { error: 'Escolha o período do dia.' };

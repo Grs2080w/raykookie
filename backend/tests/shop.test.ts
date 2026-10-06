@@ -32,8 +32,8 @@ describe('parseShopOrder', () => {
     expect(parseShopOrder({ ...base, items: [] }, today, menu).error).toMatch(/pelo menos um item/);
   });
   it('exige antecedência mínima e data real', () => {
-    expect(parseShopOrder({ ...base, scheduled_for: '2026-10-02' }, today, menu).error).toMatch(/antecedência/);
-    expect(parseShopOrder({ ...base, scheduled_for: '2026-10-03' }, today, menu).error).toBeUndefined();
+    expect(parseShopOrder({ ...base, scheduled_for: '2026-10-01' }, today, menu).error).toMatch(/antecedência/);
+    expect(parseShopOrder({ ...base, scheduled_for: '2026-10-02' }, today, menu).error).toBeUndefined();
     expect(parseShopOrder({ ...base, scheduled_for: '2026-02-31' }, today, menu).error).toMatch(/data/i);
   });
   it('entrega exige endereço completo; retirada descarta o endereço', () => {

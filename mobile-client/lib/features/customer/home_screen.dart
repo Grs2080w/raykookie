@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:raykookie_common/core/config.dart';
 import 'package:raykookie_common/core/format.dart';
@@ -102,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _gallery(context),
                   _menuSection(context),
                   _reviews(context),
+                  _instagram(context),
                   _orderArea(context),
                   _footer(context),
                 ],
@@ -220,9 +222,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Column(
                       children: const [
-                        Expanded(child: PhotoTile(kind: 'cookie', radius: 26)),
+                        Expanded(child: PhotoTile(kind: 'cookie', url: 'https://raykookie.kntap.com.br/fotos/cookie-destaque.jpg', radius: 26)),
                         SizedBox(height: 10),
-                        Expanded(child: PhotoTile(kind: 'brownie', radius: 26)),
+                        Expanded(child: PhotoTile(kind: 'brownie', url: 'https://raykookie.kntap.com.br/fotos/brownie-destaque.jpg', radius: 26)),
                       ],
                     ),
                   ),
@@ -251,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
       (
         Icons.event_available_outlined,
         'Sob encomenda',
-        'Peça com pelo menos ${AppConfig.leadDays} dias de antecedência.',
+        'Peça com pelo menos ${AppConfig.leadDaysLabel}.',
       ),
     ];
     return Container(
@@ -344,6 +346,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Fotos reais só para alguns tipos; os demais seguem com a arte ilustrativa (PhotoTile cai para ela sem url).
+  static const _photoUrls = {
+    'cookie': 'https://raykookie.kntap.com.br/fotos/cookie-destaque.jpg',
+    'brownie': 'https://raykookie.kntap.com.br/fotos/brownie-destaque.jpg',
+  };
+
   Widget _gallery(BuildContext context) {
     const shots = [
       ('cookie', 'Cookies recém-saídos do forno'),
@@ -377,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, i) => SizedBox(
                 width: 260,
-                child: PhotoTile(kind: shots[i].$1, radius: 26, size: null),
+                child: PhotoTile(kind: shots[i].$1, url: _photoUrls[shots[i].$1], radius: 26, size: null),
               ),
             ),
           ),
@@ -685,6 +693,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _instagram(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Centered(
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => launchUrl(
+              Uri.parse('https://www.instagram.com/raykookies'),
+              mode: LaunchMode.externalApplication,
+            ),
+            child: Ink(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF)],
+                ),
+              ),
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 3),
+                    ),
+                    child: const RkLogo(variant: 'simbolo', height: 48),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.camera_alt_rounded, size: 15, color: Colors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              'INSTAGRAM',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '@raykookies',
+                          style: display(context, size: 20, color: Colors.white),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Fotos novas e bastidores da confeitaria. Vem seguir!',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _orderArea(BuildContext context) {
     const steps = [
       ('1', 'Entre ou crie sua conta', 'Com o Google ou com e-mail e senha.'),
@@ -795,7 +881,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const RkLogo(height: 34),
           const SizedBox(height: 12),
           Text(
-            'Confeitaria feita à mão · Encomendas com ${AppConfig.leadDays} dias de antecedência.',
+            'Confeitaria feita à mão · Encomendas com ${AppConfig.leadDaysLabel}.',
             textAlign: TextAlign.center,
             style: TextStyle(color: c.muted, fontSize: 13),
           ),

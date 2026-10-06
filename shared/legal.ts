@@ -1,7 +1,7 @@
 // Termos de Serviço e Política de Privacidade da raykookie: uma única fonte de texto para o site (páginas
 // /termos e /privacidade) e para os apps (que leem de GET /api/legal/<documento>).
 // Revise com um advogado antes de divulgar e preencha os dados da empresa em LEGAL_ENTITY.
-import { LEAD_DAYS, MAX_QTY } from './shop';
+import { leadDaysLabel, MAX_QTY } from './shop';
 import { REFUND_WINDOW_HOURS } from './refund';
 
 /** Dados de quem opera a loja. Campos vazios não aparecem nos documentos. */
@@ -61,7 +61,7 @@ const TERMOS: LegalDoc = {
     {
       h: '4. Encomendas',
       ul: [
-        `Trabalhamos somente sob encomenda: escolha a data da entrega ou retirada com pelo menos ${LEAD_DAYS} dias de antecedência.`,
+        `Trabalhamos somente sob encomenda: escolha a data da entrega ou retirada com pelo menos ${leadDaysLabel()}.`,
         `O cardápio, os preços e as quantidades mostrados no site e no aplicativo são os válidos no momento do pedido. O limite é de ${MAX_QTY} unidades por item em cada pedido; para quantidades maiores, fale com a gente.`,
         'Você escolhe retirar no local ou receber em casa. Se houver taxa de entrega, avisamos pelo WhatsApp. Informe o endereço completo e correto: atrasos ou falhas causados por dados errados são de responsabilidade de quem os informou.',
         'Todo o acompanhamento do pedido é feito pelo site e pelo aplicativo, onde você vê cada etapa (recebido, em preparo, pronto e entregue). Só entramos em contato pelo WhatsApp ou pelo telefone informado quando for necessário, por exemplo para tirar uma dúvida sobre o pedido.',
