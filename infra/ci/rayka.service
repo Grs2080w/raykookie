@@ -1,0 +1,23 @@
+[Unit]
+Description=Rayka - API + site + loja + painel (um processo, uma porta)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+# "current" é um link que o pipeline troca a cada deploy (infra/ci/deploy.sh); o restart pega a release nova
+WorkingDirectory=@ROOT@/current/backend
+EnvironmentFile=@ROOT@/shared/backend.env
+Environment=NODE_ENV=production
+Environment=PORT=10005
+Environment=DOWNLOADS_DIR=@ROOT@/shared/downloads
+ExecStart=@NODE@ server.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

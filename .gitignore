@@ -18,8 +18,13 @@ mobile-*/android/key.properties
 *.keystore
 *.apk
 *.aab
-# APKs publicados (o manifesto fica; os arquivos são artefatos de build)
-downloads/*.apk
+# APKs publicados: com o pipeline (docs/CI-CD.md) quem publica é o CD, direto no servidor (/srv/rayka/shared/downloads);
+# a pasta local só recebe o que você publicar à mão com infra/publish-apps.sh
+downloads/*
+!downloads/.gitkeep
 # sobras da migração e backups
 .legacy-*/
 *.tar.gz
+# sessão local do Claude Code; Vercel CLI
+.claude/
+.vercel

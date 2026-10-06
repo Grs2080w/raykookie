@@ -1,0 +1,27 @@
+# Atualizações semanais (um PR agrupado por ecossistema). Cada PR passa pelo mesmo CI antes de entrar.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly }
+    groups:
+      backend-deps: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups:
+      frontend-deps: { update-types: [minor, patch] }
+  - package-ecosystem: pub
+    directory: /mobile-common
+    schedule: { interval: weekly }
+  - package-ecosystem: pub
+    directory: /mobile-client
+    schedule: { interval: weekly }
+  - package-ecosystem: pub
+    directory: /mobile-server
+    schedule: { interval: weekly }
