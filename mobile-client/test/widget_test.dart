@@ -8,11 +8,13 @@ import 'package:image_picker_platform_interface/image_picker_platform_interface.
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:raykookie/app.dart';
 import 'package:raykookie_common/core/app_info.dart';
+import 'package:raykookie_common/core/config.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/ui/share_menu.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
 import 'package:raykookie/core/customer_push.dart';
+import 'package:raykookie/features/customer/customer_auth_screen.dart' show googleAuthenticate;
 
 import 'helpers.dart';
 
@@ -102,6 +104,57 @@ void main() {
       expect(be.bodies['POST /api/cliente/login'], {'email': 'joana@example.com', 'password': 'SenhaJoana2026'});
       expect(find.text('Meus pedidos'), findsOneWidget);
       expect(find.text('Você ainda não fez pedidos'), findsOneWidget);
+    });
+
+    group('login com Google', () {
+      setUp(() {
+        addTearDown(() => AppConfig.googleServerClientIdOverride = null);
+        final orig = googleAuthenticate;
+        addTearDown(() => googleAuthenticate = orig);
+      });
+
+      testWidgets('sem GOOGLE_SERVER_CLIENT_ID configurado (como em produção hoje), só avisa e não tenta entrar', (t) async {
+        AppConfig.googleServerClientIdOverride = null; // build sem --dart-define=GOOGLE_SERVER_CLIENT_ID: é o estado real de produção
+        var called = false;
+        googleAuthenticate = (_) async { called = true; return 'algum-token'; };
+        final be = FakeBackend({'GET /api/menu': (_) => (200, menuJson)});
+        await pumpApp(t, be, at: '/cliente/entrar');
+        await t.tap(find.text('Continuar com o Google'));
+        await t.pump(const Duration(milliseconds: 300));
+        expect(find.text('O login com o Google ainda não está disponível. Entre com e-mail e senha.'), findsOneWidget);
+        expect(called, isFalse); // nem chega a chamar o Google
+        expect(be.calls, isEmpty); // nem chega a chamar o backend
+        expect(find.text('Entre para fazer seu pedido'), findsOneWidget); // continua na tela de login
+      });
+
+      testWidgets('com GOOGLE_SERVER_CLIENT_ID configurado, entra com o token do Google e vai para os pedidos', (t) async {
+        AppConfig.googleServerClientIdOverride = 'web-client-id.apps.googleusercontent.com';
+        String? usedServerClientId;
+        googleAuthenticate = (serverClientId) async { usedServerClientId = serverClientId; return 'id-token-do-google'; };
+        final be = FakeBackend({
+          'POST /api/cliente/google/token': (_) => (200, {'ok': true, 'token': 'tok-google'}),
+          'GET /api/cliente/me': (_) => (200, customerJson),
+          'GET /api/cliente/pedidos': (_) => (200, []),
+          'GET /api/menu': (_) => (200, menuJson),
+        });
+        await pumpApp(t, be, at: '/cliente/entrar');
+        await t.tap(find.text('Continuar com o Google'));
+        await t.pumpAndSettle(const Duration(milliseconds: 100));
+        expect(usedServerClientId, 'web-client-id.apps.googleusercontent.com');
+        expect(be.bodies['POST /api/cliente/google/token'], {'idToken': 'id-token-do-google'});
+        expect(find.text('Meus pedidos'), findsOneWidget);
+      });
+
+      testWidgets('o Google não devolve idToken: mostra erro e não chama o backend', (t) async {
+        AppConfig.googleServerClientIdOverride = 'web-client-id.apps.googleusercontent.com';
+        googleAuthenticate = (_) async => null;
+        final be = FakeBackend({'GET /api/menu': (_) => (200, menuJson)});
+        await pumpApp(t, be, at: '/cliente/entrar');
+        await t.tap(find.text('Continuar com o Google'));
+        await t.pump(const Duration(milliseconds: 300));
+        expect(find.text('O Google não devolveu a identificação. Tente de novo.'), findsOneWidget);
+        expect(be.calls, isEmpty);
+      });
     });
 
     testWidgets('senha curta no cadastro mostra aviso amigável e não chama o servidor', (t) async {

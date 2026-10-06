@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'motion/react';
-import { ChefHat, ClipboardList, LayoutDashboard, LogOut, MapPin, Package, Settings, ShieldCheck, Store, Tags, Target, Undo2 } from 'lucide-react';
+import { ChefHat, ClipboardList, LayoutDashboard, LogOut, MapPin, MessageSquareHeart, Package, Settings, ShieldCheck, Store, Tags, Target, Undo2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ const NAV = [
   { href: '/pedidos', label: 'Pedidos', icon: ClipboardList },
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/devolucoes', label: 'Devoluções', icon: Undo2 },
+  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart },
   { href: '/fornecedores', label: 'Fornecedores', icon: Store },
   { href: '/categorias', label: 'Categorias', icon: Tags },
   { href: '/enderecos', label: 'Endereço de retirada', icon: MapPin },

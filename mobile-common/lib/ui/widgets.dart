@@ -394,13 +394,14 @@ class PhotoTile extends StatelessWidget {
 }
 
 class RkLogo extends StatelessWidget {
-  const RkLogo({super.key, this.variant = 'principal', this.tone = 'fundo-claro', this.height = 36});
+  const RkLogo({super.key, this.variant = 'principal', this.tone, this.height = 36});
   final String variant; // principal | compacta | simbolo
-  final String tone; // fundo-claro | fundo-escuro | sobre-rosa
+  final String? tone; // fundo-claro | fundo-escuro | mono-claro | mono-escuro | sobre-rosa · null = pelo tema (claro: fundo-claro, escuro: mono-claro)
   final double height;
   @override
   Widget build(BuildContext context) {
-    final file = variant == 'simbolo' ? 'raykookie-simbolo-cookie' : 'raykookie-$variant-$tone';
+    final t = tone ?? (Theme.of(context).brightness == Brightness.dark ? 'mono-claro' : 'fundo-claro');
+    final file = variant == 'simbolo' ? 'raykookie-simbolo-cookie' : 'raykookie-$variant-$t';
     return SvgPicture.asset('assets/brand/$file.svg', height: height, semanticsLabel: 'Raykookie');
   }
 }

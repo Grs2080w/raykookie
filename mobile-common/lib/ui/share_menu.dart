@@ -8,7 +8,8 @@ import '../core/config.dart';
 import 'toast.dart';
 
 /// Endereço da página só com o cardápio (a mesma do site): quem recebe o link vê os itens e, ao pedir, entra na conta e cai no novo pedido.
-String menuShareUrl() => '${AppConfig.apiBase.replaceAll(RegExp(r'/$'), '')}/cardapio';
+/// Usa siteBase (o site), nunca apiBase (só responde /api/*, não tem a página /cardapio).
+String menuShareUrl() => '${AppConfig.siteBase.replaceAll(RegExp(r'/$'), '')}/cardapio';
 
 /// Quem de fato abre a folha de compartilhar (os testes trocam por uma versão que falha ou responde na hora).
 @visibleForTesting

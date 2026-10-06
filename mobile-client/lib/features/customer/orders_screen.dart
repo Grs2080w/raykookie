@@ -663,7 +663,7 @@ class _PixBoxState extends State<_PixBox> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: c.surface,
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Row(
@@ -743,7 +743,7 @@ class _PixBoxState extends State<_PixBox> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: c.surface,
               borderRadius: BorderRadius.circular(12),
             ),
             child: SelectableText(

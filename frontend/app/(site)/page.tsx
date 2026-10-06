@@ -23,14 +23,22 @@ const PEDIR = '/cliente';
 // o cardápio vem das receitas do painel; a página é refeita a cada 30 s
 export const dynamic = 'force-dynamic'; // o cardápio é buscado do backend (cache de 30 s no fetch)
 
-const GALLERY: { kind: PhotoKind; label: string; tall?: boolean; src?: string }[] = [
-  { kind: 'cookie', label: 'Cookies recém-saídos do forno', tall: true, src: '/fotos/cookie-destaque.jpg' },
+const GALLERY_SLOTS: { kind: PhotoKind; label: string; tall?: boolean }[] = [
+  { kind: 'cookie', label: 'Cookies recém-saídos do forno', tall: true },
   { kind: 'bolo', label: 'Bolo decorado para festa' },
-  { kind: 'brownie', label: 'Brownies com casquinha crocante', src: '/fotos/brownie-destaque.jpg' },
+  { kind: 'brownie', label: 'Brownies com casquinha crocante' },
   { kind: 'torta', label: 'Torta de limão maçaricada', tall: true },
   { kind: 'embalagem', label: 'Caixa de presente' },
   { kind: 'bancada', label: 'Nossa bancada de trabalho' },
 ];
+
+/** Pega uma foto real do cardápio para essa categoria (nunca repete a mesma foto na página); sem foto real, fica a ilustração. */
+function pickPhoto(menu: Menu, kind: PhotoKind, used: Set<string>): { src?: string; label?: string } {
+  const m = menu.items.find((i) => i.image && !used.has(i.image) && photoKind(i) === kind);
+  if (!m?.image) return {};
+  used.add(m.image);
+  return { src: m.image, label: m.name };
+}
 
 const REVIEWS = [
   { name: 'Mariana S.', text: 'O bolo chegou lindo e estava ainda mais gostoso do que parecia. Todo mundo na festa pediu o contato!', when: 'Aniversário de 30 anos' },
@@ -55,6 +63,15 @@ export default async function Landing() {
     apiPublic<Menu>('/api/menu').then((m) => m ?? { items: [], groups: [] }),
     apiPublic<AppReleases>('/api/downloads', 15).then((r) => r ?? {}),
   ]);
+  // Fotos reais do cardápio no lugar das ilustrações/placeholders, sem repetir a mesma foto na página.
+  const usedPhotos = new Set<string>();
+  const heroBolo = pickPhoto(menu, 'bolo', usedPhotos);
+  const heroCookie = pickPhoto(menu, 'cookie', usedPhotos);
+  const heroBrownie = pickPhoto(menu, 'brownie', usedPhotos);
+  // sem foto própria no cardápio ainda: usa as fotos de vitrine já capturadas, em vez de deixar sem foto nenhuma
+  heroCookie.src ??= '/fotos/cookie-destaque.jpg';
+  heroBrownie.src ??= '/fotos/brownie-destaque.jpg';
+  const GALLERY = GALLERY_SLOTS.map((s) => ({ ...s, ...pickPhoto(menu, s.kind, usedPhotos) }));
   return (
     <div className="brand-scope min-h-dvh overflow-x-clip pb-24 md:pb-0">
       {/* Cabeçalho */}
@@ -87,9 +104,9 @@ export default async function Landing() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3" aria-hidden={false}>
-              <Photo kind="bolo" label="Bolo decorado" className="row-span-2 min-h-64" />
-              <Photo kind="cookie" src="/fotos/cookie-destaque.jpg" label="Cookies" className="aspect-square" />
-              <Photo kind="brownie" src="/fotos/brownie-destaque.jpg" label="Brownies" className="aspect-square" />
+              <Photo kind="bolo" src={heroBolo.src} label={heroBolo.label ?? 'Bolo decorado'} className="row-span-2 min-h-64" />
+              <Photo kind="cookie" src={heroCookie.src} label={heroCookie.label ?? 'Cookies'} className="aspect-square" />
+              <Photo kind="brownie" src={heroBrownie.src} label={heroBrownie.label ?? 'Brownies'} className="aspect-square" />
             </div>
           </div>
         </section>
@@ -128,7 +145,7 @@ export default async function Landing() {
           </div>
           <ul className="mx-auto mt-6 flex max-w-6xl snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-8 [&::-webkit-scrollbar]:hidden">
             {GALLERY.map((g) => (
-              <li key={g.label} className={`w-[72%] shrink-0 snap-center sm:w-[44%] md:w-auto ${g.tall ? 'md:row-span-2' : ''}`}>
+              <li key={g.kind} className={`w-[72%] shrink-0 snap-center sm:w-[44%] md:w-auto ${g.tall ? 'md:row-span-2' : ''}`}>
                 <Photo kind={g.kind} src={g.src} label={g.label} className={g.tall ? 'aspect-[3/4] md:h-full md:min-h-96' : 'aspect-[4/3]'} />
               </li>
             ))}

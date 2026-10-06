@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:raykookie_common/core/api_client.dart';
+import 'package:raykookie_common/core/config.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/theme.dart';
@@ -30,7 +31,7 @@ class _CardapioScreenState extends State<CardapioScreen> {
         title: const Text('Editor de cardápio'),
         actions: [
           TextButton.icon(
-            onPressed: () => launchUrl(Uri.parse('https://raykookie.kntap.com.br/cardapio'), mode: LaunchMode.externalApplication),
+            onPressed: () => launchUrl(Uri.parse('${AppConfig.siteBase}/cardapio'), mode: LaunchMode.externalApplication),
             icon: const Icon(Icons.visibility_outlined),
             label: const Text('Ver cardápio'),
           ),
