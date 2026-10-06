@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _hero(BuildContext context) {
     final c = context.c;
     return Container(
-      color: AppColors.rkRosaClaro,
+      color: c.surface2,
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
       child: Centered(
@@ -353,6 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
   };
 
   Widget _gallery(BuildContext context) {
+    final c = context.c;
     const shots = [
       ('cookie', 'Cookies recém-saídos do forno'),
       ('bolo', 'Bolo decorado para festa'),
@@ -362,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ('bancada', 'Nossa bancada de trabalho'),
     ];
     return Container(
-      color: AppColors.rkRosaClaro,
+      color: c.surface2,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
@@ -636,7 +637,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
     return Container(
-      color: AppColors.rkRosaClaro,
+      color: c.surface2,
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
       child: Centered(
