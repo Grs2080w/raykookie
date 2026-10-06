@@ -1,8 +1,10 @@
-# Entrega contínua. Todo push na main: roda o CI inteiro e, se passar, publica SÓ o que mudou:
-#   • apps Android (cliente / gestão): compilados e ASSINADOS na nuvem, conferidos contra o fingerprint de produção,
-#     depois registrados em downloads/ do servidor (o site e os apps leem o manifesto de lá);
-#   • site + API: release nova no servidor, backup do banco, migrations, troca atômica, health check e rollback automático.
-# O servidor é alcançado por um runner self-hosted (sem abrir porta nenhuma). Tudo que é segredo do servidor (.env) fica nele.
+# Entrega contínua. Todo push na main: roda o CI inteiro e, se passar, publica os apps Android que mudaram:
+#   compilados e ASSINADOS na nuvem, conferidos contra o fingerprint de produção, registrados em downloads/
+#   (um runner self-hosted grava direto no disco da máquina — é lá que o container da API lê o manifesto) e
+#   publicados como Release no GitHub.
+# O site (frontend/) é implantado pela própria integração da Vercel com o GitHub — não por este workflow.
+# A API (backend/) roda num container Docker nesta mesma máquina; este pipeline só testa (ci.yml) e publica
+# os APKs — o deploy do container é manual (a imagem muda com pouca frequência; ver backend/Dockerfile).
 name: CD
 
 on:
@@ -15,11 +17,6 @@ on:
         type: choice
         options: [both, client, server, none]
         default: both
-      web:
-        description: "Publicar o site/API?"
-        type: choice
-        options: [deploy, skip]
-        default: deploy
 
 permissions:
   contents: read
@@ -46,7 +43,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      web: ${{ steps.d.outputs.web }}
       apps: ${{ steps.d.outputs.apps }}
     steps:
       - uses: actions/checkout@v4
@@ -60,32 +56,21 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           IN_APPS: ${{ inputs.apps }}
-          IN_WEB: ${{ inputs.web }}
-          C_WEB: ${{ steps.c.outputs.web }}
           C_CLIENT: ${{ steps.c.outputs.client }}
           C_SERVER: ${{ steps.c.outputs.server }}
-          C_DOCS: ${{ steps.c.outputs.docs_only }}
         run: |
           if [ "$EVENT" = push ]; then
-            web="$C_WEB"; client="$C_CLIENT"; server="$C_SERVER"
-            [ "$C_DOCS" = true ] && { web=false; client=false; server=false; }
+            client="$C_CLIENT"; server="$C_SERVER"
           else
-            web=false; [ "$IN_WEB" = deploy ] && web=true
             client=false; server=false
             case "$IN_APPS" in both) client=true; server=true ;; client) client=true ;; server) server=true ;; esac
           fi
           apps='[]'
           [ "$client" = true ] && apps="$(jq -c '. + [{"app":"client","dir":"mobile-client","label":"cliente"}]' <<<"$apps")"
           [ "$server" = true ] && apps="$(jq -c '. + [{"app":"server","dir":"mobile-server","label":"gestão"}]' <<<"$apps")"
-          {
-            echo "web=$web"
-            echo "apps=$apps"
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo "### O que será publicado"
-            echo "- site/API: **$web**"
-            echo "- apps: \`$apps\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "apps=$apps" >> "$GITHUB_OUTPUT"
+          echo "### O que será publicado" >> "$GITHUB_STEP_SUMMARY"
+          echo "- apps: \`$apps\`" >> "$GITHUB_STEP_SUMMARY"
 
   build-apps:
     name: APK ${{ matrix.label }}
@@ -104,7 +89,7 @@ jobs:
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
-      API_BASE: ${{ vars.API_BASE || 'https://raykookie.kntap.com.br' }}
+      API_BASE: ${{ vars.API_BASE || 'https://raykookie-api.kntap.com.br' }}
       GOOGLE_SERVER_CLIENT_ID: ${{ vars.GOOGLE_SERVER_CLIENT_ID }}
       GOOGLE_SERVICES_JSON_CLIENT_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_CLIENT_BASE64 }}
       GOOGLE_SERVICES_JSON_SERVER_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_SERVER_BASE64 }}
@@ -185,32 +170,29 @@ jobs:
         run: bash infra/ci/android-signing.sh cleanup
 
   deploy:
-    name: Deploy no servidor
+    name: Publica os APKs (servidor)
     needs: [ci, plan, build-apps]
     if: >-
       ${{ always() && needs.ci.result == 'success' && needs.plan.result == 'success' &&
       (needs.build-apps.result == 'success' || needs.build-apps.result == 'skipped') &&
-      (needs.plan.outputs.web == 'true' || needs.plan.outputs.apps != '[]') }}
+      needs.plan.outputs.apps != '[]' }}
     runs-on: [self-hosted, linux, rayka-prod]
-    timeout-minutes: 45
+    timeout-minutes: 15
     environment: production
     env:
-      API_BASE: ${{ vars.API_BASE || 'https://raykookie.kntap.com.br' }}
+      API_BASE: ${{ vars.API_BASE || 'https://raykookie-api.kntap.com.br' }}
+      # pasta que o container raykookie-api lê (bind mount -> DOWNLOADS_DIR dentro dele); não é mais /srv/rayka
+      DOWNLOADS_DIR: ${{ vars.RAYKA_DOWNLOADS_DIR || '/home/g_snts/works/raykookie/downloads' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Site e API (release nova, backup, migrations, troca atômica, health check)
-        if: needs.plan.outputs.web == 'true'
-        run: bash infra/ci/deploy.sh "$GITHUB_WORKSPACE"
       - uses: actions/download-artifact@v4
-        if: needs.plan.outputs.apps != '[]'
         with:
           pattern: apk-*
           path: artifacts
       - name: Registra os APKs em downloads/ (site e apps leem o manifesto)
-        if: needs.plan.outputs.apps != '[]'
         run: |
           shopt -s nullglob
           for dir in artifacts/apk-*; do
@@ -219,13 +201,10 @@ jobs:
               --app "$(node -p "require('./$r').app")" --apk "$dir/app.apk" \
               --version "$(node -p "require('./$r').version")" --build "$(node -p "require('./$r').build")" \
               --sha256 "$(node -p "require('./$r').sha256")" --commit "$GITHUB_SHA" --api-base "$API_BASE" \
-              --downloads "${RAYKA_ROOT:-/srv/rayka}/shared/downloads"
+              --downloads "$DOWNLOADS_DIR"
           done
-      - name: Confere no ar
-        run: |
-          curl -fsS --max-time 10 http://127.0.0.1:10005/api/health
-          echo
-          curl -fsS --max-time 10 -o /dev/null -w 'site: HTTP %{http_code}\n' http://127.0.0.1:10005/
+      - name: Confere que a API está no ar (lê o manifesto que acabou de mudar)
+        run: curl -fsS --max-time 10 http://127.0.0.1:20010/api/health
 
   release:
     name: Release no GitHub

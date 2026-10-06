@@ -28,3 +28,4 @@ downloads/*
 # sessão local do Claude Code; Vercel CLI
 .claude/
 .vercel
+.env*

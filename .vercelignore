@@ -1,0 +1,13 @@
+backend/
+mobile-client/
+mobile-server/
+mobile-common/
+downloads/
+docs/
+infra/
+.claude/
+.github/
+node_modules/
+.next/
+frontend/node_modules/
+frontend/.next/
