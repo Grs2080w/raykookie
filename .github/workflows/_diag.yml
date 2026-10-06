@@ -1,0 +1,18 @@
+name: _diag
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: inspect android sdk
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_HOME/build-tools" || echo "sem build-tools"
+          ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>&1 || echo "glob vazio"
+          f="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1 || true)"
+          echo "f=[$f]"
+          if [[ -n "$f" ]]; then
+            echo "--- testando execução direta ---"
+            "$f" --version || echo "apksigner --version falhou com $?"
+          fi
