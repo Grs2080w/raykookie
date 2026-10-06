@@ -20,9 +20,9 @@ const hasFront = fs.existsSync(path.join(frontendDir, distDir));
 if (!hasFront) console.warn(`[rayka] sem build do frontend em ${frontendDir}: só a API vai responder (rode npm run build em frontend/)`);
 
 const api = next({ dev: false, dir: here });
-// o frontend usa o Next instalado na própria pasta (as dependências dele ficam lá)
-const nextFront = createRequire(path.join(frontendDir, 'package.json'))('next');
-const site = hasFront ? nextFront({ dev: false, dir: frontendDir }) : null;
+// o frontend usa o Next instalado na própria pasta (as dependências dele ficam lá). Só tenta o require
+// quando a pasta existe: sem ela (imagem Docker só com a API), createRequire falharia ao resolver 'next'.
+const site = hasFront ? createRequire(path.join(frontendDir, 'package.json'))('next')({ dev: false, dir: frontendDir }) : null;
 
 await Promise.all([api.prepare(), site?.prepare()]);
 const handleApi = api.getRequestHandler();
