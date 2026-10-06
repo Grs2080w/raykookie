@@ -72,18 +72,36 @@ d('Mercado Pago sandbox (API real, sem mocks)', () => {
     });
   });
 
-  describe('createCardPayment (código real do backend, só a rede que é real)', () => {
-    it('token + cartão de teste do Mercado Pago: aprova OU recusa por "credenciais de produção com cartão de teste" — nunca outra coisa', async () => {
-      const { createCardPayment } = await import('@/lib/mercadopago');
-      const { status: tStatus, body: tBody } = await tokenizeReal('APRO');
+  // Nomes mágicos do Mercado Pago pra simular cada resposta no sandbox (documentados em "Cartões de teste").
+  // APRO e OTHE pedem esse CPF específico; os demais aceitam qualquer CPF válido.
+  const CASES: { name: string; cpf: string; expect: 'approved' | 'in_process' | string }[] = [
+    { name: 'APRO', cpf: '12345678909', expect: 'approved' },
+    { name: 'OTHE', cpf: '12345678909', expect: 'cc_rejected_other_reason' },
+    { name: 'CONT', cpf: CPF, expect: 'in_process' },
+    { name: 'CALL', cpf: CPF, expect: 'cc_rejected_call_for_authorize' },
+    { name: 'FUND', cpf: CPF, expect: 'cc_rejected_insufficient_amount' },
+    { name: 'SECU', cpf: CPF, expect: 'cc_rejected_bad_filled_security_code' },
+    { name: 'EXPI', cpf: CPF, expect: 'cc_rejected_bad_filled_date' },
+    { name: 'FORM', cpf: CPF, expect: 'cc_rejected_bad_filled_other' },
+  ];
+
+  describe('createCardPayment (código real do backend, só a rede que é real) — cada "nome mágico" do Mercado Pago', () => {
+    it.each(CASES)('$name → $expect (ou "credenciais de produção com cartão de teste", se MP_SANDBOX_* ainda não for um usuário de teste de verdade)', async (c) => {
+      const { createCardPayment, cardFailReason } = await import('@/lib/mercadopago');
+      const { status: tStatus, body: tBody } = await tokenizeReal(c.name);
       expect(tStatus).toBe(201);
       try {
         const pay = await createCardPayment({
-          orderId: 999999, code: 1234, total: 10, email: 'teste@raykookie.com.br', name: 'Maria Teste', cpf: CPF,
+          orderId: 999999, code: 1234, total: 10, email: 'teste@raykookie.com.br', name: c.name, cpf: c.cpf,
           cardToken: tBody.id, paymentMethodId: 'master', installments: 1, attempt: 1,
         });
-        // credenciais de verdade de "usuário de teste": aprova de verdade
-        expect(pay.status).toBe('approved');
+        if (c.expect === 'approved' || c.expect === 'in_process') {
+          expect(pay.status).toBe(c.expect === 'approved' ? 'approved' : 'in_process');
+        } else {
+          expect(pay.status).toBe('rejected');
+          expect(pay.statusDetail).toBe(c.expect);
+          expect(cardFailReason(pay.statusDetail)).not.toMatch(/Não conseguimos aprovar esse cartão\. Tente outro cartão ou Pix\.$/); // teria que estar mapeado, não cair no genérico
+        }
       } catch (e: any) {
         // MP_SANDBOX_* ainda não é um usuário de teste de verdade (é o que aconteceu com as credenciais
         // testadas nesta sessão): bloqueia com esse erro específico, documentado aqui para não confundir
