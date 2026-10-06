@@ -12,12 +12,13 @@ export async function getMenu(): Promise<{ items: MenuItem[]; groups: MenuGroup[
     const [recipes, cats] = await Promise.all([getPricedRecipes(owner), getCategories(owner, 'recipe')]);
     const catName = new Map(cats.map((c) => [c.id, c.name]));
     const items: MenuItem[] = recipes
-      .filter((r) => r.pricing.rounded > 0) // receita sem ingredientes (preço zerado) não vai para a loja
+      .filter((r) => r.pricing.rounded > 0 && r.show_on_menu) // sem ingredientes (preço zerado) ou escondida pela confeiteira: não vai para a loja
       .map((r) => ({
         id: String(r.id), name: r.name, price: r.pricing.rounded,
         category: (r.category_id && catName.get(r.category_id)) || 'Outros',
         ...(r.unit_weight_g > 0 ? { weight_g: r.unit_weight_g } : {}),
         ...(r.photo_v ? { image: `/api/fotos/${r.id}?v=${r.photo_v}` } : {}),
+        ...(r.tags.length ? { tags: r.tags } : {}),
       }));
     const byCat = new Map<string, MenuItem[]>();
     for (const it of items) byCat.set(it.category, [...(byCat.get(it.category) ?? []), it]);

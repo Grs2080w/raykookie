@@ -428,6 +428,18 @@ class _OrderFormState extends State<_OrderForm> {
           Text(m.name, style: const TextStyle(fontWeight: FontWeight.w800, height: 1.2)),
           Text(money(m.price), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
           if (weightLabel(m.weightG).isNotEmpty) Text('${weightLabel(m.weightG)} cada', style: TextStyle(color: c.muted, fontSize: 13)),
+          if (m.tags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Wrap(spacing: 4, runSpacing: 4, children: [
+                for (final t in m.tags)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(color: c.pinkTint, borderRadius: BorderRadius.circular(99)),
+                    child: Text(menuTagLabel(t), style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700, fontSize: 10)),
+                  ),
+              ]),
+            ),
         ])),
         if (n > 0) ...[
           IconButton.outlined(onPressed: () => _step(m.id, -1), icon: const Icon(Icons.remove_rounded), tooltip: 'Diminuir ${m.name}', style: IconButton.styleFrom(minimumSize: const Size(44, 44))),

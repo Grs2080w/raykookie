@@ -163,3 +163,22 @@ String weightLabel(double g) {
   String n(double v) => ((v * 100).round() / 100).toString().replaceAll(RegExp(r'\.0$'), '').replaceAll('.', ',');
   return g >= 1000 ? '${n(g / 1000)} kg' : '${n(g)} g';
 }
+
+/// Rótulo de uma característica do cardápio (ver editor no painel). Porte de menuTagLabel (shared/menu-tags.ts) —
+/// mesma lista fixa de ids nos dois lados.
+const Map<String, String> _menuTagLabels = {
+  'vegano': 'Vegano',
+  'vegetariano': 'Vegetariano',
+  'sem_gluten': 'Sem glúten',
+  'sem_lactose': 'Sem lactose',
+  'contem_gluten': 'Contém glúten',
+  'contem_leite': 'Contém leite',
+  'contem_ovos': 'Contém ovos',
+  'contem_castanhas': 'Contém castanhas',
+  'contem_amendoim': 'Contém amendoim',
+  'contem_soja': 'Contém soja',
+};
+String menuTagLabel(String id) => _menuTagLabels[id] ?? id;
+
+/// Ordem fixa dos ids, para o editor de cardápio do painel.
+List<String> get menuTagIds => _menuTagLabels.keys.toList(growable: false);

@@ -591,6 +591,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text('${weightLabel(m.weightG)} cada', style: TextStyle(color: c.muted, fontSize: 13)),
                   ),
+                if (m.tags.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        for (final t in m.tags)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: c.pinkTint, borderRadius: BorderRadius.circular(99)),
+                            child: Text(menuTagLabel(t), style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700, fontSize: 11)),
+                          ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 4),
                 Text(money(m.price), style: display(context, size: 19)),
               ],

@@ -36,6 +36,7 @@ export const getOrders = (userId: number) =>
 export async function getRecipes(userId: number): Promise<RecipeRow[]> {
   return q<RecipeRow>(
     `SELECT r.id, r.name, r.category_id, r.yield_units, r.margin_pct, r.prep_hours, r.notes, r.unit_weight_g::float8 AS unit_weight_g, r.sale_price::float8 AS sale_price,
+       r.show_on_menu, r.tags,
        (SELECT (extract(epoch from p.updated_at) * 1000)::bigint::text FROM recipe_photos p WHERE p.recipe_id = r.id) AS photo_v,
        COALESCE((SELECT json_agg(json_build_object('ingredient_id', ri.ingredient_id, 'qty', ri.qty::float8) ORDER BY ri.id)
                  FROM recipe_items ri WHERE ri.recipe_id = r.id), '[]') AS items

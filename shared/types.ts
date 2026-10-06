@@ -23,6 +23,8 @@ export type RecipeRow = {
   unit_weight_g: number; // gramas de cada unidade que a receita rende; 0 = não informado
   sale_price: number | null; // preço do cardápio fixado pela confeiteira; nulo = o sugerido pelo cálculo (pricing.rounded já considera este valor)
   photo_v: string | null; // versão da foto (muda a cada envio); nulo = sem foto
+  show_on_menu: boolean; // aparece no cardápio da loja (editor de cardápio do painel)
+  tags: string[]; // características fixas (ver shared/menu-tags.ts) exibidas no cardápio
   items: { ingredient_id: number; qty: number }[];
 };
 export type PricedRecipe = RecipeRow & { pricing: PricingResult };
@@ -41,7 +43,7 @@ export type Dashboard = {
   refundsWaiting: number; refundsPending: number; refundsFailed: number; // devoluções: aguardando decisão, valor em processamento, as que falharam
 };
 
-export type MenuItem = { id: string; name: string; price: number; category: string; image?: string; weight_g?: number };
+export type MenuItem = { id: string; name: string; price: number; category: string; image?: string; weight_g?: number; tags?: string[] };
 export type MenuGroup = { id: string; name: string; items: MenuItem[] };
 export type Menu = { items: MenuItem[]; groups: MenuGroup[] };
 

@@ -114,6 +114,12 @@ class MoreScreen extends StatelessWidget {
           () => context.push('/painel/categorias'),
         ),
         tile(
+          Icons.restaurant_menu_outlined,
+          'Editor de cardápio',
+          'O que aparece na loja e as características de cada item',
+          () => context.push('/painel/cardapio'),
+        ),
+        tile(
           Icons.notifications_active_outlined,
           'Som de novos pedidos',
           push.sound.label,

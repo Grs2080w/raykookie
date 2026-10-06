@@ -147,12 +147,15 @@ class Dashboard {
 // ---- loja -----------------------------------------------------------------------------------------
 
 class MenuItem {
-  MenuItem({required this.id, required this.name, required this.price, required this.category, this.image, this.weightG = 0});
+  MenuItem({required this.id, required this.name, required this.price, required this.category, this.image, this.weightG = 0, this.tags = const []});
   final String id, name, category;
   final double price, weightG;
   final String? image;
-  factory MenuItem.fromJson(Map<String, dynamic> j) =>
-      MenuItem(id: _s(j['id']), name: _s(j['name']), price: _d(j['price']), category: _s(j['category']), image: j['image'] as String?, weightG: _d(j['weight_g']));
+  final List<String> tags;
+  factory MenuItem.fromJson(Map<String, dynamic> j) => MenuItem(
+    id: _s(j['id']), name: _s(j['name']), price: _d(j['price']), category: _s(j['category']), image: j['image'] as String?, weightG: _d(j['weight_g']),
+    tags: j['tags'] is List ? [for (final t in j['tags'] as List) _s(t)] : const [],
+  );
 }
 
 class MenuGroup {
