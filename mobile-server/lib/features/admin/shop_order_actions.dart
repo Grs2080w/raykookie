@@ -59,7 +59,7 @@ class _ShopOrderActionSheetState extends State<ShopOrderActionSheet> {
       if (widget.cancel) ...[
         Text(
           o.shopPaid
-              ? 'Já foi pago. Ao cancelar, o Pix de ${money(_left)} volta para a cliente automaticamente, e ela recebe uma notificação com o motivo.'
+              ? 'Já foi pago. Ao cancelar, o valor de ${money(_left)} volta para a cliente automaticamente, e ela recebe uma notificação com o motivo.'
               : 'Ainda não foi pago. A cliente vê o cancelamento e o motivo, e recebe uma notificação.',
           style: TextStyle(color: c.muted, height: 1.4),
         ),

@@ -41,7 +41,7 @@ export function ShopOrderActions({ action, onClose }: { action: ShopAction; onCl
         <div className="grid gap-4">
           {action.mode === 'cancelar' ? (
             <>
-              <p className="text-sm">{o.shop_paid ? <>Já foi pago. Ao cancelar, o Pix de <b>{money(left)}</b> volta para a cliente automaticamente, e ela recebe uma notificação com o motivo.</> : 'Ainda não foi pago. A cliente vê o cancelamento e o motivo, e recebe uma notificação no app.'}</p>
+              <p className="text-sm">{o.shop_paid ? <>Já foi pago. Ao cancelar, o valor de <b>{money(left)}</b> volta para a cliente automaticamente, e ela recebe uma notificação com o motivo.</> : 'Ainda não foi pago. A cliente vê o cancelamento e o motivo, e recebe uma notificação no app.'}</p>
               <Field label="Motivo (a cliente vê)">{(id) => (
                 <Select id={id} value={code} onChange={(e) => setCode(e.target.value)}>
                   <option value="">Escolha o motivo</option>{STORE_CANCEL_REASONS.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
