@@ -75,7 +75,7 @@ export function RefundsManager({ data, status }: { data: RefundList; status: str
       <nav aria-label="Filtro" className="mb-4 flex flex-wrap gap-2">
         {TABS.map(([id, label]) => (
           <Link key={id} href={`/devolucoes?status=${id}`} aria-current={status === id ? 'page' : undefined}
-            className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${status === id ? 'border-ink bg-ink text-white' : 'border-line bg-surface hover:border-ink/30'}`}>
+            className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${status === id ? 'border-ink bg-ink text-bg' : 'border-line bg-surface hover:border-ink/30'}`}>
             {label}{data.counts[id] ? <span className="tnum rounded-full bg-pink px-2 text-xs text-on-pink">{data.counts[id]}</span> : null}
           </Link>
         ))}

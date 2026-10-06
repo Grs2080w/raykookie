@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:raykookie_common/core/api_client.dart';
 import 'package:raykookie_common/core/config.dart';
 import 'package:raykookie_common/core/format.dart';
 import 'package:raykookie_common/core/models.dart';
@@ -57,6 +58,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<Menu> _loadMenu() async {
     final r = await context.read<Session>().customerApi.get('/api/menu');
     return Menu.fromJson(r as Map<String, dynamic>);
+  }
+
+  /// Fotos reais do cardápio por categoria (nunca repete a mesma foto na tela); sem foto real, fica a ilustração.
+  /// `used` é compartilhado entre as chamadas (hero e galeria) para garantir que nada se repita na página.
+  Map<String, String> _assignPhotos(Menu? menu, ApiClient api, List<String> kinds, Set<String> used) {
+    final out = <String, String>{};
+    for (final kind in kinds) {
+      final m = (menu?.items ?? const <MenuItem>[]).where((i) => i.image != null && !used.contains(i.image) && photoKind(i.name, i.category) == kind).firstOrNull;
+      if (m?.image != null) {
+        used.add(m!.image!);
+        out[kind] = api.absolute(m.image!);
+      }
+    }
+    return out;
   }
 
   void _order() => context.push('/cliente/pedidos');
@@ -159,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: c.surface,
                 borderRadius: BorderRadius.circular(99),
                 border: Border.all(color: c.line),
               ),
@@ -210,27 +225,38 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 26),
             SizedBox(
               height: 320,
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: PhotoTile(
-                      kind: 'bolo',
-                      radius: 26,
-                      aspectRatio: null,
-                      size: null,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      children: const [
-                        Expanded(child: PhotoTile(kind: 'cookie', url: 'https://raykookie.kntap.com.br/fotos/cookie-destaque.jpg', radius: 26)),
-                        SizedBox(height: 10),
-                        Expanded(child: PhotoTile(kind: 'brownie', url: 'https://raykookie.kntap.com.br/fotos/brownie-destaque.jpg', radius: 26)),
-                      ],
-                    ),
-                  ),
-                ],
+              child: FutureBuilder<Menu>(
+                future: _menu,
+                builder: (context, snap) {
+                  final api = context.read<Session>().customerApi;
+                  // sem foto própria no cardápio ainda: usa as fotos de vitrine já capturadas, em vez de deixar sem foto nenhuma
+                  final photos = _assignPhotos(snap.data, api, const ['bolo', 'cookie', 'brownie'], <String>{});
+                  final cookie = photos['cookie'] ?? 'https://raykookie.kntap.com.br/fotos/cookie-destaque.jpg';
+                  final brownie = photos['brownie'] ?? 'https://raykookie.kntap.com.br/fotos/brownie-destaque.jpg';
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: PhotoTile(
+                          kind: 'bolo',
+                          url: photos['bolo'],
+                          radius: 26,
+                          aspectRatio: null,
+                          size: null,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Expanded(child: PhotoTile(kind: 'cookie', url: cookie, radius: 26)),
+                            const SizedBox(height: 10),
+                            Expanded(child: PhotoTile(kind: 'brownie', url: brownie, radius: 26)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -348,12 +374,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Fotos reais só para alguns tipos; os demais seguem com a arte ilustrativa (PhotoTile cai para ela sem url).
-  static const _photoUrls = {
-    'cookie': 'https://raykookie.kntap.com.br/fotos/cookie-destaque.jpg',
-    'brownie': 'https://raykookie.kntap.com.br/fotos/brownie-destaque.jpg',
-  };
-
   Widget _gallery(BuildContext context) {
     final c = context.c;
     const shots = [
@@ -381,15 +401,24 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 18),
           SizedBox(
             height: 220,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: shots.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => SizedBox(
-                width: 260,
-                child: PhotoTile(kind: shots[i].$1, url: _photoUrls[shots[i].$1], radius: 26, size: null),
-              ),
+            child: FutureBuilder<Menu>(
+              future: _menu,
+              builder: (context, snap) {
+                final api = context.read<Session>().customerApi;
+                final used = <String>{};
+                _assignPhotos(snap.data, api, const ['bolo', 'cookie', 'brownie'], used); // mesmas fotos do topo: não repete aqui
+                final photos = _assignPhotos(snap.data, api, [for (final s in shots) s.$1], used);
+                return ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: shots.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) => SizedBox(
+                    width: 260,
+                    child: PhotoTile(kind: shots[i].$1, url: photos[shots[i].$1], radius: 26, size: null),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -536,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedColor: c.ink,
         side: BorderSide(color: selected ? c.ink : c.line),
         labelStyle: TextStyle(
-          color: selected ? Colors.white : c.ink,
+          color: selected ? c.bg : c.ink,
           fontWeight: FontWeight.w700,
           fontSize: 14,
         ),
@@ -673,7 +702,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: c.surface,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(

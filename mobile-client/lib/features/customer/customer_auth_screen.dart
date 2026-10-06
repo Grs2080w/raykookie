@@ -13,6 +13,14 @@ import 'package:raykookie_common/ui/legal.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
 
+/// Quem de fato fala com o Google (os testes trocam por uma versão que não toca a plataforma nativa).
+@visibleForTesting
+Future<String?> Function(String serverClientId) googleAuthenticate = (serverClientId) async {
+  await GoogleSignIn.instance.initialize(serverClientId: serverClientId);
+  final account = await GoogleSignIn.instance.authenticate();
+  return account.authentication.idToken;
+};
+
 /// Entrar ou criar conta para fazer pedidos: Google ou e-mail e senha.
 class CustomerAuthScreen extends StatefulWidget {
   const CustomerAuthScreen({super.key, required this.next});
@@ -72,9 +80,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
     final s = context.read<Session>();
     setState(() => _googleBusy = true);
     try {
-      await GoogleSignIn.instance.initialize(serverClientId: AppConfig.googleServerClientId);
-      final account = await GoogleSignIn.instance.authenticate();
-      final idToken = account.authentication.idToken;
+      final idToken = await googleAuthenticate(AppConfig.googleServerClientId);
       if (idToken == null) throw ApiException(0, 'O Google não devolveu a identificação. Tente de novo.');
       await s.loginWithGoogle(idToken);
       if (mounted) context.pushReplacement(widget.next); // troca só o login: a tela de onde a pessoa veio continua embaixo (voltar funciona)
