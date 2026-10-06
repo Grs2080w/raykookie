@@ -4,15 +4,14 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: inspect android sdk
+      - uses: actions/checkout@v4
+      - name: test apksigner 37.0.0 against a real signed apk
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls -la "$ANDROID_HOME/build-tools" || echo "sem build-tools"
-          ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>&1 || echo "glob vazio"
-          f="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1 || true)"
-          echo "f=[$f]"
-          if [[ -n "$f" ]]; then
-            echo "--- testando execução direta ---"
-            "$f" --version || echo "apksigner --version falhou com $?"
-          fi
+          f="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          echo "apksigner: $f"
+          "$f" --version
+          echo "=== stdout (redirected 2>/dev/null) ==="
+          "$f" verify --print-certs .diag-test.apk 2>/dev/null
+          echo "=== exit code: $? ==="
+          echo "=== combined 2>&1 ==="
+          "$f" verify --print-certs .diag-test.apk 2>&1 || echo "falhou com $?"
