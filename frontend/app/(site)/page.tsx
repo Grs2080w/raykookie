@@ -10,6 +10,7 @@ import { AppDownload } from '@/components/AppDownload';
 import { MobileOrderBar } from '@/components/site/MobileOrderBar';
 import { MenuList } from '@/components/site/MenuList';
 import { InstagramCard } from '@/components/site/InstagramCard';
+import { FeedbackForm } from '@/components/site/FeedbackForm';
 import { ShareMenu } from '@/components/ShareMenu';
 import type { AppReleases, Menu } from '@shared/types';
 
@@ -157,6 +158,11 @@ export default async function Landing() {
               ))}
             </ul>
           </div>
+        </section>
+
+        {/* Feedback */}
+        <section id="feedback" className="scroll-mt-20 mx-auto max-w-2xl px-4 py-10 md:px-8 md:py-12">
+          <FeedbackForm />
         </section>
 
         {/* Instagram */}

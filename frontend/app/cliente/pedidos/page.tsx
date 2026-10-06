@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/PageHeader';
 import { apiGet, requireCustomer } from '@/lib/server-api';
 import type { ShopOrder } from '@shared/types';
 import { OrderCard, orderLinks } from '@/components/OrderCard';
+import { FeedbackForm } from '@/components/site/FeedbackForm';
 
 export const metadata = { title: 'Meus pedidos' };
 
@@ -46,6 +47,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ n
             {orders.map((o) => <li key={o.id}><OrderCard o={o} links={orderLinks(o)} /></li>)}
           </ul>
         )}
+      </div>
+
+      <div className="mt-10">
+        <FeedbackForm />
       </div>
     </>
   );

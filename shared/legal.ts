@@ -10,7 +10,7 @@ export const LEGAL_ENTITY = {
   legalName: '', // razão social ou nome completo do responsável, quando houver
   cnpj: '', // CNPJ ou CPF
   address: '', // endereço da confeiteira
-  email: '', // e-mail de contato e do encarregado de dados
+  email: 'raykookie@kntap.com.br', // e-mail de contato e do encarregado de dados
 };
 
 export const LEGAL_UPDATED = '3 de outubro de 2026';
