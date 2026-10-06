@@ -51,11 +51,14 @@ class OrderModel {
     required this.id, required this.number, required this.orderDate, required this.customer, this.recipeId, required this.product,
     required this.qty, required this.unitPrice, this.deliveryDate, required this.status, required this.payment, required this.notes, this.address = '',
     this.shopOrderId, this.shopCode, this.shopPaid = false, this.shopTotal = 0, this.shopRefunded = 0, this.shopCancel, this.shopRefund,
+    this.shopPaymentMethod, this.shopInstallments = 1,
   });
   final int id, number;
   final int? shopOrderId, shopCode; // pedido online: id interno e o número que o cliente vê
   final bool shopPaid;
   final double shopTotal, shopRefunded; // pedido online: total e quanto já foi devolvido
+  final String? shopPaymentMethod; // pedido online: pix, cartao ou dinheiro
+  final int shopInstallments; // só relevante para shopPaymentMethod 'cartao' (1 = à vista)
   final Map<String, dynamic>? shopCancel; // pedido online cancelado: {by, reason, note}
   final Map<String, dynamic>? shopRefund; // a devolução mais recente: {id, kind, status, reason_code, requested_amount, approved_amount, photos}
   bool get refundWaiting => shopRefund?['status'] == 'solicitado';
@@ -71,6 +74,7 @@ class OrderModel {
         product: _s(j['product']), qty: _d(j['qty']), unitPrice: _d(j['unit_price']), deliveryDate: j['delivery_date'] as String?,
         status: _s(j['status']), payment: _s(j['payment']), notes: _s(j['notes']), address: _s(j['address']),
         shopOrderId: _i(j['shop_order_id']), shopCode: _i(j['shop_code']), shopPaid: j['shop_paid'] == true, shopTotal: _d(j['shop_total']), shopRefunded: _d(j['shop_refunded']),
+        shopPaymentMethod: j['shop_payment_method'] as String?, shopInstallments: _i(j['shop_installments']) ?? 1,
         shopCancel: j['shop_cancel'] is Map ? Map<String, dynamic>.from(j['shop_cancel'] as Map) : null,
         shopRefund: j['shop_refund'] is Map ? Map<String, dynamic>.from(j['shop_refund'] as Map) : null,
       );
@@ -230,7 +234,7 @@ class ShopOrder {
     required this.street, required this.number, required this.complement, required this.district, required this.city,
     required this.paymentMethod, required this.notes, required this.total, required this.items, required this.status,
     this.paid = false, this.canCancel = false, this.paymentState = '', this.refundedTotal = 0, this.cancelledBy = '', this.cancelReason = '',
-    this.refundMode = 'nenhum', this.refundMax = 0, this.refundPhotosRequired = false, this.refundDeadline, this.refundWhyNot = '', this.refunds = const [], this.cancel, this.hasPix = false, this.pixExpired = false, this.pixExpiresIn = 0, this.pixCode = '', this.pixQrBase64 = '',
+    this.refundMode = 'nenhum', this.refundMax = 0, this.refundPhotosRequired = false, this.refundDeadline, this.refundWhyNot = '', this.refunds = const [], this.cancel, this.hasPix = false, this.pixExpired = false, this.pixExpiresIn = 0, this.pixCode = '', this.pixQrBase64 = '', this.installments = 1,
   });
   final int id; // interno: usado nas rotas
   final int code; // o número que o cliente vê (4 ou 5 dígitos, aleatório)
@@ -252,6 +256,7 @@ class ShopOrder {
   final bool hasPix; // há um Pix para este pedido (válido ou vencido)
   final bool pixExpired; // o Pix venceu: é preciso gerar outro
   final int pixExpiresIn; // segundos restantes de validade, no momento em que a lista foi carregada
+  final int installments; // só relevante para paymentMethod 'cartao' (1 = à vista)
   final List<ShopOrderItem> items;
   factory ShopOrder.fromJson(Map<String, dynamic> j) => ShopOrder(
         id: _i(j['id'])!, code: _i(j['code']) ?? _i(j['id'])!, pickupAddress: _s(j['pickup_address']), createdAt: _s(j['created_at']), scheduledFor: _s(j['scheduled_for']), timeWindow: _s(j['time_window']),
@@ -264,7 +269,7 @@ class ShopOrder {
         refunds: [for (final e in (j['refunds'] as List? ?? const [])) CustomerRefund.fromJson(e as Map<String, dynamic>)],
         cancel: j['cancel'] is Map ? OrderCancel.fromJson(Map<String, dynamic>.from(j['cancel'] as Map)) : null,
         hasPix: j['pix'] is Map, pixExpired: (j['pix'] as Map?)?['expired'] == true, pixExpiresIn: _i((j['pix'] as Map?)?['expires_in']) ?? 0,
-        pixCode: _s((j['pix'] as Map?)?['code']), pixQrBase64: _s((j['pix'] as Map?)?['qr_base64']),
+        pixCode: _s((j['pix'] as Map?)?['code']), pixQrBase64: _s((j['pix'] as Map?)?['qr_base64']), installments: _i(j['installments']) ?? 1,
         items: [for (final e in j['items'] as List) ShopOrderItem(id: _s(e['id']), name: _s(e['name']), qty: _i(e['qty']) ?? 0, unitPrice: _d(e['unit_price']))],
       );
 }

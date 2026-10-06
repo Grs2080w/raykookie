@@ -26,6 +26,7 @@ export async function getFixedTotal(userId: number): Promise<number> {
 export const getOrders = (userId: number) =>
   q<Order>(
     `SELECT o.*, so.public_code AS shop_code, (so.paid_at IS NOT NULL) AS shop_paid, so.total::float8 AS shop_total, so.refunded_total::float8 AS shop_refunded,
+            so.payment_method AS shop_payment_method, so.installments AS shop_installments,
             CASE WHEN so.cancelled_at IS NOT NULL THEN json_build_object('by', so.cancelled_by, 'code', so.cancel_reason_code, 'reason', so.cancel_reason, 'note', so.cancel_note) END AS shop_cancel,
             (SELECT json_build_object('id', r.id, 'kind', r.kind, 'status', r.status, 'reason_code', r.reason_code, 'requested_amount', r.requested_amount::float8,
                                       'approved_amount', r.approved_amount::float8, 'fail_reason', r.fail_reason, 'decision_code', r.decision_code,

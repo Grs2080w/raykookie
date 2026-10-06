@@ -39,6 +39,31 @@ void main() {
     });
   });
 
+  group('validateOrder — pagamento com cartão', () {
+    const cpf = '529.982.247-25'; // CPF válido de teste (mesmo do backend/tests/cpf.test.ts)
+    OrderForm card() => base()
+      ..paymentMethod = 'cartao'
+      ..cardToken = 'tok_123'
+      ..cardPaymentMethodId = 'master'
+      ..cpf = cpf
+      ..installments = 1;
+    test('exige token, bandeira e CPF válido', () {
+      expect(check(card()..cardToken = '', {'1': 4, '2': 1}), contains('dados do cartão'));
+      expect(check(card()..cardPaymentMethodId = '', {'1': 4, '2': 1}), contains('bandeira'));
+      expect(check(card()..cpf = '111.111.111-11', {'1': 4, '2': 1}), contains('CPF'));
+    });
+    test('parcela só acima de R\$150, e só até o limite', () {
+      // total deste carrinho (item 1, qty 4 + item 2, qty 1) = 4*9 + 62 = 98 (abaixo de 150)
+      expect(check(card()..installments = 2, {'1': 4, '2': 1}), contains('150'));
+      expect(check(card()..installments = 1, {'1': 4, '2': 1}), isNull);
+      expect(check(card()..installments = 0, {'1': 4, '2': 1}), contains('parcelas'));
+      expect(check(card()..installments = 13, {'1': 4, '2': 1}), contains('parcelas'));
+    });
+    test('acima de R\$150, aceita parcelar', () {
+      expect(check(card()..installments = 3, {'3': 2}), isNull); // 2×98 = 196
+    });
+  });
+
   group('auxiliares', () {
     test('máscaras', () {
       expect(formatPhone('11912345678'), '(11) 91234-5678');

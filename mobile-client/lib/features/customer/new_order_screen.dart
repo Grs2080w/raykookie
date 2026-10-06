@@ -15,6 +15,7 @@ import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
+import 'card_fields.dart';
 
 class NewOrderScreen extends StatelessWidget {
   const NewOrderScreen({super.key, this.initialItem});
@@ -65,6 +66,9 @@ class _OrderFormState extends State<_OrderForm> {
   int _stepIdx = 0; // etapa atual (0 a 4)
   final _scroll = ScrollController();
   late final String _minDate;
+  final _cardKey = GlobalKey<CardFieldsState>();
+  bool _cardEnabled = false;
+  String? _cardPublicKey;
 
   TextEditingController _c(String k, [String initial = '']) => _ctl.putIfAbsent(k, () => TextEditingController(text: initial));
 
@@ -74,6 +78,10 @@ class _OrderFormState extends State<_OrderForm> {
     _cart = {if (widget.initialItem != null && widget.menu.items.any((m) => m.id == widget.initialItem)) widget.initialItem!: 1};
     final p = context.read<Session>().profile;
     _minDate = addDaysIso(todayIso(), AppConfig.leadDays);
+    context.read<Session>().customerApi.get('/api/payment-config').then((r) {
+      final d = Map<String, dynamic>.from(r as Map);
+      if (mounted) setState(() { _cardEnabled = d['cardEnabled'] == true; _cardPublicKey = d['publicKey'] as String?; });
+    }).catchError((_) {});
     _form
       ..contactName = p?.name ?? ''
       ..phone = formatPhone(p?.phone ?? '')
@@ -146,14 +154,25 @@ class _OrderFormState extends State<_OrderForm> {
   }
 
   Future<void> _submit() async {
+    if (_form.paymentMethod == 'cartao') {
+      final t = await _cardKey.currentState?.tokenize();
+      if (t == null) return;
+      _form
+        ..cardToken = t.cardToken
+        ..cardPaymentMethodId = t.paymentMethodId
+        ..cpf = t.cpf
+        ..installments = t.installments;
+    }
     final err = validateOrder(_form, _cart, widget.menu.items);
     if (err != null) return Toast.error(err);
     final session = context.read<Session>();
     setState(() => _busy = true);
     try {
-      final r = await session.customerApi.post('/api/cliente/pedidos', _form.toJson(_cart));
+      final r = Map<String, dynamic>.from(await session.customerApi.post('/api/cliente/pedidos', _form.toJson(_cart)) as Map);
       await session.refreshProfile();
-      if (mounted) context.go('/cliente/pedidos?novo=${(r as Map)['id']}');
+      final card = r['card'] is Map ? Map<String, dynamic>.from(r['card'] as Map) : null;
+      if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}. Você pode tentar outro cartão no pedido.');
+      if (mounted) context.go('/cliente/pedidos?novo=${r['id']}');
     } on ApiException catch (e) {
       Toast.error(e.message);
     } finally {
@@ -376,7 +395,10 @@ class _OrderFormState extends State<_OrderForm> {
                 ),
               ]),
               _section(4, 'Forma de pagamento', hint: 'Com Pix, o código aparece logo depois que você finalizar o pedido.', children: [
-                for (final p in paymentMethods) _choice(selected: _form.paymentMethod == p.id, title: p.label, hint: p.hint, tag: p.id == 'pix' ? 'Mais rápido' : null, onTap: () => setState(() => _form.paymentMethod = p.id)),
+                for (final p in paymentMethods.where((p) => p.id != 'cartao' || _cardEnabled))
+                  _choice(selected: _form.paymentMethod == p.id, title: p.label, hint: p.hint, tag: p.id == 'pix' ? 'Mais rápido' : null, onTap: () => setState(() => _form.paymentMethod = p.id)),
+                if (_form.paymentMethod == 'cartao' && _cardPublicKey != null)
+                  AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, amount: total)),
                 if (_form.paymentMethod == 'dinheiro')
                   AppCard(child: NumberField(label: 'Precisa de troco para quanto? (opcional)', helper: 'Deixe em branco se tiver o valor certinho.', hint: 'Ex.: 100', controller: _c('change'), onChanged: (v) => _form.changeFor = v)),
               ]),

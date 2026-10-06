@@ -7,7 +7,7 @@ const token = (v: unknown) => {
   return t.length >= 20 && t.length <= 4096 ? t : null;
 };
 
-// O app da loja registra o celular para receber os avisos do pedido (Pix confirmado, pronto, cancelamento, devolução).
+// O app da loja registra o celular para receber os avisos do pedido (pagamento confirmado, pronto, cancelamento, devolução).
 export const POST = customerRoute(async (req, c) => {
   const t = token((await req.json().catch(() => ({})))?.token);
   if (!t) return fail('Token do aparelho inválido.');

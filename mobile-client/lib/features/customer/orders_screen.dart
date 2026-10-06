@@ -18,6 +18,7 @@ import 'package:raykookie_common/ui/widgets.dart';
 
 import '../../core/customer_push.dart';
 import 'brand.dart';
+import 'card_fields.dart';
 import 'feedback_card.dart';
 
 /// Pedidos já feitos pelo cliente, com a situação de cada um.
@@ -273,9 +274,9 @@ class _OrderCardState extends State<_OrderCard> {
                 ),
                 if (_refundBadge(o) case (final label, final tone))
                   AppBadge(label, tone: tone)
-                else if (o.paymentMethod == 'pix' && o.status != 'cancelado')
+                else if ((o.paymentMethod == 'pix' || o.paymentMethod == 'cartao') && o.status != 'cancelado')
                   AppBadge(
-                    o.paid ? 'Pix pago' : 'Aguardando pagamento',
+                    o.paid ? (o.paymentMethod == 'cartao' ? 'Pago' : 'Pix pago') : 'Aguardando pagamento',
                     tone: o.paid ? 'ok' : 'warn',
                   )
                 else
@@ -361,10 +362,12 @@ class _OrderCardState extends State<_OrderCard> {
             line(Icons.place_outlined, where),
             line(
               Icons.credit_card_outlined,
-              'Pagamento: $pay${o.paymentMethod == 'pix' ? ' · ${_payState(o)}' : ''}',
+              'Pagamento: $pay${o.paymentMethod == 'pix' || o.paymentMethod == 'cartao' ? ' · ${_payState(o)}' : ''}',
             ),
             if (o.hasPix && o.status != 'cancelado')
               _PixBox(o, onChanged: onChanged),
+            if (o.paymentMethod == 'cartao' && !o.paid && o.status != 'cancelado')
+              _CardRetryBox(o, onChanged: onChanged),
             if (o.canCancel)
               Padding(
                 padding: const EdgeInsets.only(top: 14),
@@ -768,6 +771,72 @@ class _PixBoxState extends State<_PixBox> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Pagamento com cartão recusado ou pendente: deixa tentar outro cartão no mesmo pedido.
+class _CardRetryBox extends StatefulWidget {
+  const _CardRetryBox(this.o, {required this.onChanged});
+  final ShopOrder o;
+  final Future<void> Function() onChanged;
+  @override
+  State<_CardRetryBox> createState() => _CardRetryBoxState();
+}
+
+class _CardRetryBoxState extends State<_CardRetryBox> {
+  final _cardKey = GlobalKey<CardFieldsState>();
+  bool _busy = false;
+  bool _cardEnabled = false;
+  String? _publicKey;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<Session>().customerApi.get('/api/payment-config').then((r) {
+      final d = Map<String, dynamic>.from(r as Map);
+      if (mounted) setState(() { _cardEnabled = d['cardEnabled'] == true; _publicKey = d['publicKey'] as String?; });
+    }).catchError((_) {});
+  }
+
+  Future<void> _retry() async {
+    final t = await _cardKey.currentState?.tokenize();
+    if (t == null) return;
+    setState(() => _busy = true);
+    try {
+      final r = Map<String, dynamic>.from(await context.read<Session>().customerApi.post('/api/cliente/pedidos/${widget.o.id}/cartao', {
+        'card_token': t.cardToken, 'card_payment_method_id': t.paymentMethodId, 'cpf': t.cpf, 'installments': t.installments,
+      }) as Map);
+      if (r['approved'] == true) {
+        Toast.ok('Pagamento aprovado!');
+      } else if (r['pending'] == true) {
+        Toast.ok('Pagamento em análise. Avisamos quando confirmar.');
+      } else {
+        Toast.error('${r['reason'] ?? 'Pagamento recusado'}');
+      }
+      await widget.onChanged();
+    } on ApiException catch (e) {
+      Toast.error(e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_cardEnabled || _publicKey == null) return const SizedBox.shrink();
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: AppCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Pagamento com cartão ainda não aprovado. Tente outro cartão:', style: TextStyle(color: c.muted, fontSize: 13.5)),
+          const SizedBox(height: 12),
+          CardFields(key: _cardKey, publicKey: _publicKey!, amount: widget.o.total),
+          const SizedBox(height: 14),
+          BusyButton(label: 'Tentar pagar', busy: _busy, onPressed: _retry),
+        ]),
       ),
     );
   }

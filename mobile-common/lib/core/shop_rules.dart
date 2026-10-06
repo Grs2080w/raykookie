@@ -14,10 +14,13 @@ const fulfillmentOptions = [
 ];
 const paymentMethods = [
   Choice('pix', 'Pix', 'Geramos o Pix copia e cola ao finalizar o pedido.'),
+  Choice('cartao', 'Cartão', 'Cartão de crédito, com segurança.'),
   Choice('dinheiro', 'Dinheiro', 'Informe se precisa de troco.'),
 ];
-/// Rótulo para exibir; mantém "Cartão" só para pedidos antigos (não é mais opção no checkout).
-String paymentLabel(String id) => id == 'cartao' ? 'Cartão' : paymentMethods.where((p) => p.id == id).map((p) => p.label).firstOrNull ?? id;
+String paymentLabel(String id) => paymentMethods.where((p) => p.id == id).map((p) => p.label).firstOrNull ?? id;
+/// Parcelamento sem juros (a loja absorve a taxa do Mercado Pago) só a partir deste valor; abaixo, só 1x.
+const cardInstallmentsMinAmount = 150;
+const maxInstallments = 12;
 const timeWindows = [
   Choice('manha', 'Manhã (8h às 12h)'),
   Choice('tarde', 'Tarde (12h às 18h)'),
@@ -91,12 +94,18 @@ class OrderForm {
     this.changeFor = '', this.notes = '',
   });
   String contactName, phone, fulfillment, cep, street, number, complement, district, city, scheduledFor, timeWindow, paymentMethod, changeFor, notes;
+  // só preenchidos quando paymentMethod == 'cartao'; cardToken/cpf nunca são guardados no servidor (ver shared/legal.ts)
+  String cardToken = '', cardPaymentMethodId = '', cpf = '';
+  int installments = 1;
 
   Map<String, dynamic> toJson(Map<String, int> cart) => {
         'items': [for (final e in cart.entries.where((e) => e.value > 0)) {'id': e.key, 'qty': e.value}],
         'contact_name': contactName, 'phone': phone, 'fulfillment': fulfillment, 'cep': cep, 'street': street, 'number': number,
         'complement': complement, 'district': district, 'city': city, 'scheduled_for': scheduledFor, 'time_window': timeWindow,
         'payment_method': paymentMethod, 'change_for': changeFor, 'notes': notes,
+        if (paymentMethod == 'cartao') ...{
+          'card_token': cardToken, 'card_payment_method_id': cardPaymentMethodId, 'cpf': cpf, 'installments': installments,
+        },
       };
 }
 
@@ -141,6 +150,13 @@ String? validateOrderStep(int step, OrderForm f, Map<String, int> cart, List<Men
         final n = parseNum(f.changeFor);
         if (n <= 0 || n > 100000) return 'O valor do troco não é válido.';
         if (n < cartTotal(cart, menu)) return 'O troco precisa ser para um valor maior ou igual ao total do pedido.';
+      }
+      if (f.paymentMethod == 'cartao') {
+        if (f.cardToken.isEmpty) return 'Preencha os dados do cartão.';
+        if (f.cardPaymentMethodId.isEmpty) return 'Não reconhecemos a bandeira desse cartão.';
+        if (!isValidCpf(f.cpf)) return 'Informe um CPF válido (exigido pelo Mercado Pago para pagar com cartão).';
+        if (f.installments < 1 || f.installments > maxInstallments) return 'Escolha uma quantidade de parcelas válida.';
+        if (f.installments > 1 && cartTotal(cart, menu) <= cardInstallmentsMinAmount) return 'Parcelamento só para pedidos acima de R\$ $cardInstallmentsMinAmount.';
       }
       return null;
     default:

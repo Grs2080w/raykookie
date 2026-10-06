@@ -12,7 +12,7 @@ import type { ShopOrder } from '@shared/types';
 export async function getCustomerOrders(customerId: number): Promise<ShopOrder[]> {
   const rows = await q<any>(
     `SELECT so.id, so.public_code AS code, so.pickup_address, so.created_at, so.scheduled_for, so.time_window, so.fulfillment, so.street, so.number, so.complement, so.district, so.city,
-            so.payment_method, so.notes, so.total::float8 AS total, so.items, so.paid_at, so.refunded_total::float8 AS refunded_total, so.delivered_at, so.cancelled_at, so.cancelled_by, so.cancel_reason, so.cancel_reason_code, so.cancel_note, so.pix_qr_code, so.pix_qr_base64, so.pix_expires_at, so.manual,
+            so.payment_method, so.installments, so.notes, so.total::float8 AS total, so.items, so.paid_at, so.refunded_total::float8 AS refunded_total, so.delivered_at, so.cancelled_at, so.cancelled_by, so.cancel_reason, so.cancel_reason_code, so.cancel_note, so.pix_qr_code, so.pix_qr_base64, so.pix_expires_at, so.manual,
             GREATEST(0, floor(extract(epoch from (so.pix_expires_at - now()))))::int AS pix_left,
             (SELECT array_agg(o.status) FROM orders o WHERE o.shop_order_id = so.id) AS statuses
      FROM shop_orders so WHERE so.customer_id = $1 ORDER BY so.created_at DESC, so.id DESC LIMIT 100`,

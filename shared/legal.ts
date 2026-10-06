@@ -1,7 +1,7 @@
 // Termos de Serviço e Política de Privacidade da raykookie: uma única fonte de texto para o site (páginas
 // /termos e /privacidade) e para os apps (que leem de GET /api/legal/<documento>).
 // Revise com um advogado antes de divulgar e preencha os dados da empresa em LEGAL_ENTITY.
-import { leadDaysLabel, MAX_QTY } from './shop';
+import { CARD_INSTALLMENTS_MIN_AMOUNT, leadDaysLabel, MAX_INSTALLMENTS, MAX_QTY } from './shop';
 import { REFUND_WINDOW_HOURS } from './refund';
 
 /** Dados de quem opera a loja. Campos vazios não aparecem nos documentos. */
@@ -13,7 +13,7 @@ export const LEGAL_ENTITY = {
   email: 'raykookie@kntap.com.br', // e-mail de contato e do encarregado de dados
 };
 
-export const LEGAL_UPDATED = '3 de outubro de 2026';
+export const LEGAL_UPDATED = '6 de outubro de 2026';
 
 export type LegalSection = { h: string; p?: string[]; ul?: string[] };
 export type LegalDoc = { id: LegalId; title: string; summary: string; updated: string; sections: LegalSection[] };
@@ -46,7 +46,7 @@ const TERMOS: LegalDoc = {
     {
       h: '2. O que oferecemos',
       ul: [
-        'Site e aplicativo: ver o cardápio, criar uma conta, fazer encomendas, pagar com Pix, acompanhar, cancelar ou pedir devolução de pedidos e cuidar dos seus dados.',
+        'Site e aplicativo: ver o cardápio, criar uma conta, fazer encomendas, pagar com Pix ou cartão de crédito, acompanhar, cancelar ou pedir devolução de pedidos e cuidar dos seus dados.',
         'Os serviços podem mudar, ser interrompidos para manutenção ou deixar de existir, com aviso quando possível.',
       ],
     },
@@ -72,10 +72,13 @@ const TERMOS: LegalDoc = {
     {
       h: '5. Preços e pagamento',
       ul: [
-        'As formas de pagamento disponíveis são Pix e dinheiro (na entrega ou retirada, com troco quando informado).',
+        'As formas de pagamento disponíveis são Pix, cartão de crédito e dinheiro (na entrega ou retirada, com troco quando informado).',
         'No Pix, o código é gerado pelo Mercado Pago ao finalizar o pedido. O pedido só é considerado pago depois que o Mercado Pago confirma a aprovação do pagamento. Gerar ou copiar o código não significa que o pagamento foi feito.',
         'O código Pix tem prazo de validade, mostrado no pedido. Depois que vence, não pague esse código: gere um novo pelo site ou pelo aplicativo. Pagamentos feitos depois do vencimento não são aceitos e o valor volta para quem pagou, conforme as regras do Mercado Pago.',
-        'Não recebemos nem guardamos dados de conta ou de cartão. O pagamento é processado pelo Mercado Pago, sob os termos dele.',
+        `No cartão de crédito, os dados do cartão são enviados pelo seu aparelho ou navegador diretamente ao Mercado Pago: nunca passam pelos nossos servidores. Pedimos o seu CPF só para repassar ao Mercado Pago, que exige esse dado para prevenir fraude; não guardamos esse número.`,
+        `Em pedidos acima de R$ ${CARD_INSTALLMENTS_MIN_AMOUNT}, o cartão pode ser parcelado em até ${MAX_INSTALLMENTS}x sem juros: o preço é o mesmo não importa em quantas vezes você parcelar.`,
+        'O cartão aprova ou recusa o pagamento na hora. Se for recusado, o pedido continua existindo, sem pagamento, e você pode tentar outro cartão ou escolher outra forma de pagamento.',
+        'Não recebemos nem guardamos dados de conta, de cartão ou o CPF informado para pagar com cartão. O pagamento é processado pelo Mercado Pago, sob os termos dele.',
         'Os preços são em reais e podem mudar sem aviso, mas não alteram pedidos já confirmados.',
       ],
     },
@@ -85,11 +88,11 @@ const TERMOS: LegalDoc = {
         'Cada pedido é preparado só para você. Por isso, o que dá para cancelar ou devolver depende do andamento da produção, que você acompanha na tela do pedido, no site ou no aplicativo:',
       ],
       ul: [
-        'Antes de começarmos a produzir: você mesmo cancela na tela do pedido. Se o pedido já foi pago, o valor do Pix volta automaticamente, na hora, para a conta que pagou. Se havia um Pix pendente, o código é desativado.',
+        'Antes de começarmos a produzir: você mesmo cancela na tela do pedido. Se o pedido já foi pago, o valor volta automaticamente, na hora, para quem pagou. Se havia um Pix pendente, o código é desativado.',
         `Depois que a produção começou (em produção, pronto ou entregue): você pode pedir a devolução na tela do pedido, informando o motivo, descrevendo o que aconteceu e, quando já recebeu o produto, enviando de 1 a 5 fotos. Depois da entrega, o pedido de devolução pode ser feito em até ${REFUND_WINDOW_HOURS} horas.`,
         'Nesses casos não há garantia de devolução, nem total nem parcial: a confeiteira analisa cada pedido e decide, com a resposta e o motivo mostrados na tela do pedido. O valor devolvido pode ser total ou parcial.',
         'Se nós cancelarmos um pedido já pago (por exemplo, por falta de ingrediente), devolvemos o valor total automaticamente.',
-        'A devolução é feita por Pix para a mesma conta que pagou, em geral em poucos minutos, pelo Mercado Pago. Em casos raros pode levar mais tempo. O Pix só pode ser devolvido em até 90 dias depois do pagamento.',
+        'A devolução é feita pelo Mercado Pago, para a mesma conta ou cartão que pagou. No Pix costuma cair em poucos minutos (em casos raros pode levar mais tempo; só pode ser devolvido em até 90 dias depois do pagamento). No cartão, a devolução volta para a fatura do cartão usado e pode levar até duas faturas para aparecer, conforme as regras da operadora do cartão.',
         'Pagamentos feitos depois de o pedido ser cancelado também são devolvidos automaticamente.',
         'As fotos enviadas no pedido de devolução são vistas só por nós, usadas apenas para analisar o pedido e apagadas depois de 180 dias.',
         `Para pedir alterações no pedido, ou se você não conseguir usar o aplicativo, fale com a gente ${contact}. Os direitos garantidos pelo Código de Defesa do Consumidor continuam valendo.`,
@@ -157,6 +160,7 @@ const PRIVACIDADE: LegalDoc = {
         'Pedidos: itens, quantidades, valores, data e período escolhidos, forma de pagamento, troco e observações. Para entrega, também o CEP, a rua, o número, o complemento, o bairro e a cidade. Guardamos o último endereço para preencher o próximo pedido.',
         'Pedidos de devolução: o motivo, a descrição, os itens e as fotos que você enviar. As fotos ficam guardadas de forma protegida, são vistas só por nós e são apagadas 180 dias depois da decisão. Antes de enviar, o aplicativo e o site removem dados escondidos da foto, como a localização.',
         'Pagamento por Pix: o identificador do pagamento, o código Pix e o status (aprovado ou não). Para gerar o Pix enviamos ao Mercado Pago o valor, seu e-mail e seu primeiro nome. Não recebemos nem guardamos dados de cartão ou de conta bancária.',
+        'Pagamento por cartão: os dados do cartão e o seu CPF são enviados pelo seu aparelho ou navegador diretamente ao Mercado Pago — nunca chegam aos nossos servidores nem são guardados por nós. Recebemos apenas o identificador do pagamento, a bandeira do cartão, a quantidade de parcelas e o status (aprovado ou não).',
         'Notificações do aplicativo (se você permitir): o identificador do aparelho para avisos do pedido, guardado enquanto você estiver logado nele. Você pode desligar nas configurações do celular a qualquer momento.',
         'Dados técnicos: cookies de sessão para manter você conectado, e registros do servidor (como horário, endereço de rede e erros), usados para segurança e funcionamento.',
         'Login com o Google (se você escolher): recebemos apenas o seu nome e o seu e-mail, com a permissão que você concede na tela do Google. Não acessamos contatos, arquivos, agenda nem qualquer outro dado da sua conta Google, e não publicamos nada em seu nome. Você pode retirar a permissão a qualquer momento em myaccount.google.com/permissions.',
@@ -176,7 +180,7 @@ const PRIVACIDADE: LegalDoc = {
       h: '4. Com quem compartilhamos',
       p: ['Não vendemos seus dados. Compartilhamos só o necessário com:'],
       ul: [
-        'Mercado Pago: processa o pagamento por Pix e nos informa se foi aprovado.',
+        'Mercado Pago: processa o pagamento por Pix e por cartão (recebendo direto do seu aparelho ou navegador, nunca de nós, os dados do cartão e o CPF) e nos informa se foi aprovado.',
         'Google: login com a conta Google, quando você escolhe essa opção (só recebemos o seu nome e o seu e-mail, que não são compartilhados nem usados para publicidade), e o serviço de notificações do aplicativo (Firebase Cloud Messaging), que recebe o identificador do aparelho e o texto de cada aviso do pedido.',
         'ViaCEP: ao digitar o CEP, o site ou o aplicativo consulta esse serviço público para preencher o endereço. Apenas o CEP é enviado.',
         'Provedores de hospedagem e infraestrutura que mantêm o sistema no ar, sob dever de confidencialidade.',

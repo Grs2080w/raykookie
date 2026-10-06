@@ -290,8 +290,8 @@ class _OrdersViewState extends State<_OrdersView> {
       'concluido' => (
           partial ? 'DEVOLUÇÃO CONCLUÍDA (PARCIAL)' : 'DEVOLUÇÃO CONCLUÍDA',
           partial
-              ? '${money(o.shopRefunded)} de ${money(o.shopTotal)} devolvidos por Pix'
-              : ['${money(o.shopRefunded)} devolvidos por Pix', if (r?['kind'] == 'solicitado') reason(r?['reason_code'] as String?)].where((s) => s.isNotEmpty).join(' · '),
+              ? '${money(o.shopRefunded)} de ${money(o.shopTotal)} devolvidos'
+              : ['${money(o.shopRefunded)} devolvidos', if (r?['kind'] == 'solicitado') reason(r?['reason_code'] as String?)].where((s) => s.isNotEmpty).join(' · '),
           r?['kind'] == 'solicitado' ? 'Ver detalhes' : null,
           c.ok,
         ),
@@ -342,7 +342,7 @@ class _OrdersViewState extends State<_OrdersView> {
                 : TextSpan(children: [
                     TextSpan(text: cancel['by'] == 'cliente' ? 'Cancelado pela cliente: ' : cancel['by'] == 'sistema' ? 'Cancelado automaticamente: ' : 'Cancelado por você: ', style: const TextStyle(fontWeight: FontWeight.w800)),
                     TextSpan(text: '${cancel['reason'] ?? ''}${(cancel['note'] ?? '').toString().isEmpty ? '' : ' (${cancel['note']})'}'),
-                    if (o.shopRefunded > 0) TextSpan(text: ' ${money(o.shopRefunded)} devolvidos por Pix.', style: TextStyle(color: c.ok, fontWeight: FontWeight.w700)),
+                    if (o.shopRefunded > 0) TextSpan(text: ' ${money(o.shopRefunded)} devolvidos.', style: TextStyle(color: c.ok, fontWeight: FontWeight.w700)),
                   ]),
             style: const TextStyle(fontSize: 14, height: 1.4),
           ),
@@ -357,7 +357,7 @@ class _OrdersViewState extends State<_OrdersView> {
                   onPressed: () => _shopAction(o, cancel: true),
                   style: OutlinedButton.styleFrom(foregroundColor: c.bad, minimumSize: const Size(0, 46)),
                   child: Text(
-                    !o.shopPaid ? 'Cancelar pedido' : o.shopRefunded > 0 ? 'Cancelar e devolver ${money(left)}' : 'Cancelar e devolver o Pix',
+                    !o.shopPaid ? 'Cancelar pedido' : o.shopRefunded > 0 ? 'Cancelar e devolver ${money(left)}' : 'Cancelar e devolver o valor pago',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -445,6 +445,11 @@ class _OrdersViewState extends State<_OrdersView> {
                         '${number(o.qty)}× ${o.product}',
                         style: TextStyle(color: c.muted, fontSize: 13.5),
                       ),
+                      if (o.shopOrderId != null && o.shopPaymentMethod != null)
+                        Text(
+                          paymentLabel(o.shopPaymentMethod!) + (o.shopPaymentMethod == 'cartao' && o.shopInstallments > 1 ? ' · ${o.shopInstallments}x' : ''),
+                          style: TextStyle(color: c.muted, fontSize: 12.5),
+                        ),
                     ],
                   ),
                 ),

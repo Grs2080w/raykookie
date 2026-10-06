@@ -5,6 +5,7 @@ import { createShopOrder, getCustomerOrders, shopOwnerId } from '@/lib/shop-quer
 import { notifyNewOrder } from '@/lib/push';
 import { mpConfigured } from '@/lib/mercadopago';
 import { issuePix } from '@/lib/pix';
+import { payWithCard } from '@/lib/card-pay';
 import { parseShopOrder } from '@shared/shop';
 
 // data de hoje no fuso da loja (o servidor pode estar em UTC)
@@ -27,7 +28,18 @@ export const POST = customerRoute(async (req, customer) => {
       pix = { code: pay.code, qr_base64: pay.qrBase64, expires_in: Math.floor((pay.expiresAt.getTime() - Date.now()) / 1000) };
     } catch (e) { console.error('[mercadopago] falha ao gerar Pix do pedido', id, e); }
   }
-  return ok({ id, code, pix }, 201);
+  // Cartão: aprova ou recusa na mesma chamada. Recusado, o pedido fica criado sem pagamento (como um Pix nunca
+  // pago) e o cliente pode tentar outro cartão pelo retry (/api/cliente/pedidos/[id]/cartao).
+  let card: { approved: boolean; pending?: boolean; reason?: string } | null = null;
+  if (p.value!.payment_method === 'cartao') {
+    const r = await payWithCard({
+      orderId: id, code, total: p.value!.total, email: customer.email, name: p.value!.contact_name, cpf: p.value!.cpf!,
+      cardToken: p.value!.card_token!, paymentMethodId: p.value!.card_payment_method_id!, installments: p.value!.installments!,
+      ownerId: owner, customerId: customer.id, items: p.value!.items.length, attempt: 1,
+    });
+    card = r.ok ? (r.approved ? { approved: true } : { approved: false, pending: r.pending, reason: r.pending ? undefined : r.reason }) : { approved: false, reason: r.error };
+  }
+  return ok({ id, code, pix, card }, 201);
 });
 
 export const GET = customerRoute(async (_req, customer) => ok(await getCustomerOrders(customer.id)));

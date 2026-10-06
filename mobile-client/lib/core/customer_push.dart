@@ -8,7 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Avisos do pedido no celular da cliente: Pix confirmado, em preparo, pronto, entregue, cancelado pela loja e devolução.
+/// Avisos do pedido no celular da cliente: pagamento confirmado, em preparo, pronto, entregue, cancelado pela loja e devolução.
 ///
 /// A tela de pedidos só depende desta interface; a de verdade é [FirebaseCustomerPush] e os testes usam uma de mentira.
 class CustomerPush extends ChangeNotifier {
@@ -87,7 +87,7 @@ class FirebaseCustomerPush extends CustomerPush {
         ?.createNotificationChannel(const AndroidNotificationChannel(
           channelId,
           'Seus pedidos',
-          description: 'Pix confirmado, pedido pronto, cancelamentos e devoluções.',
+          description: 'Pagamento confirmado, pedido pronto, cancelamentos e devoluções.',
           importance: Importance.high,
         ));
     FirebaseMessaging.onMessage.listen(_showForeground);

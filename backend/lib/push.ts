@@ -207,7 +207,7 @@ const windowLabel: Record<string, string> = { manha: 'da manhã', tarde: 'da tar
 export type CustomerOrder = { id: number; code: number; customerId: number; total: number; fulfillment?: string; timeWindow?: string; paid?: boolean };
 
 export const notifyCustomerPaid = (o: CustomerOrder) =>
-  notifyCustomer(o.customerId, { orderId: o.id, code: o.code, type: 'pagamento', title: `Pix confirmado · #${o.code}`, body: `Recebemos o pagamento de ${brl(o.total)}. Seu pedido entra na fila de produção.` }, 'pagamento');
+  notifyCustomer(o.customerId, { orderId: o.id, code: o.code, type: 'pagamento', title: `Pagamento confirmado · #${o.code}`, body: `Recebemos o pagamento de ${brl(o.total)}. Seu pedido entra na fila de produção.` }, 'pagamento');
 
 /** Mudança de etapa do pedido (em preparo, pronto, entregue). */
 export function customerStatusPush(o: CustomerOrder, status: string): CustomerPush | null {

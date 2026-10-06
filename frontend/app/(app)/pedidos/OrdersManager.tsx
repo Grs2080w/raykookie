@@ -15,6 +15,7 @@ import { dateBR, money, number, parseNum, fieldNum } from '@/lib/format';
 import { ShopOrderActions, type ShopAction } from '@/components/ShopOrderActions';
 import { ORDER_PAYMENT, ORDER_STATUS } from '@shared/order-labels';
 import { FULL_REFUND_CODE, anyReasonLabel } from '@shared/refund';
+import { paymentLabel } from '@shared/shop';
 import Link from 'next/link';
 import type { Order } from '@shared/types';
 
@@ -102,7 +103,9 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
                   className="grid grid-cols-2 items-center gap-x-3 gap-y-2.5 border-b border-line px-5 py-4 last:border-0 lg:grid-cols-[52px_minmax(0,1.6fr)_minmax(0,1.5fr)_1fr_1fr_1.1fr_1.1fr_76px] lg:py-3">
                   <span className="tnum font-display text-lg font-semibold text-pink-strong">{String(o.number).padStart(2, '0')}</span>
                   <p className="truncate text-right font-semibold lg:text-left">{o.customer}</p>
-                  <p className="col-span-2 truncate text-sm lg:col-span-1"><span className="tnum text-muted">{number(o.qty)}× </span>{o.product}</p>
+                  <p className="col-span-2 truncate text-sm lg:col-span-1"><span className="tnum text-muted">{number(o.qty)}× </span>{o.product}
+                    {o.shop_order_id && o.shop_payment_method && <span className="text-muted"> · {paymentLabel(o.shop_payment_method)}{o.shop_payment_method === 'cartao' && (o.shop_installments ?? 1) > 1 ? ` ${o.shop_installments}x` : ''}</span>}
+                  </p>
                   {o.address && <p className="col-span-full flex items-start gap-1.5 text-sm"><MapPin size={15} className="mt-0.5 shrink-0 text-pink-strong" /><span><span className="font-semibold">Endereço: </span>{o.address}</span></p>}
                   <p className="text-sm text-muted"><span className="lg:hidden">Entrega: </span>{dateBR(o.delivery_date)}</p>
                   <p className="tnum text-right font-semibold lg:text-left">{money(o.qty * o.unit_price)}</p>
@@ -196,13 +199,13 @@ function ShopBands({ o, onAct }: { o: Order; onAct: (mode: 'cancelar' | 'devolve
         <p className="col-span-full rounded-2xl bg-surface-2 px-4 py-3 text-sm">
           {c.code === FULL_REFUND_CODE ? (<><b>Pedido encerrado: </b>todo o valor foi devolvido. A produção parou.</>) : (<>
             <b>{c.by === 'cliente' ? 'Cancelado pela cliente: ' : c.by === 'sistema' ? 'Cancelado automaticamente: ' : 'Cancelado por você: '}</b>{c.reason}{c.note ? ` (${c.note})` : ''}
-            {refunded > 0 && <span className="font-bold text-ok"> {money(refunded)} devolvidos por Pix.</span>}
+            {refunded > 0 && <span className="font-bold text-ok"> {money(refunded)} devolvidos.</span>}
           </>)}
         </p>
       )}
       {canAct && (
         <div className="col-span-full flex flex-wrap gap-2">
-          {o.status !== 'entregue' && <Button variant="soft" size="sm" onClick={() => onAct('cancelar')}>{!o.shop_paid ? 'Cancelar pedido' : refunded > 0 ? `Cancelar e devolver ${money(left)}` : 'Cancelar e devolver o Pix'}</Button>}
+          {o.status !== 'entregue' && <Button variant="soft" size="sm" onClick={() => onAct('cancelar')}>{!o.shop_paid ? 'Cancelar pedido' : refunded > 0 ? `Cancelar e devolver ${money(left)}` : 'Cancelar e devolver o valor pago'}</Button>}
           {o.shop_paid && <Button variant="ghost" size="sm" onClick={() => onAct('devolver')}>Devolver valor</Button>}
         </div>
       )}

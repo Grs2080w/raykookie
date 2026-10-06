@@ -6,18 +6,23 @@ import { dateBR, money } from '@/lib/format';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { CancelOrder } from '@/components/CancelOrder';
 import { PixCopy } from '@/components/PixCopy';
+import { CardRetry } from '@/components/CardRetry';
 import { CancelInfo, RefundBox, refundBadge } from '@/components/RefundBox';
 import { CUSTOMER_STATUS, paymentLabel, TIME_WINDOWS } from '@shared/shop';
 
 /** Endereços das ações do cartão: pela conta do cliente ou pelo link de pagamento (token). */
-export type OrderLinks = { cancelUrl: string; refundApi: string; refundHref: string; backHref: string };
+export type OrderLinks = { cancelUrl: string; refundApi: string; refundHref: string; backHref: string; cardRetryUrl?: string };
 
 export function orderLinks(o: ShopOrder, token?: string): OrderLinks {
   if (token) {
     const t = encodeURIComponent(token);
+    // link de pagamento: o "tentar outro cartão" acontece na própria página do link, antes de virar pedido (ver PayLink.tsx)
     return { cancelUrl: `/api/pagar/${t}/cancelar`, refundApi: `/api/pagar/${t}/devolucao`, refundHref: `/pagar/${t}/devolucao`, backHref: `/pagar/${t}` };
   }
-  return { cancelUrl: `/api/cliente/pedidos/${o.id}/cancelar`, refundApi: `/api/cliente/pedidos/${o.id}/devolucao`, refundHref: `/cliente/pedidos/${o.id}/devolucao`, backHref: '/cliente/pedidos' };
+  return {
+    cancelUrl: `/api/cliente/pedidos/${o.id}/cancelar`, refundApi: `/api/cliente/pedidos/${o.id}/devolucao`, refundHref: `/cliente/pedidos/${o.id}/devolucao`, backHref: '/cliente/pedidos',
+    cardRetryUrl: `/api/cliente/pedidos/${o.id}/cartao`,
+  };
 }
 
 function PayBadge({ o }: { o: ShopOrder }) {
@@ -65,13 +70,14 @@ export function OrderCard({ o, links }: { o: ShopOrder; links: OrderLinks }) {
             <div className="flex items-start gap-2"><MapPin size={16} className="mt-0.5 shrink-0" /><span>{o.fulfillment === 'entrega' ? `Entrega: ${o.street}, ${o.number}${o.complement ? ` (${o.complement})` : ''} · ${o.district}, ${o.city}` : o.pickup_address ? `Retirada: ${o.pickup_address}` : 'Retirada no local'}</span></div>
           </>
         )}
-        <div className="flex items-start gap-2"><CreditCard size={16} className="mt-0.5 shrink-0" /><span>Pagamento: {pay}</span>
-          {o.payment_method === 'pix' && <PayBadge o={o} />}</div>
+        <div className="flex items-start gap-2"><CreditCard size={16} className="mt-0.5 shrink-0" /><span>Pagamento: {pay}{o.payment_method === 'cartao' && o.paid && o.installments && o.installments > 1 ? ` em ${o.installments}x` : ''}</span>
+          {(o.payment_method === 'pix' || o.payment_method === 'cartao') && <PayBadge o={o} />}</div>
       </div>
       {o.can_cancel && <CancelOrder orderId={o.id} code={o.code} paid={o.paid} total={o.total} cancelUrl={links.cancelUrl} />}
       {!o.can_cancel && o.refund.mode === 'solicitacao' && o.refunds.length === 0 && <p className="mt-3 text-sm text-muted">A produção já começou, então o cancelamento é feito por um pedido de devolução, que passa por análise.</p>}
       <RefundBox o={o} links={links} />
       {o.pix && o.status !== 'cancelado' && <PixCopy orderId={o.id} code={o.pix.code} qr={o.pix.qr_base64} expiresIn={o.pix.expires_in} expired={o.pix.expired} />}
+      {o.payment_method === 'cartao' && !o.paid && o.status !== 'cancelado' && links.cardRetryUrl && <CardRetry total={o.total} retryUrl={links.cardRetryUrl} />}
     </Card>
   );
 }

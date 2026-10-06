@@ -2,10 +2,11 @@
 import { ArrowLeft, MapPin, Minus, Plus, UtensilsCrossed } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { EmptyState } from '@/components/PageHeader';
 import { Photo } from '@/components/site/Photo';
+import { CardFields, type CardFieldsHandle } from '@/components/site/CardFields';
 import { Button, Card, Field, Input, NumberInput, Select, Textarea } from '@/components/ui/form';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/client';
@@ -13,7 +14,7 @@ import type { Customer, Menu } from '@shared/types';
 import { money } from '@/lib/format';
 import {
   cartTotal, formatCep, formatPhone, FULFILLMENT, LEAD_DAYS, leadDaysLabel, MAX_QTY, onlyDigits, PAYMENT_METHODS, parseShopOrder, photoKind,
-  TIME_WINDOWS, 
+  TIME_WINDOWS,
 } from '@shared/shop';
 import { addDays } from '@shared/text';
 import { weightLabel } from '@shared/shop';
@@ -52,6 +53,12 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
   const [busy, setBusy] = useState(false);
   const cepAbort = useRef<AbortController | null>(null);
   const set = (patch: Partial<typeof f>) => setF((s) => ({ ...s, ...patch }));
+  const [cardCfg, setCardCfg] = useState<{ cardEnabled: boolean; publicKey: string | null } | null>(null);
+  const cardRef = useRef<CardFieldsHandle>(null);
+  useEffect(() => {
+    fetch('/api/payment-config').then((r) => r.json()).then(setCardCfg).catch(() => setCardCfg({ cardEnabled: false, publicKey: null }));
+  }, []);
+  const paymentMethods = PAYMENT_METHODS.filter((p) => p.id !== 'cartao' || cardCfg?.cardEnabled);
 
   const lines = Object.entries(qty).filter(([, n]) => n > 0).map(([id, n]) => ({ id, qty: n }));
   const total = cartTotal(lines, menu.items);
@@ -87,12 +94,18 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const body = { ...f, items: lines };
+    let body: Record<string, unknown> = { ...f, items: lines };
+    if (f.payment_method === 'cartao') {
+      const t = await cardRef.current?.tokenize();
+      if (!t) return;
+      body = { ...body, card_token: t.card_token, card_payment_method_id: t.card_payment_method_id, cpf: t.cpf, installments: t.installments };
+    }
     const check = parseShopOrder(body, addDays(minDate, -LEAD_DAYS), menu.items);
     if (check.error) { toast.error(check.error); return; }
     setBusy(true);
     try {
-      const r = await api<{ id: number }>('/api/cliente/pedidos', 'POST', body);
+      const r = await api<{ id: number; card: { approved: boolean; pending?: boolean; reason?: string } | null }>('/api/cliente/pedidos', 'POST', body);
+      if (r.card && !r.card.approved && !r.card.pending) toast.error(r.card.reason ?? 'Pagamento recusado. Tente outro cartão no pedido.');
       router.replace(`/cliente/pedidos?novo=${r.id}`); router.refresh();
     } catch (err: any) { toast.error(err.message); setBusy(false); }
   }
@@ -184,8 +197,11 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
 
       <Section n={4} title="Forma de pagamento" hint="O pagamento é combinado na confirmação do pedido.">
         <div className="grid gap-2.5 sm:grid-cols-3">
-          {PAYMENT_METHODS.map((o) => <Choice key={o.id} name="payment" value={o.id} checked={f.payment_method === o.id} onChange={() => set({ payment_method: o.id })} title={o.label} hint={o.hint} />)}
+          {paymentMethods.map((o) => <Choice key={o.id} name="payment" value={o.id} checked={f.payment_method === o.id} onChange={() => set({ payment_method: o.id })} title={o.label} hint={o.hint} />)}
         </div>
+        {f.payment_method === 'cartao' && cardCfg?.publicKey && (
+          <Card className="mt-3 p-4"><CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={total} /></Card>
+        )}
         {f.payment_method === 'dinheiro' && (
           <Card className="mt-3 p-4">
             <Field label="Precisa de troco para quanto? (opcional)" hint="Deixe em branco se tiver o valor certinho.">
