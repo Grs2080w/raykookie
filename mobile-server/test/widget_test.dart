@@ -284,7 +284,7 @@ void main() {
       expect(be.calls, contains('POST /api/devolucoes/7/tentar'));
     });
 
-    testWidgets('pedido da loja: "Cancelar e devolver o Pix" pede o motivo e chama a API', (t) async {
+    testWidgets('pedido da loja: "Cancelar e devolver o valor pago" pede o motivo e chama a API', (t) async {
       final be = FakeBackend({
         'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
         'GET /api/orders': (_) => (200, [
@@ -298,9 +298,9 @@ void main() {
       await s.load();
       await pumpApp(t, be, at: '/painel/pedidos', session: s);
       await t.pumpAndSettle(const Duration(milliseconds: 100));
-      await t.tap(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o Pix'));
+      await t.tap(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o valor pago'));
       await t.pumpAndSettle(const Duration(milliseconds: 100));
-      expect(find.textContaining('o Pix de R\$ 100,00 volta para a cliente automaticamente'), findsOneWidget);
+      expect(find.textContaining('o valor de R\$ 100,00 volta para a cliente automaticamente'), findsOneWidget);
       await t.tap(find.text('Faltou ingrediente'));
       await t.pump();
       expect(find.text('Mensagem para a cliente (opcional)'), findsOneWidget);
@@ -336,7 +336,7 @@ void main() {
       expect(be.calls, contains('GET /api/devolucoes/7'));
     });
 
-    testWidgets('card do pedido cancelado: quem cancelou, o motivo, a mensagem e o Pix devolvido', (t) async {
+    testWidgets('card do pedido cancelado: quem cancelou, o motivo, a mensagem e o valor devolvido', (t) async {
       final be = FakeBackend({
         'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
         'GET /api/orders': (_) => (200, [shopOrder(status: 'cancelado', cancel: {'by': 'loja', 'reason': 'Faltou ingrediente', 'note': 'acabou o chocolate'})]),
@@ -347,8 +347,8 @@ void main() {
       await pumpApp(t, be, at: '/painel/pedidos', session: s);
       await t.pumpAndSettle(const Duration(milliseconds: 100));
       expect(find.textContaining('Cancelado por você: Faltou ingrediente (acabou o chocolate)'), findsOneWidget);
-      expect(find.textContaining('R\$ 100,00 devolvidos por Pix.'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o Pix'), findsNothing);
+      expect(find.textContaining('R\$ 100,00 devolvidos.'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o valor pago'), findsNothing);
     });
 
     Future<void> openOrders(WidgetTester t, List<Map<String, dynamic>> orders) async {
@@ -373,7 +373,7 @@ void main() {
         ),
       ]);
       expect(find.text('DEVOLUÇÃO CONCLUÍDA'), findsOneWidget);
-      expect(find.text('R\$ 100,00 devolvidos por Pix · Desisti do pedido (já está em produção)'), findsOneWidget);
+      expect(find.text('R\$ 100,00 devolvidos · Desisti do pedido (já está em produção)'), findsOneWidget);
       expect(find.textContaining('Pedido encerrado: todo o valor foi devolvido'), findsOneWidget);
       expect(find.textContaining('Cancelar'), findsNothing);
       expect(find.text('Devolver valor'), findsNothing);
@@ -387,14 +387,14 @@ void main() {
     testWidgets('com devolução aguardando, o card só oferece "Ver e decidir" (nada de cancelar ou devolver por fora)', (t) async {
       await openOrders(t, [shopOrder(status: 'producao', refund: {'id': 7, 'kind': 'solicitado', 'status': 'solicitado', 'reason_code': 'desisti', 'requested_amount': 100.0, 'approved_amount': null, 'photos': 0})]);
       expect(find.text('Ver e decidir'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o Pix'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o valor pago'), findsNothing);
       expect(find.widgetWithText(OutlinedButton, 'Devolver valor'), findsNothing);
     });
 
     testWidgets('devolução parcial concluída: faixa com o quanto voltou e o cancelar mostra só o que resta', (t) async {
       await openOrders(t, [shopOrder(status: 'producao', refunded: 20, refund: {'id': 8, 'kind': 'loja', 'status': 'concluido', 'reason_code': 'outro', 'requested_amount': 20.0, 'approved_amount': 20.0, 'photos': 0})]);
       expect(find.text('DEVOLUÇÃO CONCLUÍDA (PARCIAL)'), findsOneWidget);
-      expect(find.text('R\$ 20,00 de R\$ 100,00 devolvidos por Pix'), findsOneWidget);
+      expect(find.text('R\$ 20,00 de R\$ 100,00 devolvidos'), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'Cancelar e devolver R\$ 80,00'), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'Devolver valor'), findsOneWidget);
       expect(find.byTooltip('Excluir pedido 5'), findsNothing); // pedido do app nunca é excluído
@@ -411,7 +411,7 @@ void main() {
       await s.load();
       await pumpApp(t, be, at: '/painel/pedidos', session: s);
       await t.pumpAndSettle(const Duration(milliseconds: 100));
-      await t.tap(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o Pix'));
+      await t.tap(find.widgetWithText(OutlinedButton, 'Cancelar e devolver o valor pago'));
       await t.pumpAndSettle(const Duration(milliseconds: 100));
       await t.tap(find.text('Outro motivo'));
       await t.pump();

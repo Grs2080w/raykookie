@@ -17,14 +17,9 @@ describe('assinatura do webhook', () => {
   });
 });
 
-describe('cartão removido do checkout', () => {
-  it('só Pix e dinheiro; pedido com cartão é recusado, mas pedidos antigos mantêm o rótulo', () => {
-    expect(PAYMENT_METHODS.map((p) => p.id)).toEqual(['pix', 'dinheiro']);
-    const r = parseShopOrder({
-      items: [{ id: '1', qty: 1 }], contact_name: 'Maria', phone: '11912345678', fulfillment: 'retirada',
-      scheduled_for: '2026-10-05', time_window: 'tarde', payment_method: 'cartao',
-    }, '2026-10-01', [{ id: '1', name: 'Cookie', price: 9, category: 'x' }]);
-    expect(r.error).toBeTruthy();
+describe('formas de pagamento', () => {
+  it('pix, cartão e dinheiro, com rótulo certo', () => {
+    expect(PAYMENT_METHODS.map((p) => p.id)).toEqual(['pix', 'cartao', 'dinheiro']);
     expect(paymentLabel('cartao')).toBe('Cartão');
   });
 });

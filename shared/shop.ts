@@ -1,6 +1,7 @@
 // Loja online: regras do pedido e validação. Puro (roda no cliente e no servidor).
 // O cardápio e os preços vêm das receitas do painel (lib/shop-menu.ts); o servidor sempre recalcula o total por eles.
 import { addDays, cleanText, isoDate, parseLocaleNumber } from './text';
+import { cleanCpf, isValidCpf } from './cpf';
 
 // Item do cardápio = uma receita do painel: só nome, preço por unidade e foto (nada de ingredientes, custos ou margem).
 export type { MenuItem, MenuGroup } from './types';
@@ -22,10 +23,13 @@ export const FULFILLMENT = [
 ] as const;
 export const PAYMENT_METHODS = [
   { id: 'pix', label: 'Pix', hint: 'Geramos o Pix copia e cola ao finalizar o pedido.' },
+  { id: 'cartao', label: 'Cartão', hint: 'Cartão de crédito, com segurança.' },
   { id: 'dinheiro', label: 'Dinheiro', hint: 'Informe se precisa de troco.' },
 ] as const;
-/** Rótulo para exibir; mantém "Cartão" só para pedidos antigos (não é mais opção no checkout). */
-export const paymentLabel = (id: string) => (id === 'cartao' ? 'Cartão' : PAYMENT_METHODS.find((p) => p.id === id)?.label ?? id);
+export const paymentLabel = (id: string) => PAYMENT_METHODS.find((p) => p.id === id)?.label ?? id;
+/** Parcelamento sem juros (a loja absorve a taxa do Mercado Pago) só a partir deste valor; abaixo, só 1x. */
+export const CARD_INSTALLMENTS_MIN_AMOUNT = 150;
+export const MAX_INSTALLMENTS = 12;
 export const TIME_WINDOWS = [
   { id: 'manha', label: 'Manhã (8h às 12h)' },
   { id: 'tarde', label: 'Tarde (12h às 18h)' },
@@ -76,6 +80,8 @@ export type ShopOrderInput = {
   cep: string; street: string; number: string; complement: string; district: string; city: string;
   scheduled_for: string; time_window: string; payment_method: string; change_for: number | null; notes: string;
   items: { id: string; name: string; qty: number; unit_price: number }[]; total: number;
+  // só preenchidos quando payment_method === 'cartao'; card_token/cpf nunca são guardados (ver shared/legal.ts)
+  card_token?: string; card_payment_method_id?: string; cpf?: string; installments?: number;
 };
 
 const pick = <T extends { id: string }>(list: readonly T[], id: string) => list.find((x) => x.id === id)?.id;
@@ -131,11 +137,24 @@ export function parseShopOrder(b: any, today: string, menu: MenuItem[]): { error
     if (n < total) return { error: 'O troco precisa ser para um valor maior ou igual ao total do pedido.' };
     change_for = Math.round(n * 100) / 100;
   }
+  let card_token: string | undefined, card_payment_method_id: string | undefined, cpf: string | undefined, installments: number | undefined;
+  if (payment_method === 'cartao') {
+    card_token = cleanText(b?.card_token);
+    if (!card_token) return { error: 'Preencha os dados do cartão.' };
+    card_payment_method_id = cleanText(b?.card_payment_method_id);
+    if (!card_payment_method_id) return { error: 'Não reconhecemos a bandeira desse cartão.' };
+    if (!isValidCpf(b?.cpf)) return { error: 'Informe um CPF válido (exigido pelo Mercado Pago para pagar com cartão).' };
+    cpf = cleanCpf(b?.cpf); // só dígitos: é o formato que o Mercado Pago espera
+    installments = Number(b?.installments);
+    if (!Number.isInteger(installments) || installments < 1 || installments > MAX_INSTALLMENTS) return { error: 'Escolha uma quantidade de parcelas válida.' };
+    if (installments > 1 && total <= CARD_INSTALLMENTS_MIN_AMOUNT) return { error: `Parcelamento só para pedidos acima de R$ ${CARD_INSTALLMENTS_MIN_AMOUNT}.` };
+  }
 
   return {
     value: {
       contact_name, phone, fulfillment, ...(fulfillment === 'entrega' ? addr : { cep: '', street: '', number: '', complement: '', district: '', city: '' }),
       scheduled_for, time_window, payment_method, change_for, notes: cleanText(b?.notes).slice(0, 300), items, total,
+      ...(payment_method === 'cartao' ? { card_token, card_payment_method_id, cpf, installments } : {}),
     },
   };
 }

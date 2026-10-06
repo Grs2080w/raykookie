@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { q, q1, tx } from './db';
-import { cancelPayment, createPixPayment, getPayment, mpConfigured, pixExpiresMinutes, type MpPayment } from './mercadopago';
+import { cancelPayment, cardFailReason, createCardPayment, createPixPayment, getPayment, mpCardConfigured, mpConfigured, pixExpiresMinutes, type MpPayment } from './mercadopago';
 import { MAX_PIX_ATTEMPTS } from './pix';
+import { MAX_CARD_ATTEMPTS } from './card-pay';
 import { siteUrl } from './site';
 import { allocateOrderCode } from './order-code';
 import { logEvent } from './order-events';
@@ -251,6 +252,52 @@ export async function payLinkPix(token: string): Promise<PayLinkPixResult> {
     console.error('[mercadopago] falha ao gerar Pix do link de pagamento', l.id, e);
     return { ok: false, status: 502, error: 'Não conseguimos gerar o Pix agora. Tente de novo em instantes.' };
   }
+}
+
+export type PayLinkCardResult =
+  | { ok: true; approved: true }
+  | { ok: true; approved: false; pending: true }
+  | { ok: true; approved: false; pending: false; reason: string }
+  | { ok: false; status: number; error: string };
+
+/** "Pagar com cartão" da página pública do link: aprova ou recusa na hora (ao contrário do Pix). Aprovado,
+ *  promove a pedido do app pelo mesmo `markLinkPaid` que o Pix do link já usa. */
+export async function payLinkCard(token: string, cardToken: string, paymentMethodId: string, installments: number, cpf: string): Promise<PayLinkCardResult> {
+  if (!isPayToken(token)) return { ok: false, status: 404, error: 'Link não encontrado.' };
+  if (!mpCardConfigured()) return { ok: false, status: 503, error: 'O pagamento com cartão não está disponível agora.' };
+  const l = await q1<{ id: number; amount: number; paid_at: Date | null; card_attempts: number; number: number; customer: string; status: string; payment: string; total: number }>(
+    `SELECT l.id, l.amount::float8 AS amount, l.paid_at, l.card_attempts,
+            o.number, o.customer, o.status, o.payment, (o.qty * o.unit_price)::float8 AS total
+       FROM order_pay_links l JOIN orders o ON o.id = l.order_id WHERE l.token = $1`, [token]);
+  if (!l) return { ok: false, status: 404, error: 'Link não encontrado.' };
+  if (l.paid_at || l.payment === 'pago') return { ok: true, approved: true };
+  if (l.status === 'cancelado') return { ok: false, status: 409, error: 'Este pedido foi cancelado.' };
+  if (l.amount > Math.round(l.total * 100) / 100) return { ok: false, status: 409, error: 'O valor deste pedido mudou. Peça um novo link para a loja.' };
+  if (l.card_attempts >= MAX_CARD_ATTEMPTS) return { ok: false, status: 429, error: 'Muitas tentativas de cartão para este pedido. Peça para pagar com Pix.' };
+
+  let pay;
+  try {
+    pay = await createCardPayment({
+      orderId: l.id, code: l.number, total: l.amount, email: payerEmail(), name: l.customer, cpf,
+      cardToken, paymentMethodId, installments, attempt: l.card_attempts + 1, reference: `${LINK_REF}${l.id}`,
+    });
+  } catch (e) {
+    console.error('[pagamento por link] falha ao cobrar o cartão', l.id, e);
+    return { ok: false, status: 502, error: 'Não conseguimos falar com o Mercado Pago agora. Tente de novo ou pague com Pix.' };
+  }
+  if (pay.status === 'approved') {
+    // precisa estar em mp_payment_ids antes: é a guarda que o markLinkPaid confere
+    await q(`UPDATE order_pay_links SET mp_payment_id = $2, mp_payment_ids = array_append(mp_payment_ids, $2), installments = $3 WHERE id = $1`, [l.id, pay.paymentId, installments]);
+    const orderId = await markLinkPaid(l.id, pay.paymentId, l.amount);
+    if (orderId == null) console.warn('[pagamento por link] cartão aprovado que não foi aplicado (já pago por outro meio)', { linkId: l.id, payment: pay.paymentId });
+    return { ok: true, approved: true }; // o dinheiro foi cobrado de qualquer forma; markLinkPaid só não repete se já tiver sido aplicado antes
+  }
+  if (pay.status === 'pending' || pay.status === 'in_process') {
+    await q(`UPDATE order_pay_links SET mp_payment_ids = array_append(mp_payment_ids, $2), card_attempts = card_attempts + 1 WHERE id = $1`, [l.id, pay.paymentId]);
+    return { ok: true, approved: false, pending: true };
+  }
+  await q(`UPDATE order_pay_links SET card_attempts = card_attempts + 1 WHERE id = $1`, [l.id]);
+  return { ok: true, approved: false, pending: false, reason: cardFailReason(pay.statusDetail) };
 }
 
 /** Rede de segurança do webhook: links com Pix gerado e ainda não pagos (últimos 2 dias) são conferidos no Mercado Pago. Devolve quantos foram aplicados. */

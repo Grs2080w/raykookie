@@ -76,3 +76,28 @@ String formatCep(String v) {
 
 /// Número do servidor → texto do campo (sem ".0" sobrando).
 String fieldNum(num v) => v == v.roundToDouble() ? v.toInt().toString() : v.toString().replaceAll('.', ',');
+
+String formatCpf(String v) {
+  final d = onlyDigits(v, 11);
+  var s = d;
+  if (s.length > 9) s = '${s.substring(0, 9)}-${s.substring(9)}';
+  if (s.length > 7) s = '${s.substring(0, 6)}.${s.substring(6)}';
+  if (s.length > 4) s = '${s.substring(0, 3)}.${s.substring(3)}';
+  return s;
+}
+
+/// CPF: só é repassado ao Mercado Pago no pagamento com cartão, nunca guardado (ver shared/cpf.ts, mesma regra).
+bool isValidCpf(String v) {
+  final s = onlyDigits(v, 11);
+  if (s.length != 11 || RegExp(r'^(\d)\1{10}$').hasMatch(s)) return false;
+  int check(String digits, int factor) {
+    var sum = 0;
+    for (final c in digits.split('')) {
+      sum += int.parse(c) * factor;
+      factor--;
+    }
+    final r = (sum * 10) % 11;
+    return r == 10 ? 0 : r;
+  }
+  return check(s.substring(0, 9), 10) == int.parse(s[9]) && check(s.substring(0, 10), 11) == int.parse(s[10]);
+}

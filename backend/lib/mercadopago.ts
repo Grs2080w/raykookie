@@ -9,6 +9,9 @@ export type MpPayment = {
 };
 
 export const mpConfigured = () => !!process.env.MP_ACCESS_TOKEN;
+/** Chave pública (não secreta) usada pelo site e pelo app para tokenizar o cartão direto com o Mercado Pago. */
+export const mpPublicKey = () => process.env.MP_PUBLIC_KEY || null;
+export const mpCardConfigured = () => mpConfigured() && !!mpPublicKey();
 
 export class MpError extends Error {
   constructor(public status: number, public body: string) { super(`Mercado Pago ${status}: ${body.slice(0, 300)}`); }
@@ -58,6 +61,48 @@ export async function createPixPayment(o: { orderId: number; code: number; total
 }
 
 export const getPayment = (id: string) => mp<MpPayment>(`/v1/payments/${encodeURIComponent(id)}`);
+
+export type MpCardResult = { paymentId: string; status: string; statusDetail: string };
+
+/** Cria a cobrança no cartão (aprova ou recusa na mesma chamada, ao contrário do Pix). Dados do cartão nunca
+ *  passam por aqui como número bruto: `cardToken` já veio pronto do Mercado Pago (tokenizado no site/app do cliente). */
+export async function createCardPayment(o: {
+  orderId: number; code: number; total: number; email: string; name: string; cpf: string;
+  cardToken: string; paymentMethodId: string; installments: number; attempt: number; reference?: string;
+}): Promise<MpCardResult> {
+  const idem = o.reference ? o.reference.replace(':', '-') : `order-${o.orderId}`;
+  const p = await mp<{ id: number; status: string; status_detail: string }>('/v1/payments', {
+    method: 'POST',
+    headers: { 'X-Idempotency-Key': `rayka-card-${idem}-${o.attempt}` },
+    body: JSON.stringify({
+      transaction_amount: o.total,
+      token: o.cardToken,
+      description: `Pedido #${o.code} - Raykookie`,
+      installments: o.installments,
+      payment_method_id: o.paymentMethodId,
+      payer: { email: o.email, first_name: o.name.split(' ')[0], identification: { type: 'CPF', number: o.cpf } },
+      external_reference: o.reference ?? String(o.orderId),
+      notification_url: siteUrl('/api/webhooks/mercadopago'),
+    }),
+  });
+  return { paymentId: String(p.id), status: p.status, statusDetail: p.status_detail };
+}
+
+const CARD_FAIL_REASONS: Record<string, string> = {
+  cc_rejected_bad_filled_security_code: 'O código de segurança (CVV) está errado.',
+  cc_rejected_bad_filled_date: 'A validade do cartão está errada.',
+  cc_rejected_bad_filled_card_number: 'O número do cartão está errado.',
+  cc_rejected_bad_filled_other: 'Confira os dados do cartão e tente de novo.',
+  cc_rejected_insufficient_amount: 'Saldo ou limite insuficiente.',
+  cc_rejected_call_for_authorize: 'O banco pediu para autorizar essa compra antes. Fale com o banco ou tente outro cartão.',
+  cc_rejected_card_disabled: 'Esse cartão está desabilitado para compras online. Fale com o banco ou tente outro cartão.',
+  cc_rejected_duplicated_payment: 'Já existe um pagamento igual feito há pouco com esse cartão.',
+  cc_rejected_high_risk: 'O pagamento foi recusado por segurança. Tente outro cartão ou Pix.',
+  cc_rejected_max_attempts: 'Muitas tentativas com esse cartão. Tente outro cartão ou Pix.',
+};
+/** Mensagem em português para o motivo da recusa; cai num genérico se o código não for um dos mapeados. */
+export const cardFailReason = (statusDetail: string): string =>
+  CARD_FAIL_REASONS[statusDetail] ?? 'Não conseguimos aprovar esse cartão. Tente outro cartão ou Pix.';
 
 /** Confere o cabeçalho `x-signature` (ts=...,v1=...) das notificações: HMAC-SHA256 de `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`. */
 export function validSignature(secret: string, dataId: string, xSignature: string | null, xRequestId: string | null): boolean {

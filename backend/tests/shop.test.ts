@@ -6,6 +6,7 @@ const menu: MenuItem[] = [
   { id: '2', name: 'Caixa com 6 brownies', price: 62, category: 'Brigadeiros e docinhos' },
   { id: '3', name: 'Bolo de chocolate', price: 98, category: 'Bolos' },
 ];
+const CPF = '529.982.247-25'; // CPF válido de teste (ver backend/tests/cpf.test.ts)
 
 const today = '2026-10-01';
 const base = {
@@ -53,6 +54,31 @@ describe('parseShopOrder', () => {
     const r = parseShopOrder({ ...base, contact_name: 'Ma\u0000ria', notes: 'x'.repeat(500) }, today, menu);
     expect(r.value!.contact_name).toBe('Maria');
     expect(r.value!.notes).toHaveLength(300);
+  });
+});
+
+describe('parseShopOrder — pagamento com cartão', () => {
+  const card = { ...base, payment_method: 'cartao', card_token: 'tok_123', card_payment_method_id: 'master', cpf: CPF, installments: 1 };
+  it('exige token, bandeira e CPF válido', () => {
+    expect(parseShopOrder({ ...card, card_token: '' }, today, menu).error).toMatch(/dados do cartão/);
+    expect(parseShopOrder({ ...card, card_payment_method_id: '' }, today, menu).error).toMatch(/bandeira/);
+    expect(parseShopOrder({ ...card, cpf: '111.111.111-11' }, today, menu).error).toMatch(/CPF/);
+    expect(parseShopOrder({ ...card, cpf: '' }, today, menu).error).toMatch(/CPF/);
+  });
+  it('parcela só acima de R$150, e só até o limite', () => {
+    // total deste carrinho (item 1, qty 4 + item 2, qty 1) = 4*9 + 62 = 98 (abaixo de 150)
+    expect(parseShopOrder({ ...card, installments: 2 }, today, menu).error).toMatch(/150/);
+    expect(parseShopOrder({ ...card, installments: 1 }, today, menu).error).toBeUndefined();
+    expect(parseShopOrder({ ...card, installments: 0 }, today, menu).error).toMatch(/parcelas/);
+    expect(parseShopOrder({ ...card, installments: 13 }, today, menu).error).toMatch(/parcelas/);
+  });
+  it('acima de R$150, aceita parcelar e guarda os dados do cartão (nunca o número, só o token)', () => {
+    const r = parseShopOrder({ ...card, items: [{ id: '3', qty: 2 }], installments: 3 }, today, menu); // 2×98 = 196
+    expect(r.error).toBeUndefined();
+    expect(r.value!.card_token).toBe('tok_123');
+    expect(r.value!.card_payment_method_id).toBe('master');
+    expect(r.value!.cpf).toBe('52998224725');
+    expect(r.value!.installments).toBe(3);
   });
 });
 

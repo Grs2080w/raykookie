@@ -15,6 +15,7 @@ export type Order = {
   address: string; // endereço de entrega (ou "Retirada no local") dos pedidos online; vazio nos pedidos manuais
   shop_order_id?: number | null; shop_code?: number | null; // pedido online: id interno e número que o cliente vê
   shop_paid?: boolean; shop_total?: number | null; shop_refunded?: number | null; // pedido online: pago? total e quanto já foi devolvido
+  shop_payment_method?: string | null; shop_installments?: number | null; // pedido online: pix, cartao (com quantas parcelas) ou dinheiro
   shop_cancel?: { by: string; code?: string | null; reason: string; note: string } | null; // pedido online cancelado: por quem e por quê
   shop_refund?: { id: number; kind: string; status: string; reason_code: string; requested_amount: number; approved_amount: number | null; fail_reason?: string | null; decision_code?: string | null; photos: number } | null; // a devolução mais recente do pedido
 };
@@ -59,6 +60,7 @@ export type ShopOrder = {
   created_at: string; scheduled_for: string; time_window: string; fulfillment: 'retirada' | 'entrega';
   pickup_address: string; // endereço de retirada da loja na época do pedido (vazio se não for retirada ou se não havia um escolhido)
   street: string; number: string; complement: string; district: string; city: string; payment_method: string;
+  installments?: number; // só relevante para payment_method 'cartao' (1 = à vista)
   notes: string; total: number; items: { id: string; name: string; qty: number; unit_price: number }[]; status: string;
   paid: boolean; // o webhook do Mercado Pago confirmou o pagamento
   manual: boolean; // pedido registrado à mão pago pelo link (sem horário nem endereço)
