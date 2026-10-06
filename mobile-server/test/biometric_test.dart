@@ -129,10 +129,12 @@ void main() {
     await open(t, backend(), bio, store, at: '/painel/mais');
     await t.tap(find.text('Agora não'));
     await t.pumpAndSettle(const Duration(milliseconds: 100));
-    await t.tap(find.widgetWithText(SwitchListTile, 'Entrar com biometria'));
+    final bioSwitch = find.widgetWithText(SwitchListTile, 'Entrar com biometria');
+    await t.scrollUntilVisible(bioSwitch, 200, scrollable: find.byType(Scrollable).first);
+    await t.tap(bioSwitch);
     await t.pumpAndSettle(const Duration(milliseconds: 100));
     expect(await store.read('bio_on:teste_qa'), '1');
-    await t.tap(find.widgetWithText(SwitchListTile, 'Entrar com biometria'));
+    await t.tap(bioSwitch);
     await t.pumpAndSettle(const Duration(milliseconds: 100));
     expect(await store.read('bio_on:teste_qa'), isNull);
   });
