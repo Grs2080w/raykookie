@@ -14,8 +14,7 @@ type Mp = {
     create: (type: 'cardNumber' | 'expirationDate' | 'securityCode', opts: Record<string, unknown>) => MpField;
     createCardToken: (data: { cardholderName: string; identificationType: 'CPF'; identificationNumber: string }) => Promise<{ id: string }>;
   };
-  getPaymentMethods: (o: { bin: string }) => Promise<{ results: { id: string }[] }>;
-  getInstallments: (o: { amount: string; bin: string; locale: string }) => Promise<{ payer_costs: MpPayerCost[] }[]>;
+  getInstallments: (o: { amount: string; bin: string; locale: string }) => Promise<{ payment_method_id: string; payer_costs: MpPayerCost[] }[]>;
 };
 declare global { interface Window { MercadoPago?: new (key: string, opts?: Record<string, unknown>) => Mp } }
 
@@ -70,18 +69,15 @@ export const CardFields = forwardRef<CardFieldsHandle, { publicKey: string; amou
       mp.fields.create('securityCode', { ...fieldStyle, placeholder: 'CVV' }).mount(cvvRef.current);
       cardNumber.on('binChange', async ({ bin }) => {
         if (!bin) { setPaymentMethodId(''); setOptions([]); return; }
+        // getPaymentMethods({bin}) NÃO filtra de verdade pelo bin (confirmado contra a API real) — quem
+        // sabe a bandeira certa é este endpoint, usado sempre (mesmo abaixo do limite de parcelamento).
         try {
-          const pms = await mp.getPaymentMethods({ bin });
-          setPaymentMethodId(pms.results?.[0]?.id ?? '');
-        } catch { setPaymentMethodId(''); }
-        if (amount > CARD_INSTALLMENTS_MIN_AMOUNT) {
-          try {
-            const res = await mp.getInstallments({ amount: String(amount), bin, locale: 'pt-BR' });
-            // só sem juros: a loja absorve a taxa, o preço nunca muda com a parcela escolhida
-            const semJuros = (res[0]?.payer_costs ?? []).filter((p) => p.installment_rate === 0);
-            setOptions(semJuros);
-          } catch { setOptions([]); }
-        }
+          const res = await mp.getInstallments({ amount: String(amount || 1), bin, locale: 'pt-BR' });
+          setPaymentMethodId(res[0]?.payment_method_id ?? '');
+          // só sem juros: a loja absorve a taxa, o preço nunca muda com a parcela escolhida
+          const semJuros = amount > CARD_INSTALLMENTS_MIN_AMOUNT ? (res[0]?.payer_costs ?? []).filter((p) => p.installment_rate === 0) : [];
+          setOptions(semJuros);
+        } catch { setPaymentMethodId(''); setOptions([]); }
       });
       setReady(true);
     }).catch((e) => toast.error(e.message));

@@ -74,24 +74,28 @@ class CardFieldsState extends State<CardFields> {
       });
       return;
     }
+    // GET /v1/payment_methods?bin=... NÃO filtra de verdade pelo bin (confirmado contra a API real) —
+    // quem sabe a bandeira certa é o endpoint de parcelas, usado sempre (mesmo abaixo do limite de parcelamento).
     try {
-      final r = await http.get(Uri.parse('https://api.mercadopago.com/v1/payment_methods?bin=$bin&public_key=${widget.publicKey}')).timeout(const Duration(seconds: 8));
+      final amount = widget.amount > 0 ? widget.amount : 1;
+      final r = await http.get(Uri.parse('https://api.mercadopago.com/v1/payment_methods/installments?bin=$bin&amount=$amount&public_key=${widget.publicKey}')).timeout(const Duration(seconds: 8));
       final list = jsonDecode(r.body) as List;
-      if (mounted) setState(() => _paymentMethodId = list.isNotEmpty ? '${(list.first as Map)['id']}' : '');
-    } catch (_) {
-      if (mounted) setState(() => _paymentMethodId = '');
-    }
-    if (widget.amount > cardInstallmentsMinAmount) {
-      try {
-        final r = await http.get(Uri.parse('https://api.mercadopago.com/v1/payment_methods/installments?bin=$bin&amount=${widget.amount}&public_key=${widget.publicKey}')).timeout(const Duration(seconds: 8));
-        final list = jsonDecode(r.body) as List;
-        final costs = list.isNotEmpty ? (list.first as Map)['payer_costs'] as List? ?? const [] : const [];
+      final first = list.isNotEmpty ? list.first as Map : null;
+      if (!mounted) return;
+      setState(() => _paymentMethodId = first != null ? '${first['payment_method_id']}' : '');
+      if (widget.amount > cardInstallmentsMinAmount) {
+        final costs = first?['payer_costs'] as List? ?? const [];
         // só sem juros: a loja absorve a taxa, o preço nunca muda com a parcela escolhida
         final semJuros = [for (final p in costs) if (((p as Map)['installment_rate'] as num).toDouble() == 0) p['installments'] as int];
-        if (mounted) setState(() => _options = semJuros);
-      } catch (_) {
-        if (mounted) setState(() => _options = []);
+        setState(() => _options = semJuros);
+      } else {
+        setState(() => _options = []);
       }
+    } catch (_) {
+      if (mounted) setState(() {
+        _paymentMethodId = '';
+        _options = [];
+      });
     }
   }
 
