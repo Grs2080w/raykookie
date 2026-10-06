@@ -138,6 +138,12 @@ class MoreScreen extends StatelessWidget {
           () => context.push('/painel/devolucoes'),
         ),
         tile(
+          Icons.reviews_outlined,
+          'Feedback dos clientes',
+          'Nota, mensagem e fotos enviadas no site e no app',
+          () => context.push('/painel/feedback'),
+        ),
+        tile(
           Icons.privacy_tip_outlined,
           'Privacidade dos clientes',
           'Solicitações sobre dados (LGPD)',

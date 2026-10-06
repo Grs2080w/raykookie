@@ -18,6 +18,7 @@ import 'package:raykookie_common/ui/widgets.dart';
 
 import '../../core/customer_push.dart';
 import 'brand.dart';
+import 'feedback_card.dart';
 
 /// Pedidos já feitos pelo cliente, com a situação de cada um.
 class CustomerOrdersScreen extends StatelessWidget {
@@ -176,6 +177,8 @@ class CustomerOrdersScreen extends StatelessWidget {
                       else
                         for (final o in orders)
                           _OrderCard(o, onChanged: reload, focused: o.id.toString() == focus),
+                      const SizedBox(height: 18),
+                      const FeedbackCard(),
                     ],
                   );
                 },

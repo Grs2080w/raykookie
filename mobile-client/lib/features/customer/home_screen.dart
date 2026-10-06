@@ -15,6 +15,7 @@ import 'package:raykookie_common/ui/share_menu.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
 import 'brand.dart';
+import 'feedback_card.dart';
 
 /// Página inicial do app (equivale à landing page do site): apresentação, cardápio, depoimentos e botão de pedido.
 class HomeScreen extends StatefulWidget {
@@ -103,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _gallery(context),
                   _menuSection(context),
                   _reviews(context),
+                  _feedback(context),
                   _instagram(context),
                   _orderArea(context),
                   _footer(context),
@@ -691,6 +693,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _feedback(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: const Centered(maxWidth: 560, child: FeedbackCard()),
     );
   }
 
