@@ -96,10 +96,13 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
           <div className="hidden grid-cols-[52px_minmax(0,1.6fr)_minmax(0,1.5fr)_1fr_1fr_1.1fr_1.1fr_76px] gap-3 border-b border-line bg-surface-2/60 px-5 py-3 text-[13px] font-semibold text-muted lg:grid">
             <span>Nº</span><span>Cliente</span><span>Produto</span><span>Entrega</span><span>Total</span><span>Status</span><span>Pagamento</span><span />
           </div>
+          {/* layout="position" (não "layout" puro): cada linha tem altura bem diferente (endereço, faixas de
+              devolução/cancelamento) — "layout" tenta interpolar o tamanho com scale() e, numa grade, isso
+              sobrepõe o conteúdo; "position" só anima o deslizar quando a lista reordena ou filtra. */}
           <ul>
             <AnimatePresence initial={false}>
               {rows.map((o) => (
-                <motion.li key={o.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }}
+                <motion.li key={o.id} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }}
                   className="grid grid-cols-2 items-center gap-x-3 gap-y-2.5 border-b border-line px-5 py-4 last:border-0 lg:grid-cols-[52px_minmax(0,1.6fr)_minmax(0,1.5fr)_1fr_1fr_1.1fr_1.1fr_76px] lg:py-3">
                   <span className="tnum font-display text-lg font-semibold text-pink-strong">{String(o.number).padStart(2, '0')}</span>
                   <p className="truncate text-right font-semibold lg:text-left">{o.customer}</p>
