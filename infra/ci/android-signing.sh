@@ -39,7 +39,9 @@ case "${1:-}" in
     want="$(tr -d ':[:space:]' <<<"$ANDROID_CERT_SHA256" | tr 'A-F' 'a-f')"
     [[ "$want" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::ANDROID_CERT_SHA256 inválido (precisa de 64 dígitos hex)" >&2; exit 1; }
     out="$("$(apksigner_bin)" verify --print-certs "$apk")"   # falha (set -e) se a assinatura for inválida
-    got="$(grep -E 'Signer #1 certificate SHA-256 digest' <<<"$out" | head -1 | sed 's/.*: *//' | tr -d ':[:space:]' | tr 'A-F' 'a-f')"
+    # apksigner 36.x e anteriores rotulam "Signer #1 certificate SHA-256 digest"; a partir de 37.x
+    # (instalada nos runners hospedados do GitHub) o rótulo virou "V2 Signer: certificate SHA-256 digest".
+    got="$(grep -E 'certificate SHA-256 digest' <<<"$out" | head -1 | sed 's/.*: *//' | tr -d ':[:space:]' | tr 'A-F' 'a-f')"
     if [[ "$got" != "$want" ]]; then
       echo "::error::o APK NÃO está assinado com a chave de produção (fingerprint $got, esperado $want). Publicar assim impediria os apps instalados de atualizar." >&2
       exit 1
