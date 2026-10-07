@@ -1,10 +1,12 @@
-# Entrega contínua. Todo push na main: roda o CI inteiro e, se passar, publica os apps Android que mudaram:
-#   compilados e ASSINADOS na nuvem, conferidos contra o fingerprint de produção, registrados em downloads/
-#   (um runner self-hosted grava direto no disco da máquina — é lá que o container da API lê o manifesto) e
-#   publicados como Release no GitHub.
-# O site (frontend/) é implantado pela própria integração da Vercel com o GitHub — não por este workflow.
-# A API (backend/) roda num container Docker nesta mesma máquina; este pipeline só testa (ci.yml) e publica
-# os APKs — o deploy do container é manual (a imagem muda com pouca frequência; ver backend/Dockerfile).
+# Entrega contínua. Todo push na main: roda o CI inteiro e, se passar:
+#   - publica os apps Android que mudaram: compilados e ASSINADOS na nuvem, conferidos contra o fingerprint de
+#     produção, registrados em downloads/ (um runner self-hosted grava direto no disco da máquina — é lá que o
+#     container da API lê o manifesto) e publicados como Release no GitHub;
+#   - se backend/, frontend/ ou shared/ mudaram: builda a imagem Docker da API, roda as migrations pendentes
+#     (aditivas — o código antigo continua funcionando no banco novo) e troca o container, com rollback
+#     automático para a imagem anterior se a saúde não voltar (ver o job deploy-backend).
+# O site (frontend/) também é implantado pela própria integração da Vercel com o GitHub, em paralelo a este
+# workflow — não depende dele.
 name: CD
 
 on:
@@ -44,6 +46,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       apps: ${{ steps.d.outputs.apps }}
+      web: ${{ steps.c.outputs.web || 'true' }} # fora de push (workflow_dispatch) não roda changes.sh: assume que mudou
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,6 +74,60 @@ jobs:
           echo "apps=$apps" >> "$GITHUB_OUTPUT"
           echo "### O que será publicado" >> "$GITHUB_STEP_SUMMARY"
           echo "- apps: \`$apps\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-backend:
+    name: Implanta a API (Docker)
+    needs: [ci, plan]
+    if: ${{ always() && needs.ci.result == 'success' && needs.plan.result == 'success' && needs.plan.outputs.web == 'true' }}
+    runs-on: [self-hosted, linux, rayka-prod]
+    timeout-minutes: 15
+    environment: production
+    env:
+      # arquivo de segredos que já existe no servidor (nunca no Git/GitHub); mesmo usado no "docker run" manual
+      ENV_FILE: ${{ vars.RAYKOOKIE_ENV_FILE || '/home/g_snts/works/raykookie/backend/.env.docker' }}
+      DOWNLOADS_DIR: ${{ vars.RAYKA_DOWNLOADS_DIR || '/home/g_snts/works/raykookie/downloads' }}
+      DATA_DIR: ${{ vars.RAYKOOKIE_DATA_DIR || '/home/g_snts/.raykookie' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Builda a imagem candidata (não mexe em "latest" ainda, pra sobrar algo pro rollback)
+        run: docker build -f backend/Dockerfile -t raykookie-api:candidate .
+      - name: Roda as migrations pendentes (aditivas — o container antigo, ainda no ar, continua funcionando)
+        run: docker run --rm --network host --env-file "$ENV_FILE" raykookie-api:candidate node scripts/migrate.mjs
+      - name: Troca o container (guarda a imagem atual como "previous" para o rollback)
+        run: |
+          docker tag raykookie-api:latest raykookie-api:previous 2>/dev/null || true
+          docker tag raykookie-api:candidate raykookie-api:latest
+          docker stop raykookie-api 2>/dev/null || true
+          docker rm raykookie-api 2>/dev/null || true
+          docker run -d --name raykookie-api --network host --restart unless-stopped \
+            --env-file "$ENV_FILE" \
+            -v "$DATA_DIR:$DATA_DIR:ro" \
+            -v "$DOWNLOADS_DIR:/app/downloads" \
+            raykookie-api:latest
+      - name: Confere a saúde; se não ficar saudável em 1 min, volta pra imagem anterior
+        run: |
+          for _ in $(seq 1 30); do
+            curl -fsS --max-time 3 http://127.0.0.1:20010/api/health >/dev/null 2>&1 && { echo "API saudável"; exit 0; }
+            sleep 2
+          done
+          echo "::error::a API não ficou saudável depois do deploy; revertendo para a imagem anterior"
+          docker stop raykookie-api 2>/dev/null || true
+          docker rm raykookie-api 2>/dev/null || true
+          docker run -d --name raykookie-api --network host --restart unless-stopped \
+            --env-file "$ENV_FILE" \
+            -v "$DATA_DIR:$DATA_DIR:ro" \
+            -v "$DOWNLOADS_DIR:/app/downloads" \
+            raykookie-api:previous
+          sleep 3
+          if curl -fsS --max-time 10 http://127.0.0.1:20010/api/health >/dev/null 2>&1; then
+            echo "::error::deploy falhou; revertido com sucesso para a imagem anterior"
+          else
+            echo "::error::deploy falhou E o rollback também não respondeu — intervenção manual necessária"
+          fi
+          exit 1
+      - name: Remove imagens soltas (sem tag), para não acumular disco a cada deploy
+        if: always()
+        run: docker image prune -f >/dev/null 2>&1 || true
 
   build-apps:
     name: APK ${{ matrix.label }}
