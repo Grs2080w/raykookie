@@ -10,7 +10,7 @@ Produção (dois deploys independentes):
 ```
 
 `backend/server.mjs` também sabe servir o build do `frontend/` no mesmo processo (`/api/*` → API, o resto → site)
-quando `../frontend/.next` existe; a imagem Docker não leva o frontend, então em produção ele responde só a API.
+quando `FRONTEND_DIR` aponta para um frontend buildado; sem essa variável (como na imagem Docker) responde só a API.
 Esse modo de processo único é o que `tests/server/` exercita.
 
 ## Pastas
@@ -19,7 +19,8 @@ Esse modo de processo único é o que `tests/server/` exercita.
 |---|---|
 | `backend/` | API em Next.js (somente rotas `app/api`), regras de negócio, acesso ao banco, `migrations/` e `scripts/`. Em produção o `server.mjs` dele também entrega o build do frontend. |
 | `frontend/` | Telas em Next.js: landing, loja do cliente (`/cliente/*`) e painel (`/dashboard`, `/estoque`, …). Não acessa o banco: busca tudo na API (chamada ao próprio processo). No desenvolvimento, repassa `/api/*` ao backend de desenvolvimento. |
-| `shared/` | TypeScript puro usado pelos dois: cálculo de preço, regras/validação do pedido, leitura de números pt-BR, tipos do contrato da API. |
+| `shared/` | TypeScript puro usado pelo frontend: cálculo de preço, regras/validação do pedido, leitura de números pt-BR, tipos do contrato da API. |
+| `backend/shared/` | Cópia desses módulos para o backend, que é autocontido (nada fora de `backend/` é usado). Mudou uma regra em `shared/`? Copie também para `backend/shared/` — `backend/tests/isolation.test.ts` impede que o backend volte a importar de fora. |
 | `mobile-client/` | App Flutter do **cliente**: cardápio (landing), login, pedidos e novo pedido. Pacote `br.com.kntap.raykookie`. |
 | `mobile-server/` | App Flutter de **gestão**: dashboard, estoque (com leitura de nota fiscal por QR code), receitas, pedidos, metas, categorias e custos, com login por biometria. Pacote `br.com.kntap.raykookie_gestao`, ícone escuro. |
 | `mobile-common/` | Pacote Dart com o que os dois apps dividem (cliente da API, sessão, modelos, preço, validação de pedido, tema e widgets). |

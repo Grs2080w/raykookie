@@ -1,4 +1,4 @@
-// Publicação dos apps Android (APK): manifesto de versões + arquivos em <raiz do repositório>/downloads.
+// Publicação dos apps Android (APK): manifesto de versões + arquivos em DOWNLOADS_DIR (padrão: <pasta do backend>/downloads).
 // Quem grava os arquivos é infra/publish-apps.mjs; aqui só lemos e entregamos.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ import type { AppId, AppRelease, AppReleases } from '@shared/types';
 export const APPS: AppId[] = ['client', 'server'];
 export const isAppId = (v: string): v is AppId => (APPS as string[]).includes(v);
 
-export const downloadsDir = () => path.resolve(process.env.DOWNLOADS_DIR || path.join(process.cwd(), '..', 'downloads'));
+export const downloadsDir = () => path.resolve(process.env.DOWNLOADS_DIR || path.join(process.cwd(), 'downloads'));
 
 export function readManifest(): AppReleases {
   try {

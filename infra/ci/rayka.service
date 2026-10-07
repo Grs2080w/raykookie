@@ -13,6 +13,7 @@ EnvironmentFile=@ROOT@/shared/backend.env
 Environment=NODE_ENV=production
 Environment=PORT=10005
 Environment=DOWNLOADS_DIR=@ROOT@/shared/downloads
+Environment=FRONTEND_DIR=@ROOT@/current/frontend
 ExecStart=@NODE@ server.mjs
 Restart=always
 RestartSec=3

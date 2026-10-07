@@ -1,7 +1,8 @@
 // Servidor único de produção: UMA porta para tudo.
 //   /api/*  → API (este projeto, backend/)
-//   o resto → site, loja e painel (build de ../frontend)
+//   o resto → site, loja e painel, só se FRONTEND_DIR apontar para um frontend buildado
 // Cada projeto roda com o próprio Next e o próprio build (.next), só que dentro do mesmo processo.
+// Sem FRONTEND_DIR o backend não procura nada fora da própria pasta e responde só a API.
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -10,14 +11,14 @@ import { fileURLToPath } from 'node:url';
 import next from 'next';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const frontendDir = path.resolve(here, process.env.FRONTEND_DIR || '../frontend');
+const frontendDir = process.env.FRONTEND_DIR ? path.resolve(here, process.env.FRONTEND_DIR) : null;
 const port = Number(process.env.PORT || 10005);
 const host = process.env.HOST || '0.0.0.0';
 
 const distDir = process.env.NEXT_DIST_DIR || '.next';
 if (!fs.existsSync(path.join(here, distDir))) { console.error('Falta o build do backend. Rode: npm run build (em backend/)'); process.exit(1); }
-const hasFront = fs.existsSync(path.join(frontendDir, distDir));
-if (!hasFront) console.warn(`[rayka] sem build do frontend em ${frontendDir}: só a API vai responder (rode npm run build em frontend/)`);
+const hasFront = !!frontendDir && fs.existsSync(path.join(frontendDir, distDir));
+if (frontendDir && !hasFront) console.warn(`[rayka] sem build do frontend em ${frontendDir}: só a API vai responder (rode npm run build em frontend/)`);
 
 const api = next({ dev: false, dir: here });
 // o frontend usa o Next instalado na própria pasta (as dependências dele ficam lá). Só tenta o require

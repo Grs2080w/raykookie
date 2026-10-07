@@ -112,7 +112,7 @@ describe('auxiliares', () => {
 
 describe('weightLabel', () => {
   it('formata gramatura da unidade', async () => {
-    const { weightLabel } = await import('../../shared/shop');
+    const { weightLabel } = await import('../shared/shop');
     expect(weightLabel(80)).toBe('80 g');
     expect(weightLabel(62.5)).toBe('62,5 g');
     expect(weightLabel(1500)).toBe('1,5 kg');

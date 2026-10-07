@@ -3,9 +3,9 @@
 Confeitaria: loja online para clientes e painel da confeiteira (estoque, receitas com preço automático, pedidos, metas e custos).
 
 ```
-backend/    API (Next.js), banco e regras — em produção roda sozinha, num container Docker
+backend/    API (Next.js), banco e regras — autocontida: não usa nada de fora da própria pasta; em produção, container Docker
 frontend/   site, loja e painel (Next.js) — em produção vai pra Vercel
-shared/     regras e tipos em TypeScript puro (usados pelos dois)
+shared/     regras e tipos em TypeScript puro usados pelo frontend (o backend tem a própria cópia em backend/shared/)
 mobile-client/   app Flutter do CLIENTE (cardápio e pedidos)
 mobile-server/   app Flutter de GESTÃO (estoque, receitas, pedidos, metas, custos), ícone escuro
 mobile-common/   pacote Dart compartilhado pelos dois apps (API, sessão, modelos, preço, widgets)
@@ -27,6 +27,7 @@ sudo bash backend/scripts/setup-db.sh      # ou copie backend/.env.example para 
 
 # 2) backend
 cd backend && npm install && npm run migrate && npm run dev      # API de desenvolvimento em :10006
+#    (APKs/manifesto: por padrão backend/downloads/; para usar os da raiz, DOWNLOADS_DIR=../downloads no backend/.env)
 
 # 3) frontend (outro terminal)
 cd frontend && npm install && npm run dev                        # site em :10005 (repassa /api a :10006; veja frontend/.env.development)
@@ -58,8 +59,8 @@ dois deploys independentes — mesmo padrão usado pelos outros apps deste works
   Roteado pelo `reverse-host` (`rproxy`) da máquina com `always_on = true` no `services.toml`.
 
   ```bash
-  # build (contexto = raiz do repo, por causa de ../shared)
-  docker build -f backend/Dockerfile -t raykookie-api .
+  # build (contexto = a própria pasta backend/)
+  docker build -t raykookie-api backend
 
   # .env sem aspas nos valores (--env-file do Docker não as remove como o systemd fazia)
   sed -E 's/^([A-Z_]+)="(.*)"$/\1=\2/' backend/.env > backend/.env.docker
@@ -72,8 +73,8 @@ dois deploys independentes — mesmo padrão usado pelos outros apps deste works
     raykookie-api
   ```
 
-  `backend/Dockerfile` builda só `backend/` + `shared/` (sem `frontend/`) — `backend/server.mjs` detecta
-  a ausência do build do front e serve só a API. O volume de `downloads/` é o que deixa o site e os apps
+  `backend/Dockerfile` builda só a pasta `backend/` (sem `frontend/`, sem `FRONTEND_DIR`), então
+  `backend/server.mjs` serve só a API. Dentro da imagem os downloads ficam em `/app/downloads`. O volume de `downloads/` é o que deixa o site e os apps
   saberem a versão publicada mais recente (veja a seção de apps abaixo); o de `~/.raykookie` dá acesso
   ao `.json` da conta de serviço do Firebase (push de novos pedidos pro app de gestão).
 
