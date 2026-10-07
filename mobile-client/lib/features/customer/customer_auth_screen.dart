@@ -116,13 +116,20 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                   child: Column(children: [
                     OutlinedButton(
                       onPressed: _googleBusy ? null : _google,
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52), backgroundColor: Colors.white),
+                      // Botão do Google sempre claro (é o padrão da marca): cores fixas, não as do tema,
+                      // senão o texto escuro do tema claro vira quase branco sobre branco no modo escuro.
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1F1F1F),
+                        side: const BorderSide(color: Color(0xFFDADCE0)),
+                      ),
                       child: _googleBusy
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4))
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: Color(0xFF1F1F1F)))
                           : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Container(width: 22, height: 22, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: c.line)), child: const Text('G', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4285F4)))),
+                              Container(width: 22, height: 22, alignment: Alignment.center, decoration: const BoxDecoration(shape: BoxShape.circle, border: Border.fromBorderSide(BorderSide(color: Color(0xFFDADCE0)))), child: const Text('G', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4285F4)))),
                               const SizedBox(width: 12),
-                              const Text('Continuar com o Google'),
+                              const Text('Continuar com o Google', style: TextStyle(color: Color(0xFF1F1F1F))),
                             ]),
                     ),
                     Padding(
@@ -139,7 +146,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                               onTap: () => setState(() => _create = create),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 180), height: 44, alignment: Alignment.center,
-                                decoration: BoxDecoration(color: _create == create ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: _create == create ? c.pinkTint : Colors.transparent, borderRadius: BorderRadius.circular(12)),
                                 child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: _create == create ? c.ink : c.muted)),
                               ),
                             ),

@@ -231,6 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final api = context.read<Session>().customerApi;
                   // sem foto própria no cardápio ainda: usa as fotos de vitrine já capturadas, em vez de deixar sem foto nenhuma
                   final photos = _assignPhotos(snap.data, api, const ['bolo', 'cookie', 'brownie'], <String>{});
+                  final bolo = photos['bolo'] ?? 'https://raykookie.kntap.com.br/fotos/bolo-destaque.jpg';
                   final cookie = photos['cookie'] ?? 'https://raykookie.kntap.com.br/fotos/cookie-destaque.jpg';
                   final brownie = photos['brownie'] ?? 'https://raykookie.kntap.com.br/fotos/brownie-destaque.jpg';
                   return Row(
@@ -238,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: PhotoTile(
                           kind: 'bolo',
-                          url: photos['bolo'],
+                          url: bolo,
                           radius: 26,
                           aspectRatio: null,
                           size: null,
@@ -342,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PhotoTile(kind: 'bancada', aspectRatio: 4 / 3, radius: 26),
+            const PhotoTile(kind: 'bancada', url: 'https://raykookie.kntap.com.br/fotos/bancada-destaque.jpg', aspectRatio: 4 / 3, radius: 26),
             const SizedBox(height: 22),
             Text(
               'NOSSA HISTÓRIA',

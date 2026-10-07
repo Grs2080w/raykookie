@@ -69,6 +69,7 @@ export default async function Landing() {
   const heroCookie = pickPhoto(menu, 'cookie', usedPhotos);
   const heroBrownie = pickPhoto(menu, 'brownie', usedPhotos);
   // sem foto própria no cardápio ainda: usa as fotos de vitrine já capturadas, em vez de deixar sem foto nenhuma
+  heroBolo.src ??= '/fotos/bolo-destaque.jpg';
   heroCookie.src ??= '/fotos/cookie-destaque.jpg';
   heroBrownie.src ??= '/fotos/brownie-destaque.jpg';
   const GALLERY = GALLERY_SLOTS.map((s) => ({ ...s, ...pickPhoto(menu, s.kind, usedPhotos) }));
@@ -129,7 +130,7 @@ export default async function Landing() {
 
         {/* Sobre */}
         <section id="sobre" className="scroll-mt-20 mx-auto grid max-w-6xl gap-8 px-4 py-14 md:grid-cols-2 md:items-center md:gap-14 md:px-8 md:py-20">
-          <Photo kind="bancada" label="Nossa bancada de trabalho" className="aspect-[4/3]" />
+          <Photo kind="bancada" src="/fotos/bancada-destaque.jpg" label="Nossa bancada de trabalho" className="aspect-[4/3]" />
           <div>
             <p className="text-sm font-bold uppercase tracking-wider text-pink-strong">Nossa história</p>
             <h2 className="font-display mt-2 text-3xl font-semibold md:text-4xl">Doces simples, feitos com capricho.</h2>
