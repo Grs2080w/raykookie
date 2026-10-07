@@ -11,7 +11,10 @@ mobile-server/   app Flutter de GESTÃO (estoque, receitas, pedidos, metas, cust
 mobile-common/   pacote Dart compartilhado pelos dois apps (API, sessão, modelos, preço, widgets)
 downloads/       APKs publicados + manifest.json (versões) — o container da API lê daqui
 infra/      scripts de build/verificação locais + infra/ci/ (pipeline)
+tests/server/    testes de fumaça do backend/server.mjs (node --test tests/server/server.test.mjs, depois dos builds)
 docs/       ARQUITETURA.md e API.md
+raykookie-arts/  logos e referências visuais (não entram no build)
+legacy/     app único antigo, de antes da divisão backend/frontend — não roda (veja legacy/README.md)
 ```
 
 Veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e [docs/API.md](docs/API.md).

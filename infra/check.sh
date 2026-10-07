@@ -22,6 +22,7 @@ fi
 if [ "$FAST" = 0 ]; then
   step "backend: build";  ( cd backend && npm run build )
   step "frontend: build"; ( cd frontend && npm run build )
+  step "server.mjs: testes de fumaça (API sozinha e API + site)"; node --test tests/server/server.test.mjs
   if command -v flutter >/dev/null 2>&1; then
     for pkg in mobile-client mobile-server; do step "$pkg: build web (verifica que compila)"; ( cd "$pkg" && flutter build web --release ); done
   fi
