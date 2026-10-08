@@ -14,6 +14,7 @@
     <!-- Cada tarefa seguinte acrescenta o seu módulo aqui. -->
     <modules>
         <module>platform/kernel</module>
+        <module>platform/testing</module>
         <module>app</module>
     </modules>
 
@@ -42,6 +43,21 @@
         <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
         <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
+        <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
+        <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
+        <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
+
+        <!-- Cobertura mínima de linhas do sistema inteiro (agregado de todos os módulos). -->
+        <coverage.aggregate.minimum>0.85</coverage.aggregate.minimum>
+
+        <!--
+            Linha de comando da JVM dos testes. O JaCoCo preenche argLine na fase initialize; o vazio
+            aqui só evita "@{argLine}" literal quando o JaCoCo não roda. Módulos que usam Mockito
+            definem mockito.javaagent como -javaagent:${org.mockito:mockito-core:jar} (sem o aviso
+            de agente carregado dinamicamente no JDK 26).
+        -->
+        <argLine></argLine>
+        <mockito.javaagent></mockito.javaagent>
     </properties>
 
     <dependencyManagement>
@@ -59,8 +75,28 @@
                 <version>${rest-assured.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.github.javaparser</groupId>
+                <artifactId>javaparser-core</artifactId>
+                <version>${javaparser.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-testing</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
@@ -82,11 +118,17 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <argLine>@{argLine} ${mockito.javaagent}</argLine>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${maven-failsafe-plugin.version}</version>
+                    <configuration>
+                        <argLine>@{argLine} ${mockito.javaagent}</argLine>
+                    </configuration>
                     <executions>
                         <execution>
                             <goals>
@@ -116,7 +158,120 @@
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${maven-dependency-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>${maven-antrun-plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <!-- Estilo: quebra o build já na fase validate (só código de produção; os testes ficam com o CodeStyleTest). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven-checkstyle-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle.xml</configLocation>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <violationSeverity>warning</violationSeverity>
+                    <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Cobertura: o agente grava target/jacoco.exec em todo módulo (surefire e failsafe). A verificação
+                agregada (85% das linhas do sistema inteiro) roda no app, que é construído por último. Os
+                mínimos de 95% de payments, refunds e orders entram nos poms desses módulos.
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
+
+    <profiles>
+        <!-- Teste de mutação: ./mvnw -f backend-java/pom.xml -Pmutation verify -->
+        <profile>
+            <id>mutation</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>${pitest.version}</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>${pitest-junit5-plugin.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <targetClasses>
+                                <param>br.com.kntap.raykookie.kernel.*</param>
+                                <param>br.com.kntap.raykookie.payments.domain.*</param>
+                                <param>br.com.kntap.raykookie.refunds.domain.*</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>br.com.kntap.raykookie.*</param>
+                            </targetTests>
+                            <!-- O argLine do surefire traz o agente do JaCoCo; aqui só o agente do Mockito, quando houver. -->
+                            <parseSurefireArgLine>false</parseSurefireArgLine>
+                            <argLine>${mockito.javaagent}</argLine>
+                            <mutationThreshold>80</mutationThreshold>
+                            <!--
+                                Módulos sem classes-alvo (hoje, todos) não têm o que mutar; isso não é falha.
+                                Onde há classes-alvo, o limite de 80% vale normalmente.
+                            -->
+                            <failWhenNoMutations>false</failWhenNoMutations>
+                            <timestampedReports>false</timestampedReports>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>mutation-coverage</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>mutationCoverage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
