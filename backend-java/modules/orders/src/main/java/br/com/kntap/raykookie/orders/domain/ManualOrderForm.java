@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.orders.domain;
 
 import br.com.kntap.raykookie.kernel.InvalidInputException;
+import br.com.kntap.raykookie.orders.api.rules.OrderStatus;
 import br.com.kntap.raykookie.web.NodeInput;
 import java.math.BigDecimal;
 import java.time.LocalDate;

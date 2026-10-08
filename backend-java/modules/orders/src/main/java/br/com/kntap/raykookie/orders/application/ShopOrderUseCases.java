@@ -204,6 +204,8 @@ public class ShopOrderUseCases {
             refused.put("reason", CARD_UNAVAILABLE);
             return refused;
         }
-        return starter.startCard(order, card.token(), card.methodId(), card.cpf(), card.installments(), clientIp);
+        return starter.startCard(order, new ChargeStarter.Card(card.token(), card.methodId(), card.issuerId(), card
+                .cpf(),
+                card.installments()), clientIp);
     }
 }

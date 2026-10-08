@@ -1,4 +1,4 @@
-package br.com.kntap.raykookie.orders.domain;
+package br.com.kntap.raykookie.orders.api.rules;
 
 import br.com.kntap.raykookie.kernel.Money;
 import java.time.Duration;

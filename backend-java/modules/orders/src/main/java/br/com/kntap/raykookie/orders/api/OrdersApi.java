@@ -43,4 +43,29 @@ public interface OrdersApi {
      * @param orderId pedido
      */
     void syncDelivered(long orderId);
+
+    /**
+     * Sorteia um número de pedido livre para o cliente (4 ou 5 dígitos).
+     *
+     * @return o código
+     */
+    int newPublicCode();
+
+    /**
+     * O cliente cancela o próprio pedido, pelo corpo da rota ({@code reason_code} e {@code reason}).
+     *
+     * @param orderId  pedido da loja
+     * @param customer cliente
+     * @param body     corpo JSON
+     * @return {@code {"ok":true,"state":…}}
+     */
+    Map<String, Object> cancelByCustomer(long orderId, CustomerId customer, Map<String, Object> body);
+
+    /**
+     * Histórico do pedido, do mais antigo ao mais novo.
+     *
+     * @param orderId pedido da loja
+     * @return {@code at}, {@code actor}, {@code type} e {@code data}
+     */
+    List<Map<String, Object>> events(long orderId);
 }

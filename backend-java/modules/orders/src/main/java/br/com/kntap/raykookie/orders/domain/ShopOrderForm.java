@@ -231,10 +231,11 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
      *
      * @param token        token do Mercado Pago
      * @param methodId     bandeira
+     * @param issuerId     emissor ({@code card_issuer_id}, opcional: as versões antigas do app não mandam)
      * @param cpf          CPF só com dígitos
      * @param installments parcelas
      */
-    public record Card(String token, String methodId, String cpf, int installments) {
+    public record Card(String token, String methodId, String issuerId, String cpf, int installments) {
 
         /**
          * Confere os dados do cartão.
@@ -257,7 +258,8 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
             int installments = installments(body.get("installments"));
             require(installments <= 1 || INSTALLMENTS_MIN.isLessThan(total),
                     "Parcelamento só para pedidos acima de R$ 150.");
-            return new Card(token, method, Cpf.clean(body.get("cpf")), installments);
+            String issuer = NodeInput.text(body.get("card_issuer_id"));
+            return new Card(token, method, issuer.isEmpty() ? null : issuer, Cpf.clean(body.get("cpf")), installments);
         }
 
         /**

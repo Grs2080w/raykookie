@@ -8,6 +8,7 @@ import br.com.kntap.raykookie.orders.application.ports.ManualOrders;
 import br.com.kntap.raykookie.orders.application.ports.OrderNumbers;
 import br.com.kntap.raykookie.orders.domain.ManualOrderForm;
 import br.com.kntap.raykookie.web.NodeInput;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
@@ -29,6 +30,9 @@ public class ManualOrderUseCases {
 
     /** Pedido da loja encerrado não muda mais. */
     static final String CLOSED = "Este pedido do app já foi encerrado (cancelado ou devolvido) e não muda mais.";
+
+    /** Diferença de preço que ainda conta como o mesmo valor (arredondamento do app). */
+    private static final BigDecimal PRICE_TOLERANCE = new BigDecimal("0.004");
 
     /** Pedido que não é da dona. */
     static final String NOT_FOUND = "Pedido não encontrado.";
@@ -159,8 +163,7 @@ public class ManualOrderUseCases {
                 throw new ConflictException(USE_CANCEL);
             }
             boolean changed = !form.product().equals(app.product()) || form.qty().compareTo(app.qty()) != 0
-                    || form.unitPrice().subtract(app.unitPrice()).abs().compareTo(new java.math
-                            .BigDecimal("0.004")) > 0;
+                    || form.unitPrice().subtract(app.unitPrice()).abs().compareTo(PRICE_TOLERANCE) > 0;
             if (changed) {
                 throw new ConflictException("Itens e valores de pedido do app não mudam por aqui. Para devolver parte "
                         + "do valor, use \"Devolver valor\".");

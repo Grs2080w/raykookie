@@ -2,10 +2,10 @@ package br.com.kntap.raykookie.orders.application;
 
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
+import br.com.kntap.raykookie.orders.api.rules.OrderStatus;
+import br.com.kntap.raykookie.orders.api.rules.Reasons;
+import br.com.kntap.raykookie.orders.api.rules.RefundRules;
 import br.com.kntap.raykookie.orders.application.ports.ShopOrders;
-import br.com.kntap.raykookie.orders.domain.OrderStatus;
-import br.com.kntap.raykookie.orders.domain.Reasons;
-import br.com.kntap.raykookie.orders.domain.RefundRules;
 import br.com.kntap.raykookie.persistence.NodeRows;
 import br.com.kntap.raykookie.web.NodeInput;
 import java.time.Clock;

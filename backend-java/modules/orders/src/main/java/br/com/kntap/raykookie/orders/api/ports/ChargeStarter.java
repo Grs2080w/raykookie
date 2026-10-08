@@ -21,16 +21,12 @@ public interface ChargeStarter {
     /**
      * Cobra o cartão. Recusado, o pedido continua existindo, sem pagamento.
      *
-     * @param order        o pedido
-     * @param cardToken    token do cartão
-     * @param methodId     bandeira
-     * @param cpf          CPF
-     * @param installments parcelas
-     * @param clientIp     IP real do cliente (limite de recusas)
+     * @param order    o pedido
+     * @param card     dados do cartão
+     * @param clientIp IP real do cliente (limite de recusas)
      * @return {@code approved}, {@code pending} e {@code reason} como o Node responde
      */
-    Map<String, Object> startCard(NewOrder order, String cardToken, String methodId, String cpf, int installments,
-            String clientIp);
+    Map<String, Object> startCard(NewOrder order, Card card, String clientIp);
 
     /**
      * Pedido recém-criado.
@@ -46,5 +42,17 @@ public interface ChargeStarter {
      */
     record NewOrder(long id, int code, OwnerId owner, CustomerId customer, String email, String name, Money total,
             int items) {
+    }
+
+    /**
+     * Cartão tokenizado no site/app (nunca o número).
+     *
+     * @param token        token do Mercado Pago
+     * @param methodId     bandeira
+     * @param issuerId     emissor (nulo em versões antigas do app)
+     * @param cpf          CPF só com dígitos
+     * @param installments parcelas
+     */
+    record Card(String token, String methodId, String issuerId, String cpf, int installments) {
     }
 }

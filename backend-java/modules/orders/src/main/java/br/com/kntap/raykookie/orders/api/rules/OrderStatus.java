@@ -1,4 +1,4 @@
-package br.com.kntap.raykookie.orders.domain;
+package br.com.kntap.raykookie.orders.api.rules;
 
 import java.util.List;
 import java.util.Objects;

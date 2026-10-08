@@ -3,12 +3,12 @@ package br.com.kntap.raykookie.catalog;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.catalog.api.MenuTags;
 import br.com.kntap.raykookie.catalog.api.PricingEngine;
-import br.com.kntap.raykookie.catalog.domain.Images;
-import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.catalog.domain.RecipeForm;
 import br.com.kntap.raykookie.catalog.domain.SimpleForms;
+import br.com.kntap.raykookie.kernel.Images;
 import br.com.kntap.raykookie.kernel.InvalidInputException;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;

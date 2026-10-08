@@ -2,8 +2,8 @@ package br.com.kntap.raykookie.catalog.application;
 
 import br.com.kntap.raykookie.catalog.application.ports.PhotoStore;
 import br.com.kntap.raykookie.catalog.application.ports.Recipes;
-import br.com.kntap.raykookie.catalog.domain.Images;
 import br.com.kntap.raykookie.kernel.DomainException;
+import br.com.kntap.raykookie.kernel.Images;
 import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.kernel.NotFoundException;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;

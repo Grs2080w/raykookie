@@ -204,6 +204,18 @@ public final class NodeInput {
     }
 
     /**
+     * {@code Math.floor(Number(v))} do Node: número do JSON ou texto, arredondado para baixo.
+     *
+     * @param value valor
+     * @return o inteiro, ou vazio se não for número finito
+     */
+    public static Optional<Long> floor(Object value) {
+        double number = value instanceof Number n ? n.doubleValue() : jsNumber(text(value));
+        return Double.isFinite(number) && Math.abs(number) < 1e15 ? Optional.of((long) Math.floor(number))
+                : Optional.empty();
+    }
+
+    /**
      * Valor em reais digitado em pt-BR ({@code parseLocaleNumber}), arredondado em centavos como o
      * {@code Math.round(n * 100) / 100} do Node.
      *

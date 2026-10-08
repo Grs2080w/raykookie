@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/pagar/{token}",
+  "type": "object",
+  "properties": {
+    "state": { "enum": ["aberto", "pago", "cancelado"] },
+    "amount": { "type": "number" },
+    "order": {
+      "type": "object",
+      "properties": {
+        "number": { "type": "integer" },
+        "customer": { "type": "string" },
+        "product": { "type": "string" },
+        "qty": { "type": "number" },
+        "unit_price": { "type": "number" },
+        "delivery_date": { "type": ["string", "null"] }
+      },
+      "required": ["number", "customer", "product", "qty", "unit_price", "delivery_date"],
+      "additionalProperties": false
+    },
+    "pix": {
+      "type": ["object", "null"],
+      "properties": {
+        "code": { "type": "string" },
+        "qr_base64": { "type": "string" },
+        "expires_in": { "type": "integer" },
+        "expired": { "type": "boolean" }
+      },
+      "required": ["code", "qr_base64", "expires_in", "expired"],
+      "additionalProperties": false
+    },
+    "shop_order": { "type": ["object", "null"] }
+  },
+  "required": ["state", "amount", "order", "pix", "shop_order"],
+  "additionalProperties": false
+}

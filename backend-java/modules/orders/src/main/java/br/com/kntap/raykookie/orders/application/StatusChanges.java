@@ -1,9 +1,9 @@
 package br.com.kntap.raykookie.orders.application;
 
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
+import br.com.kntap.raykookie.orders.api.rules.OrderStatus;
 import br.com.kntap.raykookie.orders.application.ports.ManualOrders;
 import br.com.kntap.raykookie.orders.application.ports.ShopOrders;
-import br.com.kntap.raykookie.orders.domain.OrderStatus;
 import java.util.Optional;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;

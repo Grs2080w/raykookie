@@ -211,7 +211,7 @@ class ShopOrderFormTest {
         body.put("items", List.of(Map.of("id", "3", "qty", 2)));
         body.put("installments", 3);
         ShopOrderForm form = parse(body);
-        assertThat(form.card()).isEqualTo(new ShopOrderForm.Card("tok_123", "master", "52998224725", 3));
+        assertThat(form.card()).isEqualTo(new ShopOrderForm.Card("tok_123", "master", null, "52998224725", 3));
     }
 
     /**

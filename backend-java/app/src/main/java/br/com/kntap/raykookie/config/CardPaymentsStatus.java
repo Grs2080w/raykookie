@@ -1,5 +1,6 @@
 package br.com.kntap.raykookie.config;
 
+import br.com.kntap.raykookie.payments.api.CardAvailability;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.stereotype.Component;
 
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
  * o site e o app escondem a opção em vez de falhar no pagamento (G31).
  */
 @Component
-public class CardPaymentsStatus {
+public class CardPaymentsStatus implements CardAvailability {
 
     /** Estado atual; começa desligado até a conferência terminar bem. */
     private final AtomicBoolean enabled = new AtomicBoolean(false);
@@ -20,6 +21,7 @@ public class CardPaymentsStatus {
      *
      * @return verdadeiro se o cartão pode ser oferecido
      */
+    @Override
     public boolean enabled() {
         return enabled.get();
     }

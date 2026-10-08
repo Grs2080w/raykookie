@@ -1,4 +1,4 @@
-package br.com.kntap.raykookie.catalog.domain;
+package br.com.kntap.raykookie.kernel;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;

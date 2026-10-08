@@ -10,6 +10,7 @@ import br.com.kntap.raykookie.orders.api.ports.PendingChargeCanceller;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
  * Pagamentos e devoluções de mentira (os módulos de verdade ficam acima de pedidos) e um registro dos avisos.
  */
 @Component
+@ConditionalOnProperty(name = "test.fake-ports", havingValue = "true", matchIfMissing = true)
 public class FakePorts implements ChargeStarter, PendingChargeCanceller, PaidOrderCanceller {
 
     /** Pedidos que pediram Pix. */
@@ -40,8 +42,7 @@ public class FakePorts implements ChargeStarter, PendingChargeCanceller, PaidOrd
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, Object> startCard(NewOrder order, String cardToken, String methodId, String cpf,
-            int installments, String clientIp) {
+    public Map<String, Object> startCard(NewOrder order, Card card, String clientIp) {
         return Map.of("approved", true);
     }
 

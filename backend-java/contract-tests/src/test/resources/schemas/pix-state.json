@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/cliente/pedidos/{id}/pix e /api/pagar/{token}/pix",
+  "type": "object",
+  "properties": {
+    "ok": { "const": true },
+    "state": { "enum": ["paid", "active", "renewed"] },
+    "pix": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "qr_base64": { "type": "string" },
+        "expires_in": { "type": "integer" },
+        "expired": { "const": false }
+      },
+      "required": ["code", "qr_base64", "expires_in"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["ok", "state"],
+  "additionalProperties": false
+}
