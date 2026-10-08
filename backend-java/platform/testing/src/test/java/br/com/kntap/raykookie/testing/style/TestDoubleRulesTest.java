@@ -56,6 +56,69 @@ class TestDoubleRulesTest {
             }
             """;
 
+    /** Forma sem argumento do Mockito 5: o tipo vem de quem recebe o dublê. */
+    private static final String NO_ARGUMENT_MOCKS = """
+            package br.com.kntap.raykookie.orders.application;
+
+            import static org.mockito.Mockito.mock;
+
+            class NoArgumentTest {
+                PaymentRepository payments;
+
+                void prepara() {
+                    OrderRepository orders = mock();
+                    payments = Mockito.spy();
+                    Clock clock = mock();
+                }
+            }
+            """;
+
+    /** Dublê declarado na própria classe de teste, citando o repositório como classe. */
+    private static final String CLASS_LEVEL_MOCKS = """
+            package br.com.kntap.raykookie.refunds.adapter;
+
+            import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+            @MockitoBean(types = {RefundRepository.class, Clock.class})
+            @MockitoBean(types = PaymentRepository.class)
+            class ClassLevelTest {
+            }
+            """;
+
+    /**
+     * {@code mock()}/{@code spy()} sem argumento pegam o tipo da variável ou do campo atribuído.
+     */
+    @Test
+    @DisplayName("mock() sem argumento de *Repository é recusado")
+    void noArgumentMocksAreReported() {
+        assertThat(TestDoubleRules.repositoryMocksInSource("NoArgumentTest.java", NO_ARGUMENT_MOCKS))
+                .containsExactly(
+                        "NoArgumentTest.java:9 OrderRepository: dublê de repositório em teste de dinheiro (T04)",
+                        "NoArgumentTest.java:10 PaymentRepository: dublê de repositório em teste de dinheiro (T04)");
+    }
+
+    /**
+     * {@code @MockitoBean(types = ...)} na classe é recusado para cada repositório citado.
+     */
+    @Test
+    @DisplayName("@MockitoBean(types = *Repository.class) na classe é recusado")
+    void classLevelMocksAreReported() {
+        assertThat(TestDoubleRules.repositoryMocksInSource("ClassLevelTest.java", CLASS_LEVEL_MOCKS))
+                .containsExactly(
+                        "ClassLevelTest.java:5 RefundRepository: dublê de repositório em teste de dinheiro (T04)",
+                        "ClassLevelTest.java:6 PaymentRepository: dublê de repositório em teste de dinheiro (T04)");
+    }
+
+    /**
+     * Fonte que o JavaParser não entende vira violação, em vez de passar calado.
+     */
+    @Test
+    @DisplayName("fonte de teste que não pode ser analisado é recusado")
+    void unparseableSourceIsReported() {
+        assertThat(TestDoubleRules.repositoryMocksInSource("Broken.java", "class Broken { void x( }"))
+                .containsExactly("Broken.java:1 Broken.java: fonte não pôde ser analisado pelo JavaParser");
+    }
+
     /**
      * Cada forma de fingir um repositório num teste de pagamentos vira uma violação; o relógio não.
      */

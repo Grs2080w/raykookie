@@ -96,6 +96,8 @@
                     Cobertura agregada do sistema inteiro: junta o jacoco.exec de todo módulo (já construídos,
                     porque o app depende de todos) com as classes de todo módulo e exige o mínimo de linhas.
                     O jacoco:check do Maven só enxerga as classes do próprio módulo, por isso a tarefa Ant.
+                    platform/testing fica de fora: é código de apoio aos testes, que os testes dos outros módulos
+                    marcariam como coberto de graça; ele tem a sua própria verificação no pom dele.
                 -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
@@ -125,12 +127,13 @@
                                     <structure name="Raykookie (agregado)">
                                         <classfiles>
                                             <fileset dir="${maven.multiModuleProjectDirectory}"
-                                                     includes="**/target/classes/**/*.class"/>
+                                                     includes="**/target/classes/**/*.class"
+                                                     excludes="platform/testing/**"/>
                                         </classfiles>
                                         <sourcefiles encoding="UTF-8">
                                             <fileset dir="${maven.multiModuleProjectDirectory}"
                                                      includes="**/src/main/java/**/*.java"
-                                                     excludes="**/target/**"/>
+                                                     excludes="**/target/**,platform/testing/**"/>
                                         </sourcefiles>
                                     </structure>
                                     <html destdir="${project.build.directory}/site/jacoco-aggregate"/>

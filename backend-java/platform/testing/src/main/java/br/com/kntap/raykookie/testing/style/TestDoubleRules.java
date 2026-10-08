@@ -4,9 +4,14 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.AssignExpr;
 import com.github.javaparser.ast.expr.ClassExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithAnnotations;
 import com.github.javaparser.ast.type.Type;
 import java.io.IOException;
@@ -22,7 +27,8 @@ import java.util.regex.Pattern;
 /**
  * Regra T04: os testes de pagamentos, devoluções e pedidos rodam contra o banco real; nenhum deles
  * pode trocar um {@code *Repository} por dublê do Mockito ({@code mock(...)}, {@code spy(...)},
- * {@code @Mock}, {@code @Spy}, {@code @MockitoBean}, {@code @MockitoSpyBean}, {@code @MockBean}).
+ * {@code mock()} sem argumento, {@code @Mock}, {@code @Spy}, {@code @MockitoBean}, {@code @MockitoSpyBean},
+ * {@code @MockBean}, inclusive {@code @MockitoBean(types = ...)} na classe).
  *
  * <p>É uma varredura dos fontes de teste com JavaParser porque as classes de teste de outros
  * módulos não estão no classpath do app, onde o ArchUnit roda.
@@ -78,22 +84,27 @@ public final class TestDoubleRules {
      */
     public static List<String> repositoryMocksInSource(String fileName, String source) {
 
-        // ── 1. Só interessam testes que estão em pacotes de dinheiro.
+        // ── 1. Fonte que o JavaParser não entende já é violação; fora dos pacotes de dinheiro, nada a ver.
         Optional<CompilationUnit> unit = SourceTree.parse(source);
-        if (unit.isEmpty() || !isMoneyPackage(unit.get())) {
+        if (unit.isEmpty()) {
+            return List.of(fileName + ":1 " + fileName + ": fonte não pôde ser analisado pelo JavaParser");
+        }
+        if (!isMoneyPackage(unit.get())) {
             return List.of();
         }
 
-        // ── 2. Junta as três formas de criar dublê: chamada, campo anotado e parâmetro anotado.
+        // ── 2. Junta as formas de criar dublê: chamada, campo/parâmetro anotado e classes citadas na anotação.
         List<Finding> findings = new ArrayList<>(factoryCalls(unit.get()));
         unit.get().findAll(FieldDeclaration.class).forEach(field -> annotated(field, field.getElementType())
                 .ifPresent(findings::add));
         unit.get().findAll(Parameter.class).forEach(parameter -> annotated(parameter, parameter.getType())
                 .ifPresent(findings::add));
+        findings.addAll(annotationClassLiterals(unit.get()));
 
-        // ── 3. Ordena por linha e escreve no formato arquivo:linha.
-        findings.sort(Comparator.comparingInt(Finding::line));
+        // ── 3. Tira repetições, ordena por linha e escreve no formato arquivo:linha.
         return findings.stream()
+                .distinct()
+                .sorted(Comparator.comparingInt(Finding::line))
                 .map(finding -> fileName + ":" + finding.line() + " " + finding.type()
                         + ": dublê de repositório em teste de dinheiro (T04)")
                 .toList();
@@ -112,7 +123,8 @@ public final class TestDoubleRules {
     }
 
     /**
-     * Acha {@code mock(X.class)}/{@code spy(X.class)} (com ou sem {@code Mockito.}) de repositório.
+     * Acha chamadas {@code mock(...)}/{@code spy(...)} (com ou sem {@code Mockito.}) que fingem repositório,
+     * inclusive a forma sem argumento do Mockito 5 ({@code OrderRepository orders = mock();}).
      *
      * @param unit árvore sintática do fonte
      * @return um achado por chamada
@@ -120,13 +132,76 @@ public final class TestDoubleRules {
     private static List<Finding> factoryCalls(CompilationUnit unit) {
         List<Finding> findings = new ArrayList<>();
         for (MethodCallExpr call : unit.findAll(MethodCallExpr.class)) {
-            boolean factory = DOUBLE_FACTORIES.contains(call.getNameAsString()) && !call.getArguments().isEmpty();
-            Expression first = factory ? call.getArgument(0) : null;
-            if (first instanceof ClassExpr classExpr && isRepository(classExpr.getType())) {
-                findings.add(new Finding(SourceTree.line(call), simpleName(classExpr.getType())));
+            if (DOUBLE_FACTORIES.contains(call.getNameAsString())) {
+                doubledType(unit, call).filter(TestDoubleRules::isRepository)
+                        .ifPresent(type -> findings.add(new Finding(SourceTree.line(call), simpleName(type))));
             }
         }
         return findings;
+    }
+
+    /**
+     * Tipo fingido por uma chamada de dublê: a classe passada ({@code mock(X.class)}), o objeto passado
+     * ({@code spy(new X())}) ou, sem nenhum dos dois, o tipo de quem recebe o resultado.
+     *
+     * @param unit árvore sintática do fonte
+     * @param call chamada {@code mock}/{@code spy}
+     * @return o tipo fingido, ou vazio se não dá para saber
+     */
+    private static Optional<Type> doubledType(CompilationUnit unit, MethodCallExpr call) {
+        Expression first = call.getArguments().isEmpty() ? null : call.getArgument(0);
+        if (first instanceof ClassExpr classExpr) {
+            return Optional.of(classExpr.getType());
+        }
+        if (first instanceof ObjectCreationExpr creation) {
+            return Optional.of(creation.getType());
+        }
+        return receiverType(unit, call);
+    }
+
+    /**
+     * Tipo de quem recebe o resultado da chamada: a variável declarada ({@code X x = mock();}) ou o
+     * campo/variável do lado esquerdo de uma atribuição ({@code x = mock();}).
+     *
+     * @param unit árvore sintática do fonte
+     * @param call chamada {@code mock}/{@code spy}
+     * @return o tipo declarado de quem recebe, ou vazio
+     */
+    private static Optional<Type> receiverType(CompilationUnit unit, MethodCallExpr call) {
+
+        // ── 1. Declaração com inicializador: o tipo está ali mesmo.
+        Node parent = call.getParentNode().orElse(null);
+        if (parent instanceof VariableDeclarator variable) {
+            return Optional.of(variable.getType());
+        }
+
+        // ── 2. Atribuição: procura no fonte a declaração do campo ou variável atribuído.
+        if (parent instanceof AssignExpr assign && assign.getValue() == call) {
+            Expression target = assign.getTarget();
+            String name = target instanceof FieldAccessExpr field ? field.getNameAsString() : target.toString();
+            return unit.findAll(VariableDeclarator.class).stream()
+                    .filter(variable -> variable.getNameAsString().equals(name))
+                    .map(VariableDeclarator::getType)
+                    .findFirst();
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Acha repositórios citados como classe dentro de anotação de dublê, por exemplo
+     * {@code @MockitoBean(types = PaymentRepository.class)} na própria classe de teste.
+     *
+     * @param unit árvore sintática do fonte
+     * @return um achado por classe de repositório citada
+     */
+    private static List<Finding> annotationClassLiterals(CompilationUnit unit) {
+        return unit.findAll(AnnotationExpr.class).stream()
+                .filter(annotation -> DOUBLE_ANNOTATIONS.contains(annotation.getName().getIdentifier()))
+                .flatMap(annotation -> annotation.findAll(ClassExpr.class).stream())
+                .map(ClassExpr::getType)
+                .filter(TestDoubleRules::isRepository)
+                .map(type -> new Finding(SourceTree.line(type), simpleName(type)))
+                .toList();
     }
 
     /**
