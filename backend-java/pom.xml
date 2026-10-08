@@ -19,6 +19,7 @@
         <module>platform/web</module>
         <module>platform/ratelimit</module>
         <module>platform/security</module>
+        <module>platform/observability</module>
         <module>app</module>
     </modules>
 
@@ -79,6 +80,12 @@
                 <version>${rest-assured.version}</version>
             </dependency>
             <dependency>
+                <!-- Versão "standalone": traz Jetty e Jackson próprios, sem colidir com os do Spring Boot 4. -->
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.github.javaparser</groupId>
                 <artifactId>javaparser-core</artifactId>
                 <version>${javaparser.version}</version>
@@ -121,6 +128,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-observability</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
