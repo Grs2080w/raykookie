@@ -20,6 +20,7 @@
         <module>platform/ratelimit</module>
         <module>platform/security</module>
         <module>platform/observability</module>
+        <module>platform/scheduling</module>
         <module>app</module>
     </modules>
 
@@ -133,6 +134,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-observability</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-scheduling</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

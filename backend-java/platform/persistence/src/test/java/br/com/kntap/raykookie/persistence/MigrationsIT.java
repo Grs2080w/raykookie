@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -82,7 +83,7 @@ class MigrationsIT extends PostgresTestBase {
      */
     @Test
     @DisplayName("banco montado pelo migrador do Node aceita o baseline 21 e recebe só as V22+")
-    void nodeStyleDatabaseAcceptsBaseline() {
+    void nodeStyleDatabaseAcceptsBaseline() throws IOException {
 
         // ── 1. Monta o banco como em produção.
         TestDatabase database = newDatabase("producao");
@@ -95,7 +96,9 @@ class MigrationsIT extends PostgresTestBase {
             List<String> versions = Arrays.stream(flyway.info().applied())
                     .map(info -> info.getVersion().getVersion() + ":" + info.getType())
                     .toList();
-            assertThat(versions).containsExactly("21:BASELINE", "22:SQL");
+            List<String> expected = new ArrayList<>(List.of("21:BASELINE"));
+            platformVersions().forEach(version -> expected.add(version + ":SQL"));
+            assertThat(versions).containsExactlyElementsOf(expected);
         }
 
         // ── 3. As tabelas da plataforma existem e o controle do Node não foi tocado.
@@ -106,18 +109,18 @@ class MigrationsIT extends PostgresTestBase {
     }
 
     /**
-     * O banco novo (Flyway aplicando 1→22) e o de produção (Node 001→021 + baseline + V22) ficam com o
+     * O banco novo (Flyway aplicando 1→21 e as V22+) e o de produção (Node 001→021 + baseline + V22+) ficam com o
      * mesmo esquema: colunas, índices e restrições.
      */
     @Test
     @DisplayName("os dois caminhos produzem exatamente o mesmo esquema")
-    void bothPathsProduceSameSchema() {
+    void bothPathsProduceSameSchema() throws IOException {
 
         // ── 1. Caminho "banco novo": o Flyway aplica tudo.
         TestDatabase fresh = newDatabase("novo");
         try (ConfigurableApplicationContext context = boot(fresh)) {
             List<MigrationInfo> applied = Arrays.asList(context.getBean(Flyway.class).info().applied());
-            assertThat(applied).hasSize(22);
+            assertThat(applied).hasSize(21 + platformVersions().size());
         }
 
         // ── 2. Caminho "produção": migrador do Node e depois o Flyway com baseline.
@@ -251,6 +254,20 @@ class MigrationsIT extends PostgresTestBase {
         return List.of(jdbc.sql(columns).query().listOfRows(),
                 jdbc.sql(indexes).query().listOfRows(),
                 jdbc.sql(constraints).query().listOfRows());
+    }
+
+    /**
+     * Versões das migrations da plataforma (V22 em diante), em ordem.
+     *
+     * @return as versões, como o Flyway as mostra (ex.: {@code 22})
+     * @throws IOException se a pasta não puder ser lida
+     */
+    private static List<String> platformVersions() throws IOException {
+        return Arrays.stream(resources(PLATFORM))
+                .map(resource -> resource.getFilename())
+                .map(name -> name.substring(1, name.indexOf("__")))
+                .sorted(Comparator.comparingInt(Integer::parseInt))
+                .toList();
     }
 
     /**
