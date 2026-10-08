@@ -1,5 +1,0 @@
-# O banco só entra na Tarefa 2.2; até lá os testes sobem sem DataSource.
-spring:
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration

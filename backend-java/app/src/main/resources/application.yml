@@ -2,6 +2,9 @@ server:
   port: ${PORT:10005}
 
 spring:
+  # Banco: pool Hikari, Flyway nos dois modos (banco novo / perfil prod com baseline 21). URL em rayka.db.url.
+  config:
+    import: classpath:persistence.yml
   threads:
     virtual:
       enabled: true

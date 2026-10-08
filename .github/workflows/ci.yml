@@ -138,6 +138,30 @@ jobs:
           path: backend-java/**/target/site/jacoco*/
           if-no-files-found: warn
 
+  migrations-parity:
+    name: Migrations Node = cópias do Java
+    # Independente como o backend-java: fora do "ci-ok" e fora da main (não bloqueia o deploy do Node).
+    # Fora do build Java de propósito: backend-java não pode ler arquivos fora da própria pasta.
+    if: ${{ github.ref != 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: sha256 de backend/migrations/*.sql bate com o SHA256SUMS do Java e nenhum arquivo ficou de fora
+        run: |
+          sums="$PWD/backend-java/platform/persistence/src/main/resources/db/migration/production/SHA256SUMS"
+          cd backend/migrations
+          # hash divergente ou arquivo listado que sumiu
+          sha256sum --strict -c "$sums"
+          # migration nova no Node que não foi copiada (e listada) no Java
+          listed="$(awk '{print $2}' "$sums" | sort)"
+          present="$(ls -1 -- *.sql | sort)"
+          if [ "$listed" != "$present" ]; then
+            echo "::error::backend/migrations e SHA256SUMS divergem; copie a migration nova para backend-java (V<N>__<nome>.sql) e atualize SHA256SUMS"
+            diff <(echo "$listed") <(echo "$present") || true
+            exit 1
+          fi
+
   web:
     name: Frontend + build do site/API
     runs-on: ubuntu-latest

@@ -2,6 +2,7 @@ package br.com.kntap.raykookie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import br.com.kntap.raykookie.testing.PostgresTestBase;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
@@ -13,9 +14,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * Prova que o {@code main} de verdade (que o {@code @SpringBootTest} não chama) sobe a aplicação
- * com os argumentos de linha de comando recebidos.
+ * com os argumentos de linha de comando recebidos. O banco é o container de teste, informado como
+ * argumento (o {@code main} não enxerga as propriedades dinâmicas do Spring de teste).
  */
-class MainMethodIT {
+class MainMethodIT extends PostgresTestBase {
 
     /**
      * Roda o {@code main}, captura o contexto criado por ele e o fecha no fim.
@@ -40,9 +42,11 @@ class MainMethodIT {
             }
         };
 
-        // ── 2. Roda o main com o perfil de teste e sem servidor web.
+        // ── 2. Roda o main com o perfil de teste, sem servidor web e apontado para o banco de teste.
         SpringApplication.withHook(hook, () -> RaykookieApplication.main(new String[] {
-            "--spring.profiles.active=test", "--spring.main.web-application-type=none"}));
+            "--spring.profiles.active=test", "--spring.main.web-application-type=none",
+            "--rayka.db.url=" + jdbcUrl(), "--rayka.db.username=" + postgres().getUsername(),
+            "--rayka.db.password=" + postgres().getPassword()}));
 
         // ── 3. O contexto subiu com os argumentos recebidos; fecha aqui para não vazar.
         try (ConfigurableApplicationContext context = started.get()) {

@@ -15,6 +15,7 @@
     <modules>
         <module>platform/kernel</module>
         <module>platform/testing</module>
+        <module>platform/persistence</module>
         <module>app</module>
     </modules>
 
@@ -97,6 +98,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-testing</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

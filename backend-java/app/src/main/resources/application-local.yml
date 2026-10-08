@@ -1,0 +1,9 @@
+# Desenvolvimento local: o Postgres do docker-compose.dev.yml (mesma imagem e fuso de produção).
+#   docker compose -f docker-compose.dev.yml up -d
+#   ./mvnw -pl app spring-boot:run -Dspring-boot.run.profiles=local
+# O Flyway aplica as mesmas migrations dos testes (banco novo: 001→021 reais de produção + V22+).
+rayka:
+  db:
+    url: jdbc:postgresql://127.0.0.1:54331/raykookie
+    username: raykookie
+    password: raykookie

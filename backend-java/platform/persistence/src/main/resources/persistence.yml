@@ -1,0 +1,31 @@
+# Configuração do banco, importada pelo application.yml do app (spring.config.import).
+# URL e credenciais: rayka.db.url / rayka.db.username / rayka.db.password (DatabaseProperties).
+
+# Banco novo (testes e desenvolvimento): o Flyway aplica as 21 migrations reais de produção, na ordem
+# em que o banco de produção nasceu, e depois as V22+ da plataforma.
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 3000
+      # O plano pedia 2000, mas o Hikari testa as conexões ociosas uma a uma até estourar o connection-timeout:
+      # o pior caso de "banco travado" é connection-timeout + validation-timeout. Com 1000 fica abaixo de 4 s (G06).
+      validation-timeout: 1000
+      max-lifetime: 1800000
+      connection-init-sql: "SET statement_timeout = '15s'; SET TIME ZONE 'America/Sao_Paulo'"
+  flyway:
+    locations: classpath:db/migration/production,classpath:db/migration/platform
+    baseline-on-migrate: false
+    table: flyway_schema_history
+
+---
+# Banco existente (produção, já migrado pelo Node até a 021): a ProductionSchemaGuard confere a
+# _migrations, o Flyway marca a versão 21 como linha de base e aplica só as V22+.
+spring:
+  config:
+    activate:
+      on-profile: prod
+  flyway:
+    locations: classpath:db/migration/platform
+    baseline-on-migrate: true
+    baseline-version: 21
