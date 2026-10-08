@@ -155,7 +155,7 @@ jobs:
           sha256sum --strict -c "$sums"
           # migration nova no Node que não foi copiada (e listada) no Java
           listed="$(awk '{print $2}' "$sums" | sort)"
-          present="$(ls -1 -- *.sql | sort)"
+          present="$(find . -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | sort)"
           if [ "$listed" != "$present" ]; then
             echo "::error::backend/migrations e SHA256SUMS divergem; copie a migration nova para backend-java (V<N>__<nome>.sql) e atualize SHA256SUMS"
             diff <(echo "$listed") <(echo "$present") || true
