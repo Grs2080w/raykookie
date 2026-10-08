@@ -12,8 +12,8 @@ pendente PATCH  /api/categories/{id}                     OWNER
 pendente DELETE /api/categories/{id}                     OWNER
 POST   /api/cliente/cadastro                    PUBLIC
 pendente GET    /api/cliente/config                      PUBLIC
-pendente POST   /api/cliente/devices                     CUSTOMER
-pendente DELETE /api/cliente/devices                     CUSTOMER
+POST   /api/cliente/devices                     CUSTOMER
+DELETE /api/cliente/devices                     CUSTOMER
 pendente GET    /api/cliente/devolucoes/{rid}/fotos/{n}  CUSTOMER
 pendente POST   /api/cliente/feedback                    CUSTOMER
 pendente GET    /api/cliente/feedback/{id}/fotos/{n}     CUSTOMER
@@ -37,8 +37,8 @@ pendente POST   /api/cliente/pedidos/{id}/devolucao      CUSTOMER
 pendente DELETE /api/cliente/pedidos/{id}/devolucao      CUSTOMER
 pendente POST   /api/cliente/pedidos/{id}/pix            CUSTOMER
 pendente GET    /api/dashboard                           OWNER
-pendente POST   /api/devices                             OWNER
-pendente DELETE /api/devices                             OWNER
+POST   /api/devices                             OWNER
+DELETE /api/devices                             OWNER
 pendente GET    /api/devolucoes                          OWNER
 pendente GET    /api/devolucoes/{id}                     OWNER
 pendente POST   /api/devolucoes/{id}/decisao             OWNER

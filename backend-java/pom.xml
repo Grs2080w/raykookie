@@ -23,6 +23,7 @@
         <module>platform/scheduling</module>
         <module>modules/identity</module>
         <module>modules/customers</module>
+        <module>modules/notifications</module>
         <module>app</module>
         <module>contract-tests</module>
     </modules>
@@ -159,6 +160,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-identity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-notifications</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
