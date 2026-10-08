@@ -1,7 +1,9 @@
 package br.com.kntap.raykookie.orders.application;
 
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
+import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.orders.api.OrdersApi;
+import br.com.kntap.raykookie.orders.application.ports.ManualOrders;
 import br.com.kntap.raykookie.orders.application.ports.OrderEvents;
 import br.com.kntap.raykookie.orders.application.ports.ShopOrders;
 import br.com.kntap.raykookie.orders.domain.PublicCodes;
@@ -28,16 +30,21 @@ public class OrdersService implements OrdersApi {
     /** Cancelamento pelo cliente. */
     private final CustomerCancelUseCase cancel;
 
+    /** Pedidos da tela Pedidos. */
+    private final ManualOrders manualOrders;
+
     /**
      * Cria o serviço.
      *
      * @param views      lista do cliente
      * @param events     histórico
      * @param shopOrders pedidos da loja
-     * @param cancel     cancelamento pelo cliente
+     * @param cancel       cancelamento pelo cliente
+     * @param manualOrders pedidos da tela Pedidos
      */
     public OrdersService(CustomerOrderViews views, OrderEvents events, ShopOrders shopOrders,
-            CustomerCancelUseCase cancel) {
+            CustomerCancelUseCase cancel, ManualOrders manualOrders) {
+        this.manualOrders = manualOrders;
         this.views = views;
         this.events = events;
         this.shopOrders = shopOrders;
@@ -84,5 +91,11 @@ public class OrdersService implements OrdersApi {
     @Override
     public List<Map<String, Object>> events(long orderId) {
         return events.of(orderId);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<Map<String, Object>> ownerOrders(OwnerId owner) {
+        return manualOrders.list(owner);
     }
 }

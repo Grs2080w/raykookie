@@ -2,6 +2,7 @@ package br.com.kntap.raykookie.orders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.orders.api.ShopOrderLocking;
 import io.restassured.path.json.JsonPath;
 import java.util.Map;
@@ -141,5 +142,8 @@ class OrderDetailsIT extends OrdersItSupport {
         long other = create("dinheiro").jsonPath().getLong("id");
         assertThat(ordersApi.cancelByCustomer(other, customerOf(other), Map.of("reason_code", "preco")))
                 .containsEntry("state", "cancelled");
+        long owner = jdbc.sql("SELECT owner_id FROM shop_orders WHERE id = :id").param("id", id).query(Long.class)
+                .single();
+        assertThat(ordersApi.ownerOrders(new OwnerId(owner))).isNotEmpty();
     }
 }

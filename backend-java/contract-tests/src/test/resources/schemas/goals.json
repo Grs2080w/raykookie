@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/goals",
+  "definitions": {
+    "goal": {
+      "type": "object",
+      "properties": {
+        "revenue": { "type": "number" }, "orders": { "type": "integer" },
+        "new_customers": { "type": "integer" }, "avg_ticket": { "type": "number" }
+      },
+      "required": ["revenue", "orders", "new_customers", "avg_ticket"],
+      "additionalProperties": false
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "revenue": { "type": "number" }, "profit": { "type": "number" }, "orders": { "type": "integer" },
+        "avg_ticket": { "type": "number" }, "new_customers": { "type": "integer" }
+      },
+      "required": ["revenue", "profit", "orders", "avg_ticket", "new_customers"],
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "properties": {
+    "month": { "type": "string", "pattern": "^\\d{4}-\\d{2}-01$" },
+    "goal": { "$ref": "#/definitions/goal" },
+    "stats": { "$ref": "#/definitions/stats" }
+  },
+  "required": ["month", "goal", "stats"],
+  "additionalProperties": false
+}

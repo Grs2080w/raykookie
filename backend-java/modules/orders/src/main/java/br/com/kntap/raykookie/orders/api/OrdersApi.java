@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.orders.api;
 
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
+import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,4 +69,12 @@ public interface OrdersApi {
      * @return {@code at}, {@code actor}, {@code type} e {@code data}
      */
     List<Map<String, Object>> events(long orderId);
+
+    /**
+     * Pedidos da dona como a tela Pedidos mostra ({@code GET /api/orders}).
+     *
+     * @param owner dona
+     * @return os pedidos
+     */
+    List<Map<String, Object>> ownerOrders(OwnerId owner);
 }

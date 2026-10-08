@@ -55,6 +55,18 @@
         </dependency>
         <dependency>
             <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-releases</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-insights</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-feedback</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
             <artifactId>raykookie-refunds</artifactId>
         </dependency>
         <dependency>
