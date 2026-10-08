@@ -21,6 +21,7 @@
         <module>platform/security</module>
         <module>platform/observability</module>
         <module>platform/scheduling</module>
+        <module>modules/identity</module>
         <module>app</module>
         <module>contract-tests</module>
     </modules>
@@ -52,6 +53,7 @@
         <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
         <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
         <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
+        <bouncycastle.version>1.86</bouncycastle.version>
         <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
 
         <!-- Cobertura mínima de linhas do sistema inteiro (agregado de todos os módulos). -->
@@ -80,6 +82,11 @@
                 <groupId>io.rest-assured</groupId>
                 <artifactId>rest-assured</artifactId>
                 <version>${rest-assured.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <!-- Versão "standalone": traz Jetty e Jackson próprios, sem colidir com os do Spring Boot 4. -->
@@ -140,6 +147,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-scheduling</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-identity</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

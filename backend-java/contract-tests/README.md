@@ -27,7 +27,13 @@ infra/contract-tests-node.sh
 
 ## Contra o Java
 
-Igual, com o servidor Java (`./mvnw -pl app spring-boot:run`) no lugar do Node e `CONTRACT_TARGET=java`.
+`infra/contract-tests-java.sh` monta o banco como o de produção (migrations do Node 001–021 e a dona
+`rayka`), empacota e sobe o `backend-java` no perfil `prod` (guarda do esquema + baseline 21 + V22+) e roda
+a mesma suíte com `CONTRACT_TARGET=java`.
+
+```
+infra/contract-tests-java.sh
+```
 
 ## Regras
 

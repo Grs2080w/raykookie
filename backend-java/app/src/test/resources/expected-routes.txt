@@ -3,9 +3,9 @@
 # "pendente" = rota ainda não migrada. O AccessInventoryTest exige que as rotas do Java sejam EXATAMENTE
 # as linhas sem "pendente" (com o mesmo acesso) e que nenhuma rota pendente exista. Cada tarefa de módulo
 # tira o "pendente" das linhas que implementa; no corte (Fase 7) não sobra nenhum.
-pendente POST   /api/auth/login                          PUBLIC
-pendente POST   /api/auth/logout                         PUBLIC
-pendente POST   /api/auth/register                       PUBLIC
+POST   /api/auth/login                          PUBLIC
+POST   /api/auth/logout                         PUBLIC
+POST   /api/auth/register                       PUBLIC
 pendente GET    /api/categories                          OWNER
 pendente POST   /api/categories                          OWNER
 pendente PATCH  /api/categories/{id}                     OWNER
@@ -66,7 +66,7 @@ pendente POST   /api/ingredients/{id}/use-price          OWNER
 pendente POST   /api/jobs/tick                           PUBLIC
 pendente GET    /api/legal/{doc}                         PUBLIC
 pendente GET    /api/menu                                PUBLIC
-pendente GET    /api/me                                  OWNER
+GET    /api/me                                  OWNER
 pendente POST   /api/nota/importar                       OWNER
 pendente POST   /api/nota/ler                            OWNER
 pendente GET    /api/orders                              OWNER

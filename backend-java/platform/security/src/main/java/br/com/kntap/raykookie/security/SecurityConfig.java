@@ -15,15 +15,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SecurityConfig {
 
     /**
-     * A dona da loja, resolvida uma vez na subida (o servidor não sobe sem ela).
+     * A dona da loja, resolvida uma vez na subida (o servidor não sobe sem ela, salvo na instalação nova
+     * com o cadastro ligado).
      *
-     * @param properties configuração com {@code SHOP_OWNER}
-     * @param sessions   onde procurar a conta
+     * @param properties configuração com {@code SHOP_OWNER} e {@code REGISTRATION_ENABLED}
+     * @param accounts   onde procurar a conta
      * @return a dona
      */
     @Bean
-    public ShopOwner shopOwner(SecurityProperties properties, OwnerSessions sessions) {
-        return ShopOwner.resolve(properties.shopOwner(), sessions);
+    public ShopOwner shopOwner(SecurityProperties properties, OwnerSessions accounts) {
+        return ShopOwner.resolve(properties.shopOwner(), accounts, properties.registrationOpen());
     }
 
     /**

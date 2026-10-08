@@ -36,8 +36,10 @@ docker run -d --name "$container" -p "127.0.0.1:${pg_port}:5432" \
   -e POSTGRES_USER=rayka_test -e POSTGRES_PASSWORD=rayka_test -e POSTGRES_DB=rayka_contract_test \
   -e TZ=America/Sao_Paulo -e PGTZ=America/Sao_Paulo \
   postgres:17.11 postgres -c timezone=America/Sao_Paulo >/dev/null
+# Pela rede (TCP): durante a inicialização da imagem o Postgres temporário só escuta no socket local,
+# então um pg_isready comum responderia cedo demais.
 for _ in $(seq 1 60); do
-  docker exec "$container" pg_isready -U rayka_test -d rayka_contract_test >/dev/null 2>&1 && break
+  docker exec "$container" psql -h 127.0.0.1 -U rayka_test -d rayka_contract_test -tAc 'SELECT 1' >/dev/null 2>&1 && break
   sleep 1
 done
 

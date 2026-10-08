@@ -4,7 +4,8 @@ import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import java.util.Optional;
 
 /**
- * Porta: sessões da dona (tabela {@code sessions}).
+ * Porta: contas e sessões da dona (tabelas {@code users} e {@code sessions}). Implementada pelo módulo
+ * {@code identity}.
  */
 public interface OwnerSessions {
 
@@ -23,4 +24,11 @@ public interface OwnerSessions {
      * @return o id, se a conta existir
      */
     Optional<OwnerId> ownerByUsername(String username);
+
+    /**
+     * Diz se existe alguma conta (instalação nova = nenhuma).
+     *
+     * @return verdadeiro se {@code users} não está vazia
+     */
+    boolean hasAnyAccount();
 }
