@@ -20,15 +20,21 @@ class PostgresTestBaseIT extends PostgresTestBase {
      */
     @Test
     @DisplayName("o container é o postgres 17.11 no fuso America/Sao_Paulo")
-    void containerMatchesProduction() {
+    void containerMatchesProduction() throws Exception {
 
-        // ── 1. Pergunta ao próprio servidor a versão e o fuso.
+        // ── 1. Versão do servidor e fuso das conexões de teste.
         String version = jdbc().sql("SHOW server_version").query(String.class).single();
-        String zone = jdbc().sql("SHOW timezone").query(String.class).single();
+        String sessionZone = jdbc().sql("SHOW timezone").query(String.class).single();
 
-        // ── 2. Iguais aos de produção.
+        // ── 2. Fuso padrão do servidor: um psql sem PGTZ não manda fuso, como o Node, e a sessão fica no do servidor.
+        String serverZone = postgres().execInContainer(
+                "env", "-u", "PGTZ", "-u", "TZ", "psql", "-U", postgres().getUsername(),
+                "-d", postgres().getDatabaseName(), "-tAc", "SHOW timezone").getStdout().strip();
+
+        // ── 3. Iguais aos de produção.
         assertThat(version).startsWith("17.11");
-        assertThat(zone).isEqualTo("America/Sao_Paulo");
+        assertThat(serverZone).isEqualTo("America/Sao_Paulo");
+        assertThat(sessionZone).isEqualTo("America/Sao_Paulo");
     }
 
     /**
