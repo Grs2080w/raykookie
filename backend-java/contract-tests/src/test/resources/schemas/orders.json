@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/orders",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "user_id": {
+        "type": "integer"
+      },
+      "number": {
+        "type": "integer"
+      },
+      "order_date": {
+        "type": "string"
+      },
+      "customer": {
+        "type": "string"
+      },
+      "recipe_id": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "product": {
+        "type": "string"
+      },
+      "qty": {
+        "type": "number"
+      },
+      "unit_price": {
+        "type": "number"
+      },
+      "delivery_date": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "status": {
+        "enum": [
+          "novo",
+          "producao",
+          "pronto",
+          "entregue",
+          "cancelado"
+        ]
+      },
+      "payment": {
+        "enum": [
+          "pendente",
+          "sinal",
+          "pago"
+        ]
+      },
+      "notes": {
+        "type": "string"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "shop_order_id": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "address": {
+        "type": "string"
+      },
+      "shop_code": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "shop_paid": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      },
+      "shop_total": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "shop_refunded": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "shop_payment_method": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "shop_installments": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "shop_cancel": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "shop_refund": {
+        "type": [
+          "object",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "id",
+      "user_id",
+      "number",
+      "order_date",
+      "customer",
+      "recipe_id",
+      "product",
+      "qty",
+      "unit_price",
+      "delivery_date",
+      "status",
+      "payment",
+      "notes",
+      "created_at",
+      "shop_order_id",
+      "address",
+      "shop_code",
+      "shop_paid",
+      "shop_total",
+      "shop_refunded",
+      "shop_payment_method",
+      "shop_installments",
+      "shop_cancel",
+      "shop_refund"
+    ],
+    "additionalProperties": false
+  }
+}

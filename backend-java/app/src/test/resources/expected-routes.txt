@@ -29,9 +29,9 @@ GET    /api/cliente/me/dados                    CUSTOMER
 GET    /api/cliente/me/exportar                 CUSTOMER
 DELETE /api/cliente/me/google                   CUSTOMER
 POST   /api/cliente/me/privacidade              CUSTOMER
-pendente GET    /api/cliente/pedidos                     CUSTOMER
-pendente POST   /api/cliente/pedidos                     CUSTOMER
-pendente POST   /api/cliente/pedidos/{id}/cancelar       CUSTOMER
+GET    /api/cliente/pedidos                     CUSTOMER
+POST   /api/cliente/pedidos                     CUSTOMER
+POST   /api/cliente/pedidos/{id}/cancelar       CUSTOMER
 pendente POST   /api/cliente/pedidos/{id}/cartao         CUSTOMER
 pendente POST   /api/cliente/pedidos/{id}/devolucao      CUSTOMER
 pendente DELETE /api/cliente/pedidos/{id}/devolucao      CUSTOMER
@@ -69,12 +69,12 @@ GET    /api/menu                                PUBLIC
 GET    /api/me                                  OWNER
 POST   /api/nota/importar                       OWNER
 POST   /api/nota/ler                            OWNER
-pendente GET    /api/orders                              OWNER
-pendente POST   /api/orders                              OWNER
-pendente PATCH  /api/orders/{id}                         OWNER
-pendente DELETE /api/orders/{id}                         OWNER
+GET    /api/orders                              OWNER
+POST   /api/orders                              OWNER
+PATCH  /api/orders/{id}                         OWNER
+DELETE /api/orders/{id}                         OWNER
 pendente POST   /api/orders/{id}/pagamento               OWNER
-pendente POST   /api/orders/shop/{id}/cancelar           OWNER
+POST   /api/orders/shop/{id}/cancelar           OWNER
 pendente POST   /api/orders/shop/{id}/devolver           OWNER
 pendente GET    /api/pagar/{token}                       PAY_LINK_TOKEN
 pendente POST   /api/pagar/{token}/cancelar              PAY_LINK_TOKEN

@@ -176,6 +176,67 @@ public final class NodeInput {
     }
 
     /**
+     * {@code num(v, d)} como decimal exato (para colunas {@code NUMERIC} e domínios que não usam {@code double}).
+     *
+     * @param value        valor do JSON
+     * @param defaultValue valor quando vier vazio
+     * @return o número como o JavaScript o enviaria ao banco
+     */
+    public static BigDecimal decimal(Object value, double defaultValue) {
+        return new BigDecimal(jsNumberText(number(value, defaultValue)));
+    }
+
+    /**
+     * {@code Number(v)} do JavaScript, aceito só quando é um inteiro ({@code Number.isInteger}).
+     *
+     * @param value valor do JSON
+     * @return o inteiro, ou vazio
+     */
+    public static Optional<Long> integer(Object value) {
+        double number = value instanceof Number n ? n.doubleValue()
+                : value instanceof String || value instanceof Boolean ? jsNumber(jsString(value)) : Double.NaN;
+        if (value instanceof Boolean flag) {
+            number = flag ? 1 : 0;
+        }
+        return Double.isFinite(number) && number == Math.rint(number) && Math.abs(number) < 1e15
+                ? Optional.of((long) number)
+                : Optional.empty();
+    }
+
+    /**
+     * Valor em reais digitado em pt-BR ({@code parseLocaleNumber}), arredondado em centavos como o
+     * {@code Math.round(n * 100) / 100} do Node.
+     *
+     * @param text texto
+     * @return o valor, ou vazio se não for número
+     */
+    public static Optional<Money> localeMoney(String text) {
+        double number = parseLocaleNumber(jsTrim(text == null ? "" : text));
+        return Double.isFinite(number) ? Optional.of(Money.ofCents(Math.round(number * 100))) : Optional.empty();
+    }
+
+    /**
+     * Número digitado em pt-BR ({@code parseLocaleNumber}) como decimal exato, para comparar sem {@code double}.
+     *
+     * @param text texto
+     * @return o número, ou vazio se não for número
+     */
+    public static Optional<BigDecimal> localeDecimal(String text) {
+        double number = parseLocaleNumber(jsTrim(text == null ? "" : text));
+        return Double.isFinite(number) ? Optional.of(new BigDecimal(jsNumberText(number))) : Optional.empty();
+    }
+
+    /**
+     * Reais (como o Node os guarda, em {@code double}) para centavos.
+     *
+     * @param value número do JSON ou do banco
+     * @return o valor em centavos
+     */
+    public static Money money(Number value) {
+        return Money.ofCents(Math.round(value.doubleValue() * 100));
+    }
+
+    /**
      * {@code parseLocaleNumber} do Node ({@code backend/shared/text.ts}).
      *
      * @param text texto sem espaços nas pontas

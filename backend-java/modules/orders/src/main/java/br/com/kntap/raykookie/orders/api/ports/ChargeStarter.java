@@ -1,0 +1,50 @@
+package br.com.kntap.raykookie.orders.api.ports;
+
+import br.com.kntap.raykookie.kernel.Money;
+import br.com.kntap.raykookie.kernel.ids.CustomerId;
+import br.com.kntap.raykookie.kernel.ids.OwnerId;
+import java.util.Map;
+
+/**
+ * Cobrança de um pedido recém-criado (implementada pelo módulo de pagamentos): gera o Pix ou cobra o cartão.
+ */
+public interface ChargeStarter {
+
+    /**
+     * Gera o Pix do pedido. Falha do Mercado Pago não derruba o pedido: ele fica pendente.
+     *
+     * @param order o pedido
+     * @return {@code code}, {@code qr_base64} e {@code expires_in}, ou nulo se não deu para gerar
+     */
+    Map<String, Object> startPix(NewOrder order);
+
+    /**
+     * Cobra o cartão. Recusado, o pedido continua existindo, sem pagamento.
+     *
+     * @param order        o pedido
+     * @param cardToken    token do cartão
+     * @param methodId     bandeira
+     * @param cpf          CPF
+     * @param installments parcelas
+     * @param clientIp     IP real do cliente (limite de recusas)
+     * @return {@code approved}, {@code pending} e {@code reason} como o Node responde
+     */
+    Map<String, Object> startCard(NewOrder order, String cardToken, String methodId, String cpf, int installments,
+            String clientIp);
+
+    /**
+     * Pedido recém-criado.
+     *
+     * @param id       id
+     * @param code     número que o cliente vê
+     * @param owner    dona
+     * @param customer cliente
+     * @param email    e-mail do cliente
+     * @param name     nome para contato
+     * @param total    total
+     * @param items    quantos itens
+     */
+    record NewOrder(long id, int code, OwnerId owner, CustomerId customer, String email, String name, Money total,
+            int items) {
+    }
+}

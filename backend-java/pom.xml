@@ -27,6 +27,7 @@
         <module>modules/catalog</module>
         <module>modules/purchasing</module>
         <module>modules/storefront</module>
+        <module>modules/orders</module>
         <module>app</module>
         <module>contract-tests</module>
     </modules>
@@ -163,6 +164,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-identity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-orders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
