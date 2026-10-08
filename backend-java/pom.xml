@@ -376,6 +376,10 @@
                             <targetTests>
                                 <param>br.com.kntap.raykookie.*</param>
                             </targetTests>
+                            <!-- Só os testes de unidade: um contexto Spring por mutante levaria horas. -->
+                            <excludedTestClasses>
+                                <param>**.*IT</param>
+                            </excludedTestClasses>
                             <!-- O argLine do surefire traz o agente do JaCoCo; aqui só o agente do Mockito, quando houver. -->
                             <parseSurefireArgLine>false</parseSurefireArgLine>
                             <argLine>${mockito.javaagent}</argLine>

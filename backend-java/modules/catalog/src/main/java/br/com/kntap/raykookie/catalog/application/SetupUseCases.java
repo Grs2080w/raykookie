@@ -48,7 +48,7 @@ public class SetupUseCases {
      * @return as categorias
      */
     public List<Map<String, Object>> categories(OwnerId owner, String kind) {
-        return categories.list(owner, SimpleForms.CATEGORY_KINDS.contains(kind) ? kind : null);
+        return categories.list(owner, kind != null && SimpleForms.CATEGORY_KINDS.contains(kind) ? kind : null);
     }
 
     /**

@@ -162,6 +162,31 @@ jobs:
             exit 1
           fi
 
+  rules-parity:
+    name: Vetores de regras TypeScript = Java (G25)
+    # Independente como o backend-java: fora do "ci-ok" e fora da main (não bloqueia o deploy do Node).
+    # Regenera backend-java/rules-vectors/*.json a partir de backend/shared/*.ts (sem npm: só node:*) e compara.
+    if: ${{ github.ref != 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Regera os vetores e compara com os do Java
+        run: |
+          for gen in infra/rules-vectors/gen-*.mjs; do node --experimental-strip-types "$gen"; done
+          if ! git diff --exit-code -- backend-java/rules-vectors; then
+            echo "::error::as regras em TypeScript mudaram e os vetores do Java ficaram para trás: rode infra/rules-vectors/gen-*.mjs, ajuste o domínio Java até os testes passarem e commite os dois lados"
+            exit 1
+          fi
+          untracked="$(git ls-files --others --exclude-standard -- backend-java/rules-vectors)"
+          if [ -n "$untracked" ]; then
+            echo "::error::vetor novo não commitado: $untracked"
+            exit 1
+          fi
+
   web:
     name: Frontend + build do site/API
     runs-on: ubuntu-latest

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.UncategorizedSQLException;
@@ -57,6 +58,20 @@ class ErrorClassifierTest {
 
         // ── 2. Banco travado é indisponibilidade, sem alerta de erro inesperado.
         assertThat(translated.status()).isEqualTo(503);
+        assertThat(raw.status()).isEqualTo(503);
+        assertThat(raw.unexpected()).isFalse();
+    }
+
+    /**
+     * Leitura cortada pelo socketTimeout do driver (banco travado no meio da consulta): 503.
+     */
+    @Test
+    @DisplayName("socketTimeout (SQLSTATE 08006), traduzido ou não: 503, não 500")
+    void brokenConnectionIsUnavailable() {
+        SQLException io = new SQLException("An I/O error occurred while sending to the backend.", "08006");
+        assertThat(ErrorClassifier.classify(new DataAccessResourceFailureException("leitura", io)).status())
+                .isEqualTo(503);
+        ApiError raw = ErrorClassifier.classify(new UncategorizedSQLException("consulta", "SELECT 1", io));
         assertThat(raw.status()).isEqualTo(503);
         assertThat(raw.unexpected()).isFalse();
     }

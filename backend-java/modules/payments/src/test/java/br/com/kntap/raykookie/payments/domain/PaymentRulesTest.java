@@ -65,6 +65,30 @@ class PaymentRulesTest {
     }
 
     /**
+     * Fronteiras da janela e do formato do {@code ts}.
+     */
+    @Test
+    @DisplayName("assinatura: 10 min exatos aceitos; ts não numérico recusado mesmo com HMAC certo; 10^11 é ms")
+    void signatureBoundaries() {
+
+        // ── 1. Exatamente na borda da janela, dos dois lados.
+        String signed = "ts=1700000000,v1=" + WebhookSignature.hmac("s", "id:1;ts:1700000000;");
+        Instant at = Instant.ofEpochSecond(1_700_000_000L);
+        assertThat(WebhookSignature.valid("s", "1", signed, null, at.plus(SKEW), SKEW)).isTrue();
+        assertThat(WebhookSignature.valid("s", "1", signed, null, at.minus(SKEW), SKEW)).isTrue();
+        assertThat(WebhookSignature.valid("s", "1", signed, null, at.plus(SKEW).plusSeconds(1), SKEW)).isFalse();
+
+        // ── 2. ts com letra, assinado certo: recusado pelo formato.
+        String letters = "ts=1700000000x,v1=" + WebhookSignature.hmac("s", "id:1;ts:1700000000x;");
+        assertThat(WebhookSignature.valid("s", "1", letters, null, at, SKEW)).isFalse();
+
+        // ── 3. 100000000000 já é milissegundo (1973), não segundo.
+        String threshold = "ts=100000000000,v1=" + WebhookSignature.hmac("s", "id:1;ts:100000000000;");
+        assertThat(WebhookSignature.valid("s", "1", threshold, null, Instant.ofEpochMilli(100_000_000_000L), SKEW))
+                .isTrue();
+    }
+
+    /**
      * Motivos de recusa e datas.
      */
     @Test
@@ -89,6 +113,13 @@ class PaymentRulesTest {
         assertThat(refunded.refundedOrChargedBack()).isTrue();
         assertThat(new GatewayPayment("1", "in_process", "", "", Money.ZERO, Money.ZERO, null, null).open()).isTrue();
         assertThat(new GatewayPayment("1", "charged_back", "", "", Money.ZERO, Money.ZERO, null, null)
+                .refundedOrChargedBack()).isTrue();
+        GatewayPayment pending = new GatewayPayment("1", "pending", "", "", Money.ZERO, Money.ZERO, null, null);
+        assertThat(pending.open()).isTrue();
+        assertThat(pending.approved()).isFalse();
+        assertThat(pending.refundedOrChargedBack()).isFalse();
+        assertThat(refunded.open()).isFalse();
+        assertThat(new GatewayPayment("1", "refunded", "", "", Money.ZERO, Money.ZERO, null, null)
                 .refundedOrChargedBack()).isTrue();
         assertThat(ConfirmationOutcome.REJECTED.paid()).isFalse();
         assertThat(ConfirmationOutcome.DUPLICATE_REFUNDED.paid()).isTrue();

@@ -5,11 +5,11 @@ import jakarta.validation.ConstraintViolation;
 import java.sql.SQLException;
 import java.util.Optional;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
@@ -83,9 +83,11 @@ public final class ErrorClassifier {
      */
     private static Optional<ApiError> classifyDatabase(Throwable error) {
 
-        // ── 1. Sem conexão (banco fora ou pool esgotado) ou consulta cancelada pelo statement_timeout: 503.
-        if (error instanceof CannotGetJdbcConnectionException || error instanceof QueryTimeoutException
-                || QUERY_CANCELED.equals(sqlState(error))) {
+        // ── 1. Sem conexão (banco fora, pool esgotado ou leitura cortada pelo socketTimeout, SQLSTATE 08xxx) ou
+        //       consulta cancelada pelo statement_timeout: 503.
+        String state = String.valueOf(sqlState(error));
+        if (error instanceof DataAccessResourceFailureException || error instanceof QueryTimeoutException
+                || QUERY_CANCELED.equals(state) || state.startsWith("08")) {
             return Optional.of(ApiError.of(503, ErrorMessages.UNAVAILABLE));
         }
         if (!(error instanceof DataIntegrityViolationException)) {
@@ -93,7 +95,7 @@ public final class ErrorClassifier {
         }
 
         // ── 2. Violação de restrição: mensagem pelo código SQL, como em backend/lib/api.ts.
-        return switch (String.valueOf(sqlState(error))) {
+        return switch (state) {
             case "22003" -> Optional.of(ApiError.of(400, ErrorMessages.NUMBER_TOO_LARGE));
             case "23505" -> Optional.of(ApiError.of(409, ErrorMessages.DUPLICATE));
             case "23503" -> Optional.of(ApiError.of(409, ErrorMessages.IN_USE));

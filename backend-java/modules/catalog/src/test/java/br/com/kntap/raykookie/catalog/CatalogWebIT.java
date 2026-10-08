@@ -221,6 +221,7 @@ class CatalogWebIT extends PostgresTestBase {
                 .statusCode(201).extract().jsonPath().getLong("id");
         assertThat(owner().queryParam("kind", "expense").get("/api/categories").jsonPath().getList("kind"))
                 .containsOnly("expense");
+        assertThat(owner().get("/api/categories").jsonPath().getList("kind")).contains("expense");
         owner(Map.of("name", "Energia IT")).patch("/api/categories/" + category).then().statusCode(200);
         assertThat(owner(Map.of("name", "X")).patch("/api/categories/999999").statusCode()).isEqualTo(404);
 

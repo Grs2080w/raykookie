@@ -27,7 +27,7 @@ public final class OrderSound {
      * @return verdadeiro se está na lista
      */
     public static boolean isValid(Object sound) {
-        return IDS.contains(sound);
+        return sound != null && IDS.contains(sound);
     }
 
     /**

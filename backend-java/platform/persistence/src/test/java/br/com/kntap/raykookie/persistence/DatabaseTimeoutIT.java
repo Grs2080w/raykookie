@@ -17,8 +17,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * Prova os tempos limite do banco (G06, T09): consulta longa é cancelada pelo
- * {@code statement_timeout} de 15 s e, com o banco travado, pedir conexão falha em segundos em vez
- * de pendurar a requisição.
+ * {@code statement_timeout} de 15 s; com o banco travado, pedir conexão falha em segundos e uma consulta já em
+ * andamento é cortada pelo {@code socketTimeout} do driver, em vez de pendurar a requisição.
  */
 @SpringBootTest
 class DatabaseTimeoutIT extends PostgresTestBase {
@@ -76,6 +76,35 @@ class DatabaseTimeoutIT extends PostgresTestBase {
         }
 
         // ── 4. O banco voltou: o pool atende de novo.
+        assertThat(jdbc.sql("SELECT 1").query(Integer.class).single()).isEqualTo(1);
+    }
+
+    /**
+     * Banco travado com a consulta já na conexão: o servidor não cancela nada, o driver corta a leitura.
+     *
+     * @throws SQLException se o pool não entregar a conexão antes de travar o banco
+     */
+    @Test
+    @DisplayName("banco travado no meio da consulta: o socketTimeout do driver corta a leitura em até 21 s")
+    void unresponsiveDatabaseDuringQuery() throws SQLException {
+
+        // ── 1. Conexão em mãos e o banco travado.
+        String id = postgres().getContainerId();
+        try (Connection connection = dataSource.getConnection()) {
+            postgres().getDockerClient().pauseContainerCmd(id).exec();
+            try {
+
+                // ── 2. A consulta falha por tempo limite de leitura, não fica esperando.
+                long start = System.nanoTime();
+                assertThatThrownBy(() -> connection.createStatement().execute("SELECT 1"))
+                        .isInstanceOf(SQLException.class);
+                assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThanOrEqualTo(Duration.ofSeconds(21));
+            } finally {
+                postgres().getDockerClient().unpauseContainerCmd(id).exec();
+            }
+        }
+
+        // ── 3. O banco voltou: o pool descarta a conexão quebrada e atende de novo.
         assertThat(jdbc.sql("SELECT 1").query(Integer.class).single()).isEqualTo(1);
     }
 

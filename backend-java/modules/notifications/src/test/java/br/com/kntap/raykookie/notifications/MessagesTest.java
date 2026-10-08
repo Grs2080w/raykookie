@@ -57,6 +57,7 @@ class MessagesTest {
         assertThat(m.channelId()).isEqualTo("pedido_sino");
         assertThat(OrderSound.isValid("alerta")).isTrue();
         assertThat(OrderSound.isValid("../etc")).isFalse();
+        assertThat(OrderSound.isValid(null)).isFalse();
     }
 
     /**

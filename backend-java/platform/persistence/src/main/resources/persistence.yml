@@ -13,6 +13,11 @@ spring:
       validation-timeout: 1000
       max-lifetime: 1800000
       connection-init-sql: "SET statement_timeout = '15s'; SET TIME ZONE 'America/Sao_Paulo'"
+      # Banco travado no meio de uma consulta (conexão entregue sem teste, usada há menos de 500 ms): o
+      # statement_timeout é do servidor e não chega. O socketTimeout (do driver, em segundos) corta a leitura e a
+      # requisição vira 503 em vez de ficar pendurada para sempre (T09).
+      data-source-properties:
+        socketTimeout: 20
   flyway:
     locations: classpath:db/migration/production,classpath:db/migration/platform
     baseline-on-migrate: false

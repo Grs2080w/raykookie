@@ -8,11 +8,7 @@ import br.com.kntap.raykookie.catalog.api.MenuTags;
 import br.com.kntap.raykookie.catalog.api.PricingEngine;
 import br.com.kntap.raykookie.catalog.domain.RecipeForm;
 import br.com.kntap.raykookie.catalog.domain.SimpleForms;
-import br.com.kntap.raykookie.kernel.Images;
 import br.com.kntap.raykookie.kernel.InvalidInputException;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,85 +16,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Imagens (vetores de {@code backend/tests/image.test.ts}), formulários e selos.
+ * Formulários e selos (as imagens são testadas no kernel, em {@code ImagesTest}).
  */
 class ImagesAndFormsTest {
-
-    /**
-     * Um segmento de JPEG.
-     *
-     * @param marker  marcador
-     * @param payload conteúdo
-     * @return os bytes
-     */
-    private static byte[] segment(int marker, String payload) {
-        byte[] data = payload.getBytes(StandardCharsets.ISO_8859_1);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.writeBytes(new byte[] {(byte) 0xff, (byte) marker, (byte) ((data.length + 2) >> 8),
-            (byte) ((data.length + 2) & 0xff)});
-        out.writeBytes(data);
-        return out.toByteArray();
-    }
-
-    /**
-     * Um JPEG com os segmentos dados.
-     *
-     * @param segments segmentos
-     * @return os bytes
-     */
-    private static byte[] jpeg(byte[]... segments) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.writeBytes(new byte[] {(byte) 0xff, (byte) 0xd8});
-        Arrays.stream(segments).forEach(out::writeBytes);
-        out.writeBytes(new byte[] {(byte) 0xff, (byte) 0xda, 0, 4, 0, 0, 1, 2, 3, 4, (byte) 0xff, (byte) 0xd9});
-        return out.toByteArray();
-    }
-
-    /**
-     * Tipo pelo conteúdo.
-     */
-    @Test
-    @DisplayName("reconhece JPEG, PNG e WebP pelo conteúdo; recusa GIF e texto")
-    void sniffs() {
-        assertThat(Images.sniff(jpeg(segment(0xe0, "JFIF\0")))).contains("image/jpeg");
-        byte[] png = {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10, 0, 0, 0, 13, 'I'};
-        assertThat(Images.sniff(png)).contains("image/png");
-        assertThat(Images.sniff("RIFF\0\0\0\0WEBPVP8 ".getBytes(StandardCharsets.ISO_8859_1))).contains("image/webp");
-        assertThat(Images.sniff("GIF89a-------------".getBytes(StandardCharsets.ISO_8859_1))).isEmpty();
-        assertThat(Images.sniff("<script>alert(1)</script>".getBytes(StandardCharsets.UTF_8))).isEmpty();
-        assertThat(Images.sniff(new byte[] {(byte) 0xff, (byte) 0xd8, (byte) 0xff})).isEmpty();
-    }
-
-    /**
-     * EXIF, XMP e comentário saem; JFIF, tabelas e dados ficam (comparação de bytes).
-     */
-    @Test
-    @DisplayName("tira EXIF com GPS, XMP e comentário, mantendo o resto byte a byte")
-    void stripsJpegMetadata() {
-        byte[] jfif = segment(0xe0, "JFIF\0\1\1");
-        byte[] dqt = segment(0xdb, "\7\7\7\7\7\7\7\7\7\7");
-        byte[] adobe = segment(0xee, "Adobe");
-        byte[] stripped = Images.stripJpegMetadata(jpeg(jfif, segment(0xe1, "Exif\0\0GPS-LATITUDE-23.5"),
-                segment(0xe1, "http://ns.adobe.com/xap/1.0/\0<x:xmpmeta/>"), segment(0xfe, "tirada em casa"), dqt,
-                new byte[] {(byte) 0xff}, adobe));
-        assertThat(stripped).isEqualTo(jpeg(jfif, dqt, adobe));
-    }
-
-    /**
-     * Arquivo estranho volta como veio.
-     */
-    @Test
-    @DisplayName("estrutura inesperada volta como veio")
-    void oddFilesAreKept() {
-        byte[] odd = {(byte) 0xff, (byte) 0xd8, 0, 1, 2, 3, 4};
-        assertThat(Images.stripJpegMetadata(odd)).isSameAs(odd);
-        byte[] png = {(byte) 0x89, 'P', 'N', 'G'};
-        assertThat(Images.stripJpegMetadata(png)).isSameAs(png);
-        byte[] badLength = {(byte) 0xff, (byte) 0xd8, (byte) 0xff, (byte) 0xe1, 0x7f, 0x7f, 1};
-        assertThat(Images.stripJpegMetadata(badLength)).isSameAs(badLength);
-        byte[] noScan = {(byte) 0xff, (byte) 0xd8, (byte) 0xff, (byte) 0xe0, 0, 2};
-        assertThat(Images.stripJpegMetadata(noScan)).isSameAs(noScan);
-    }
 
     /**
      * Ingrediente: números pt-BR, cortes e validações.
