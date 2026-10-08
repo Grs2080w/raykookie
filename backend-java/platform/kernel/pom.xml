@@ -14,4 +14,57 @@
     <artifactId>raykookie-kernel</artifactId>
     <name>Raykookie Kernel</name>
     <description>Núcleo compartilhado: dinheiro, ids, erros de domínio e relógio da loja (Tarefa 2.1).</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.jqwik</groupId>
+            <artifactId>jqwik</artifactId>
+            <version>${jqwik.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Só para ler o vetor de paridade com o TypeScript (JSON) nos testes. -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- O vetor de paridade vive em backend-java/rules-vectors e entra no classpath dos testes. -->
+        <testResources>
+            <testResource>
+                <directory>${maven.multiModuleProjectDirectory}/rules-vectors</directory>
+                <targetPath>rules-vectors</targetPath>
+            </testResource>
+        </testResources>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>mutation</id>
+            <build>
+                <plugins>
+                    <!-- O kernel já tem código: sem mutantes gerados, a execução deve falhar. -->
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <configuration>
+                            <failWhenNoMutations>true</failWhenNoMutations>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

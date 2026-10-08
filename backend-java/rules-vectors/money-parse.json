@@ -1,0 +1,272 @@
+[
+  {
+    "input": "12,5",
+    "cents": 1250
+  },
+  {
+    "input": "12.5",
+    "cents": 1250
+  },
+  {
+    "input": "1.500,50",
+    "cents": 150050
+  },
+  {
+    "input": "1500",
+    "cents": 150000
+  },
+  {
+    "input": "0",
+    "cents": 0
+  },
+  {
+    "input": "0,10",
+    "cents": 10
+  },
+  {
+    "input": "0,20",
+    "cents": 20
+  },
+  {
+    "input": "0,01",
+    "cents": 1
+  },
+  {
+    "input": "0.01",
+    "cents": 1
+  },
+  {
+    "input": "7.5",
+    "cents": 750
+  },
+  {
+    "input": "12,50",
+    "cents": 1250
+  },
+  {
+    "input": "12.50",
+    "cents": 1250
+  },
+  {
+    "input": "1.000",
+    "cents": 100000
+  },
+  {
+    "input": "1.000.000",
+    "cents": 100000000
+  },
+  {
+    "input": "12.345",
+    "cents": 1234500
+  },
+  {
+    "input": "999.999",
+    "cents": 99999900
+  },
+  {
+    "input": "1.000,5",
+    "cents": 100050
+  },
+  {
+    "input": "1.234.567,89",
+    "cents": 123456789
+  },
+  {
+    "input": "10",
+    "cents": 1000
+  },
+  {
+    "input": "100,00",
+    "cents": 10000
+  },
+  {
+    "input": "0,5",
+    "cents": 50
+  },
+  {
+    "input": "0.5",
+    "cents": 50
+  },
+  {
+    "input": "0.500",
+    "cents": 50
+  },
+  {
+    "input": "1500,5",
+    "cents": 150050
+  },
+  {
+    "input": "1500.50",
+    "cents": 150050
+  },
+  {
+    "input": "  12,5  ",
+    "cents": 1250
+  },
+  {
+    "input": " 12,5",
+    "cents": 1250
+  },
+  {
+    "input": "﻿3,2",
+    "cents": 320
+  },
+  {
+    "input": "5.",
+    "cents": 500
+  },
+  {
+    "input": ".5",
+    "cents": 50
+  },
+  {
+    "input": ",5",
+    "cents": 50
+  },
+  {
+    "input": "5,",
+    "cents": 500
+  },
+  {
+    "input": "1.5.5,5",
+    "cents": 15550
+  },
+  {
+    "input": "00012",
+    "cents": 1200
+  },
+  {
+    "input": "012,5",
+    "cents": 1250
+  },
+  {
+    "input": "1000000000",
+    "cents": 100000000000
+  },
+  {
+    "input": "0,00",
+    "cents": 0
+  },
+  {
+    "input": "9.999.999,99",
+    "cents": 999999999
+  },
+  {
+    "input": "abc",
+    "error": true
+  },
+  {
+    "input": "12abc",
+    "error": true
+  },
+  {
+    "input": "R$ 12,50",
+    "error": true
+  },
+  {
+    "input": "1 000",
+    "error": true
+  },
+  {
+    "input": "1,5,5",
+    "error": true
+  },
+  {
+    "input": "1,2.3",
+    "cents": 123
+  },
+  {
+    "input": "--5",
+    "error": true
+  },
+  {
+    "input": "1..5",
+    "error": true
+  },
+  {
+    "input": ",",
+    "error": true
+  },
+  {
+    "input": ".",
+    "error": true
+  },
+  {
+    "input": "NaN",
+    "error": true
+  },
+  {
+    "input": "null",
+    "error": true
+  },
+  {
+    "input": "1_000",
+    "error": true
+  },
+  {
+    "input": "12,5,",
+    "error": true
+  },
+  {
+    "input": "1.5,5.5x",
+    "error": true
+  },
+  {
+    "input": "",
+    "cents": 0,
+    "java": "error"
+  },
+  {
+    "input": "   ",
+    "cents": 0,
+    "java": "error"
+  },
+  {
+    "input": "-5",
+    "cents": -500,
+    "java": "error"
+  },
+  {
+    "input": "-0,50",
+    "cents": -50,
+    "java": "error"
+  },
+  {
+    "input": "+5",
+    "cents": 500,
+    "java": "error"
+  },
+  {
+    "input": "1,234",
+    "cents": 123,
+    "java": "error"
+  },
+  {
+    "input": "12.3456",
+    "cents": 1235,
+    "java": "error"
+  },
+  {
+    "input": "0,001",
+    "cents": 0,
+    "java": "error"
+  },
+  {
+    "input": "1e3",
+    "cents": 100000,
+    "java": "error"
+  },
+  {
+    "input": "0x10",
+    "cents": 1600,
+    "java": "error"
+  },
+  {
+    "input": "Infinity",
+    "error": true
+  },
+  {
+    "input": "1.2345,6",
+    "cents": 1234560
+  }
+]
