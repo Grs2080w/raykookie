@@ -25,6 +25,8 @@ management:
         include: health,info,prometheus
 
 rayka:
+  # Única conta que entra no painel (G24); o servidor não sobe se ela não existir em users.
+  shop-owner: ${SHOP_OWNER:}
   web:
     # Proxies cujo X-Forwarded-For é aceito (G05). Ver docs/ip-do-cliente.md.
     trusted-proxies: ${TRUSTED_PROXIES:127.0.0.1/32,::1/128}

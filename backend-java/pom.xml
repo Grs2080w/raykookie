@@ -18,6 +18,7 @@
         <module>platform/persistence</module>
         <module>platform/web</module>
         <module>platform/ratelimit</module>
+        <module>platform/security</module>
         <module>app</module>
     </modules>
 
@@ -115,6 +116,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-ratelimit</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-security</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
