@@ -7,9 +7,10 @@ RUN ./mvnw -q -B -DskipTests package -pl app -am
 
 # ── Estágio 2: imagem de execução enxuta
 FROM eclipse-temurin:25-jre
-# a imagem base não traz wget nem curl; o HEALTHCHECK precisa de um deles
+# a imagem base não traz wget nem curl; o HEALTHCHECK precisa de um deles. As fontes desenham os stories
+# do cardápio (/api/story/*, Java2D).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends wget \
+    && apt-get install -y --no-install-recommends wget fontconfig fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /src/app/target/raykookie-app.jar /app/raykookie.jar

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>br.com.kntap.raykookie</groupId>
+        <artifactId>raykookie-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>raykookie-storefront</artifactId>
+    <name>Raykookie Storefront</name>
+    <description>Vitrine da loja: cardápio público, stories, documentos legais e endereço de retirada (Tarefa 4.6).</description>
+
+    <properties>
+        <mockito.javaagent>-javaagent:${org.mockito:mockito-core:jar}</mockito.javaagent>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-catalog</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-persistence</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-testing</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Os textos legais vêm de rules-vectors/legal.json, gerado do TypeScript (única fonte do texto). -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${maven.multiModuleProjectDirectory}/rules-vectors</directory>
+                <includes>
+                    <include>legal.json</include>
+                </includes>
+                <targetPath>legal</targetPath>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>dependency-paths</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

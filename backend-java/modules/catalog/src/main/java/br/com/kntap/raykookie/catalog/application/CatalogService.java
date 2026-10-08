@@ -6,9 +6,11 @@ import br.com.kntap.raykookie.catalog.api.PriceChange;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.ports.Categories;
 import br.com.kntap.raykookie.catalog.application.ports.Ingredients;
+import br.com.kntap.raykookie.catalog.application.ports.PhotoStore;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,6 +31,9 @@ public class CatalogService implements CatalogApi {
     /** Histórico e alertas de preço. */
     private final PriceImpact priceImpact;
 
+    /** Fotos das receitas. */
+    private final PhotoStore photos;
+
     /**
      * Cria o serviço.
      *
@@ -36,13 +41,15 @@ public class CatalogService implements CatalogApi {
      * @param categories  categorias
      * @param ingredients ingredientes
      * @param priceImpact histórico e alertas de preço
+     * @param photos      fotos das receitas
      */
     public CatalogService(RecipePricing pricing, Categories categories, Ingredients ingredients,
-            PriceImpact priceImpact) {
+            PriceImpact priceImpact, PhotoStore photos) {
         this.pricing = pricing;
         this.categories = categories;
         this.ingredients = ingredients;
         this.priceImpact = priceImpact;
+        this.photos = photos;
     }
 
     /** {@inheritDoc} */
@@ -61,6 +68,12 @@ public class CatalogService implements CatalogApi {
     @Override
     public List<Map<String, Object>> ingredients(OwnerId owner) {
         return ingredients.list(owner);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Optional<RecipePhoto> photo(OwnerId owner, long recipeId) {
+        return photos.load(recipeId, owner.value()).map(found -> new RecipePhoto(found.contentType(), found.data()));
     }
 
     /** {@inheritDoc} */

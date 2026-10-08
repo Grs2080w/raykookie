@@ -11,7 +11,7 @@ POST   /api/categories                          OWNER
 PATCH  /api/categories/{id}                     OWNER
 DELETE /api/categories/{id}                     OWNER
 POST   /api/cliente/cadastro                    PUBLIC
-pendente GET    /api/cliente/config                      PUBLIC
+GET    /api/cliente/config                      PUBLIC
 POST   /api/cliente/devices                     CUSTOMER
 DELETE /api/cliente/devices                     CUSTOMER
 pendente GET    /api/cliente/devolucoes/{rid}/fotos/{n}  CUSTOMER
@@ -64,8 +64,8 @@ DELETE /api/ingredients/{id}                    OWNER
 GET    /api/ingredients/{id}/prices             OWNER
 POST   /api/ingredients/{id}/use-price          OWNER
 POST   /api/jobs/tick                           PUBLIC
-pendente GET    /api/legal/{doc}                         PUBLIC
-pendente GET    /api/menu                                PUBLIC
+GET    /api/legal/{doc}                         PUBLIC
+GET    /api/menu                                PUBLIC
 GET    /api/me                                  OWNER
 POST   /api/nota/importar                       OWNER
 POST   /api/nota/ler                            OWNER
@@ -82,12 +82,12 @@ pendente POST   /api/pagar/{token}/cartao                PAY_LINK_TOKEN
 pendente POST   /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
 pendente DELETE /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
 pendente POST   /api/pagar/{token}/pix                   PAY_LINK_TOKEN
-pendente GET    /api/payment-config                      PUBLIC
-pendente GET    /api/pickup                              PUBLIC
-pendente GET    /api/pickup-addresses                    OWNER
-pendente POST   /api/pickup-addresses                    OWNER
-pendente PATCH  /api/pickup-addresses/{id}               OWNER
-pendente DELETE /api/pickup-addresses/{id}               OWNER
+GET    /api/payment-config                      PUBLIC
+GET    /api/pickup                              PUBLIC
+GET    /api/pickup-addresses                    OWNER
+POST   /api/pickup-addresses                    OWNER
+PATCH  /api/pickup-addresses/{id}               OWNER
+DELETE /api/pickup-addresses/{id}               OWNER
 GET    /api/price-alerts                        OWNER
 POST   /api/price-alerts/{id}                   OWNER
 POST   /api/price-alerts/{id}/apply             OWNER
@@ -107,8 +107,8 @@ GET    /api/recipes/cardapio                    OWNER
 PATCH  /api/recipes/{id}/cardapio               OWNER
 GET    /api/settings                            OWNER
 PUT    /api/settings                            OWNER
-pendente GET    /api/story/cardapio                      PUBLIC
-pendente GET    /api/story/produto/{id}                  PUBLIC
+GET    /api/story/cardapio                      PUBLIC
+GET    /api/story/produto/{id}                  PUBLIC
 GET    /api/suppliers                           OWNER
 POST   /api/suppliers                           OWNER
 PATCH  /api/suppliers/{id}                      OWNER

@@ -1,0 +1,118 @@
+package br.com.kntap.raykookie.storefront.domain;
+
+import br.com.kntap.raykookie.storefront.api.Menu;
+import java.text.Collator;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Monta o cardápio a partir das receitas (porte de {@code backend/lib/shop-menu.ts}): só receitas visíveis e
+ * com preço, agrupadas por categoria em ordem alfabética pt-BR, com "Outros" por último.
+ */
+public final class MenuBuilder {
+
+    /** Categoria de quem não tem categoria. */
+    public static final String OTHERS = "Outros";
+
+    /** Ordem alfabética do português ({@code localeCompare(…, 'pt-BR')}). */
+    private static final Comparator<Object> PT_BR = Collator.getInstance(Locale.of("pt", "BR"));
+
+    /**
+     * Classe só de funções estáticas; não é instanciada.
+     */
+    private MenuBuilder() {
+    }
+
+    /**
+     * Monta o cardápio.
+     *
+     * @param recipes receitas já precificadas da dona
+     * @return itens e grupos
+     */
+    public static Menu build(List<Recipe> recipes) {
+
+        // ── 1. Só o que pode ser vendido: preço maior que zero e visível no cardápio.
+        List<Menu.Item> items = new ArrayList<>();
+        for (Recipe recipe : recipes) {
+            if (recipe.price() > 0 && recipe.showOnMenu()) {
+                items.add(item(recipe));
+            }
+        }
+
+        // ── 2. Grupos por categoria, na ordem da primeira aparição.
+        Map<String, List<Menu.Item>> byCategory = new LinkedHashMap<>();
+        for (Menu.Item item : items) {
+            byCategory.computeIfAbsent(item.category(), key -> new ArrayList<>()).add(item);
+        }
+
+        // ── 3. Ordena os grupos ("Outros" por último) e os itens de cada grupo pelo nome.
+        List<Menu.Group> groups = byCategory.entrySet().stream()
+                .sorted((a, b) -> compareCategories(a.getKey(), b.getKey()))
+                .map(entry -> new Menu.Group(slug(entry.getKey()), entry.getKey(), entry.getValue().stream()
+                        .sorted((x, y) -> PT_BR.compare(x.name(), y.name())).toList()))
+                .toList();
+        return new Menu(items, groups);
+    }
+
+    /**
+     * Item do cardápio de uma receita.
+     *
+     * @param recipe receita
+     * @return o item
+     */
+    private static Menu.Item item(Recipe recipe) {
+        String category = recipe.category() == null || recipe.category().isEmpty() ? OTHERS : recipe.category();
+        String image = recipe.photoVersion() == null || recipe.photoVersion().isEmpty()
+                ? null
+                : "/api/fotos/" + recipe.id() + "?v=" + recipe.photoVersion();
+        return new Menu.Item(String.valueOf(recipe.id()), recipe.name(), recipe.price(), category, recipe.weightG(),
+                image, recipe.tags());
+    }
+
+    /**
+     * Ordem das categorias: alfabética, com "Outros" por último.
+     *
+     * @param a uma categoria
+     * @param b outra
+     * @return a comparação
+     */
+    static int compareCategories(String a, String b) {
+        if (a.equals(OTHERS)) {
+            return 1;
+        }
+        return b.equals(OTHERS) ? -1 : PT_BR.compare(a, b);
+    }
+
+    /**
+     * Id do grupo: sem acento, minúsculas, hífens no lugar do resto ({@code slug}).
+     *
+     * @param name nome
+     * @return o id ("outros" se ficar vazio)
+     */
+    static String slug(String name) {
+        String plain = Normalizer.normalize(name, Normalizer.Form.NFD).replaceAll("[\\u0300-\\u036f]", "")
+                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+        return plain.isEmpty() ? "outros" : plain;
+    }
+
+    /**
+     * Receita vista pelo cardápio.
+     *
+     * @param id           id
+     * @param name         nome
+     * @param price        preço de venda (arredondado ou fixado)
+     * @param category     nome da categoria (nulo = nenhuma)
+     * @param weightG      gramas por unidade
+     * @param photoVersion versão da foto (nula = sem foto)
+     * @param tags         selos
+     * @param showOnMenu   se está visível
+     */
+    public record Recipe(long id, String name, double price, String category, double weightG, String photoVersion,
+            List<String> tags, boolean showOnMenu) {
+    }
+}

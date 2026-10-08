@@ -3,6 +3,7 @@ package br.com.kntap.raykookie.catalog.api;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * O que o catálogo oferece aos outros módulos (cardápio da loja, painel, compras).
@@ -33,6 +34,24 @@ public interface CatalogApi {
      * @return as linhas de {@code ingredients} no formato do Node
      */
     List<Map<String, Object>> ingredients(OwnerId owner);
+
+    /**
+     * Foto de uma receita da dona (para os stories do cardápio).
+     *
+     * @param owner    dona
+     * @param recipeId receita
+     * @return tipo e bytes, ou vazio se não houver foto
+     */
+    Optional<RecipePhoto> photo(OwnerId owner, long recipeId);
+
+    /**
+     * Foto de receita.
+     *
+     * @param contentType tipo ({@code image/jpeg}, {@code image/png} ou {@code image/webp})
+     * @param data        bytes
+     */
+    record RecipePhoto(String contentType, byte[] data) {
+    }
 
     /**
      * Cria um ingrediente (na transação de quem chama, como a leitura de nota fiscal).

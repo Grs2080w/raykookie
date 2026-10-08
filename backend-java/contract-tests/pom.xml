@@ -63,6 +63,16 @@
     </dependencies>
 
     <build>
+        <!-- Os vetores gerados do TypeScript (ex.: textos legais) servem de resposta esperada. -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>${maven.multiModuleProjectDirectory}/rules-vectors</directory>
+                <targetPath>rules-vectors</targetPath>
+            </testResource>
+        </testResources>
         <plugins>
             <!-- Os *ContractIT só rodam no perfil "contract" (ligado por CONTRACT_BASE_URL). -->
             <plugin>
