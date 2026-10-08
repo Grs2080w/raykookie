@@ -1,9 +1,15 @@
 # Desenvolvimento local: o Postgres do docker-compose.dev.yml (mesma imagem e fuso de produção).
 #   docker compose -f docker-compose.dev.yml up -d
 #   ./mvnw -pl app spring-boot:run -Dspring-boot.run.profiles=local
-# O Flyway aplica as mesmas migrations dos testes (banco novo: 001→021 reais de produção + V22+).
+# O Flyway aplica as mesmas migrations dos testes (banco novo: 001→021 reais de produção + V22+) e, só neste
+# perfil, cria a dona local (usuário "rayka", senha "rayka-local"; db/local), sem a qual o servidor não sobe.
 rayka:
   db:
     url: jdbc:postgresql://127.0.0.1:54331/raykookie
     username: raykookie
     password: raykookie
+  site-url: http://localhost:10005
+  download-secret: segredo-local-de-desenvolvimento-0123456789
+spring:
+  flyway:
+    locations: classpath:db/migration/production,classpath:db/migration/platform,classpath:db/local

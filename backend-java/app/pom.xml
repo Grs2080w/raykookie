@@ -69,6 +69,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>br.com.kntap.raykookie</groupId>
             <artifactId>raykookie-testing</artifactId>
             <scope>test</scope>

@@ -7,8 +7,8 @@ import org.springframework.validation.annotation.Validated;
 /**
  * Coordenadas do banco ({@code rayka.db.*}). Sem URL a aplicação não sobe.
  *
- * <p>A URL é JDBC ({@code jdbc:postgresql://host:porta/banco}); a conversão do {@code DATABASE_URL}
- * de produção ({@code postgres://…}) entra na Tarefa 2.6.
+ * <p>A URL é JDBC ({@code jdbc:postgresql://host:porta/banco}). Em produção vem do {@code DATABASE_URL}
+ * do Node ({@code postgres://…}), convertido pelo {@link DatabaseUrlEnvironmentPostProcessor}.
  *
  * @param url      URL JDBC do Postgres (obrigatória)
  * @param username usuário (opcional quando já vem na URL)

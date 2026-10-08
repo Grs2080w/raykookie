@@ -1,6 +1,7 @@
 # Perfil dos testes do app: a dona de teste é criada por uma migration só de teste (db/testdata).
 rayka:
   shop-owner: dona-teste
+  download-secret: segredo-de-download-dos-testes-0123456789
 spring:
   flyway:
     locations: classpath:db/migration/production,classpath:db/migration/platform,classpath:db/testdata
