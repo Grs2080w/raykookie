@@ -23,3 +23,8 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+
+rayka:
+  web:
+    # Proxies cujo X-Forwarded-For é aceito (G05). Ver docs/ip-do-cliente.md.
+    trusted-proxies: ${TRUSTED_PROXIES:127.0.0.1/32,::1/128}

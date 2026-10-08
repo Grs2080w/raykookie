@@ -16,13 +16,15 @@ import org.springframework.validation.annotation.Validated;
  * @param defaultMaxBodyBytes limite das rotas sem regra própria (JSON comum), em bytes
  * @param defaultMessage      mensagem do 413 nas rotas sem mensagem própria
  * @param bodyLimits          limites por rota; vazio = os limites padrão de {@link #defaultBodyLimits()}
+ * @param trustedProxies      faixas CIDR dos proxies confiáveis, separadas por vírgula ({@code TRUSTED_PROXIES})
  */
 @Validated
 @ConfigurationProperties("rayka.web")
 public record WebProperties(
         @DefaultValue("1048576") @Positive long defaultMaxBodyBytes,
         @DefaultValue(DEFAULT_MESSAGE) @NotBlank String defaultMessage,
-        @Valid List<BodyLimit> bodyLimits) {
+        @Valid List<BodyLimit> bodyLimits,
+        @DefaultValue("127.0.0.1/32,::1/128") String trustedProxies) {
 
     /** Mensagem padrão do 413. */
     public static final String DEFAULT_MESSAGE = "O envio é grande demais.";
@@ -39,6 +41,7 @@ public record WebProperties(
      * @param defaultMaxBodyBytes limite das rotas sem regra própria
      * @param defaultMessage      mensagem padrão do 413
      * @param bodyLimits          limites por rota (pode vir nulo)
+     * @param trustedProxies      faixas dos proxies confiáveis
      */
     public WebProperties {
         if (bodyLimits == null || bodyLimits.isEmpty()) {
