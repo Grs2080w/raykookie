@@ -337,9 +337,9 @@ services:
 - [ ] **Step 6: Atualizar `infra/check.sh`** para `( cd backend && npm run test:e2e )` e as linhas do README/ARQUITETURA. Rodar `bash infra/check.sh --fast`.
 - [ ] **Step 7: Commit** `test(backend): move testes do servidor para backend/tests/e2e e adiciona banco de teste local`.
 
-### Task 0.2 (recomendada, precisa de aprovação explícita do dono): Hotfixes mínimos no Node para os riscos de dinheiro
+### Task 0.2 — NÃO EXECUTAR (decisão do dono em 2026-10-07): Hotfixes mínimos no Node
 
-A reconstrução leva semanas; G01–G05 estão em produção hoje. Esta tarefa só é executada se o dono aprovar. Cada item tem teste que falha antes da correção.
+**Decisão:** o dono optou por não corrigir o Node. A reconstrução em Java deve levar cerca de 2 dias, e ele aceita manter as falhas de G01–G05 em produção durante esse período. Pular esta tarefa. O conteúdo abaixo fica só como referência, caso o corte atrase.
 
 - [ ] G01: `app/api/auth/register/route.ts` responde 404 quando `process.env.REGISTRATION_ENABLED !== 'true'`; `app/api/downloads/route.ts` e `app/api/downloads/[app]/route.ts` só tratam como dona quem tem `user.username === (process.env.SHOP_OWNER || 'rayka')`.
 - [ ] G02/G03: em `lib/card-pay.ts`, quando o `UPDATE` afeta 0 linhas com `status === 'approved'`, consultar o pedido: se já pago com outro id ou cancelado, chamar `createRefund(pay.paymentId, null, 'rayka-dup-' + pay.paymentId)` e registrar evento `pagamento_duplicado_devolvido`.
@@ -351,7 +351,35 @@ A reconstrução leva semanas; G01–G05 estão em produção hoje. Esta tarefa 
 
 O Pix funciona em produção; o cartão não funciona nem em produção nem nos testes. Esta tarefa descobre **por quê**, com o sandbox de verdade, antes de escrever o adaptador Java. O resultado é um relatório (`docs/mercadopago-cartao-diagnostico.md`) e uma suíte ao vivo verde — é a base das gravações da Tarefa 5.2.
 
-**Ação do dono (bloqueia esta tarefa):** no painel do Mercado Pago, em Suas integrações → aplicação da Raykookie → **Testes**: (1) ativar e copiar as **credenciais de teste** (Public Key + Access Token de teste); (2) em **Contas de teste**, criar uma conta **vendedor** e uma conta **comprador** (contas diferentes) e anotar o e-mail do comprador. Guardar em `~/.raykookie/mp-sandbox.env` (fora do repositório, `chmod 600`) como `MP_SANDBOX_PUBLIC_KEY`, `MP_SANDBOX_ACCESS_TOKEN`, `MP_SANDBOX_BUYER_EMAIL`.
+**Ação do dono (bloqueia esta tarefa; ele vai fazer em casa):** pegar no painel do Mercado Pago (Suas integrações → aplicação da Raykookie → Testes / Contas de teste) e gravar em **`~/.raykookie/mercadopago.env`** (fora do repositório, `chmod 600`), exatamente com estes nomes:
+
+```
+# Conta real da loja (produção)
+MP_PROD_PUBLIC_KEY=
+MP_PROD_ACCESS_TOKEN=
+MP_PROD_CLIENT_ID=
+MP_PROD_CLIENT_SECRET=
+MP_PROD_WEBHOOK_SECRET=
+# Credenciais de teste da aplicação (Testes → Credenciais de teste)
+MP_SANDBOX_PUBLIC_KEY=
+MP_SANDBOX_ACCESS_TOKEN=
+# Usuário de teste VENDEDOR: as credenciais de produção dele + dados da conta
+MP_TEST_SELLER_PUBLIC_KEY=
+MP_TEST_SELLER_ACCESS_TOKEN=
+MP_TEST_SELLER_USER_ID=
+MP_TEST_SELLER_USERNAME=
+MP_TEST_SELLER_PASSWORD=
+# Usuário de teste COMPRADOR
+MP_SANDBOX_BUYER_EMAIL=
+MP_TEST_BUYER_USERNAME=
+MP_TEST_BUYER_PASSWORD=
+```
+
+Antes de começar a tarefa, o executor confere (sem exibir valores) que o arquivo existe, tem permissão 600 e que todas as chaves acima estão preenchidas; se faltar alguma, para e pede ao dono. **Nunca** copia valores para dentro do repositório, de logs ou de mensagens.
+
+Credenciais encontradas em 2026-10-07 de sessões anteriores (para o dono confirmar, não para usar direto): `backend/.env` tem só produção sem Public Key; `~/.claude/jobs/4ba64159/tmp/prod_env_new.txt` tem a `MP_PUBLIC_KEY` de produção que nunca foi aplicada; `~/.claude/jobs/4ba64159/tmp/mp_probe3.py` tem as credenciais de produção do usuário de teste. Esses temporários têm permissão `-rw-rw-r--` e devem ser apagados depois que o `mercadopago.env` existir (com aprovação do dono).
+
+**Qual par de credenciais a suíte ao vivo usa:** testar os dois caminhos que a documentação admite e registrar no relatório qual funciona para cartão: (a) `MP_SANDBOX_*` (credenciais de teste da aplicação); (b) `MP_TEST_SELLER_*` (credenciais de produção do usuário de teste vendedor), sempre com o comprador `MP_SANDBOX_BUYER_EMAIL`. Nas tarefas seguintes (3.1, 5.2-B, CI), `MP_SANDBOX_PUBLIC_KEY`/`MP_SANDBOX_ACCESS_TOKEN` passam a apontar para o par que funcionou.
 
 Hipóteses, cada uma com a verificação que a confirma ou descarta (registrar o resultado de cada uma no relatório):
 
@@ -365,7 +393,7 @@ Hipóteses, cada uma com a verificação que a confirma ou descarta (registrar o
 | H6 | Tokenização no app/site usa uma chave diferente da do token de acesso do servidor (teste × produção misturados) | a confirmar | Token criado com a chave pública X só é aceito por pagamento com o access token do mesmo ambiente — testar a combinação errada e registrar o erro |
 
 - [ ] **Step 1: Suíte ao vivo honesta (T13).** Reescrever `backend/tests/card-pay.sandbox.test.ts` sem o `try/catch` que aceita `Unauthorized use of live credentials`: antes de tudo, `GET https://api.mercadopago.com/users/me` com o token; se a conta não for de teste (a resposta de contas de teste traz `test_user` em `tags` — confirmar esse campo na primeira execução e registrar no relatório o JSON real, com dados pessoais mascarados), **falhar** com a mensagem `"MP_SANDBOX_ACCESS_TOKEN não é credencial de teste — gere em Suas integrações → Testes → Credenciais de teste"`. Usar os cartões e nomes da tabela de "Fidelidade dos sistemas externos", o e-mail `MP_SANDBOX_BUYER_EMAIL` e enviar `issuer_id`.
-- [ ] **Step 2: Rodar** `set -a; . ~/.raykookie/mp-sandbox.env; set +a; cd backend && npx vitest run tests/card-pay.sandbox.test.ts` com `RUN_MP_SANDBOX=1`. Registrar no relatório o resultado de cada nome mágico e de H3–H6.
+- [ ] **Step 2: Rodar** `set -a; . ~/.raykookie/mercadopago.env; set +a; cd backend && npx vitest run tests/card-pay.sandbox.test.ts` com `RUN_MP_SANDBOX=1`. Registrar no relatório o resultado de cada nome mágico e de H3–H6.
 - [ ] **Step 3: Corrigir o Node só no que o diagnóstico provar** (com aprovação do dono, como na 0.2): enviar `issuer_id` se H3 se confirmar; configurar `MP_PUBLIC_KEY` de produção no `.env` (H1) — e só depois de um pagamento real de valor baixo feito pelo dono, devolvido em seguida pelo painel.
 - [ ] **Step 4: Commit** `test(mercadopago): diagnóstico do cartão com sandbox real` (relatório + teste).
 
@@ -843,7 +871,7 @@ class SessionTokensTest {
 
 ### Task 3.1: Gravações reais do sandbox do Mercado Pago (base do fake usado no CI)
 
-**Depende de:** Tarefa 0.3 (credenciais de teste do dono em `~/.raykookie/mp-sandbox.env`).
+**Depende de:** Tarefa 0.3 (credenciais do dono em `~/.raykookie/mercadopago.env`).
 
 **Files:**
 - Create: `backend-java/contract-tests/src/test/java/.../contract/mp/MercadoPagoRecorder.java`
