@@ -3,5 +3,5 @@ import { defineConfig } from 'vitest/config';
 // credenciais de usuário de teste) — roda só sob pedido: RUN_MP_SANDBOX=1 npx vitest run tests/<nome>.sandbox.test.ts
 export default defineConfig({
   resolve: { alias: { '@': __dirname, '@shared': `${__dirname}/shared` } },
-  test: { include: ['tests/**/*.test.ts'], exclude: process.env.RUN_MP_SANDBOX ? [] : ['**/*.sandbox.test.ts'] },
+  test: { include: ['tests/**/*.test.ts'], exclude: ['tests/e2e/**', ...(process.env.RUN_MP_SANDBOX ? [] : ['**/*.sandbox.test.ts'])] },
 });

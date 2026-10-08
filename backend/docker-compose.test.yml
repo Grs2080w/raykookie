@@ -1,0 +1,12 @@
+services:
+  postgres-test:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: rayka_test
+      POSTGRES_PASSWORD: rayka_test
+      POSTGRES_DB: rayka_test
+    ports: ["127.0.0.1:54330:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "rayka_test"]
+      interval: 2s
+      retries: 20

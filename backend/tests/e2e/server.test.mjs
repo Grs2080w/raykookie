@@ -1,6 +1,6 @@
 // Testes de fumaça do backend/server.mjs: sobe o processo de verdade (com os builds de backend/ e frontend/)
 // e confere roteamento, saúde, manifesto de downloads e desligamento.
-//   node --test tests/server/server.test.mjs
+//   cd backend && npm run test:e2e   (modo API + site: defina FRONTEND_DIR_UNDER_TEST=<pasta do frontend com build>)
 // Nunca conecta no banco de produção: DATABASE_URL aponta para uma porta fechada, e o ambiente do processo
 // é montado do zero (não herda o seu). Opcional, só leitura: SERVER_URL=https://raykookie-api.kntap.com.br
 // roda também as checagens contra um servidor já no ar.
@@ -13,13 +13,15 @@ import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const backendDir = path.resolve(process.env.BACKEND_DIR || path.join(repo, 'backend'));
-const frontendDir = path.resolve(process.env.FRONTEND_DIR_UNDER_TEST || path.join(repo, 'frontend'));
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const backendDir = path.resolve(process.env.BACKEND_DIR || backendRoot);
+const frontendDir = process.env.FRONTEND_DIR_UNDER_TEST ? path.resolve(process.env.FRONTEND_DIR_UNDER_TEST) : null;
 const hasBackendBuild = fs.existsSync(path.join(backendDir, '.next', 'BUILD_ID'));
-const hasFrontendBuild = fs.existsSync(path.join(frontendDir, '.next', 'BUILD_ID'));
+const hasFrontendBuild = !!frontendDir && fs.existsSync(path.join(frontendDir, '.next', 'BUILD_ID'));
 const NO_BACKEND = 'sem build do backend (rode npm run build em backend/)';
-const NO_FRONTEND = 'sem build do frontend (rode npm run build em frontend/)';
+const NO_FRONTEND = frontendDir
+  ? 'sem build do frontend (rode npm run build em frontend/)'
+  : 'defina FRONTEND_DIR_UNDER_TEST para testar o modo API + site';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rayka-server-'));
 

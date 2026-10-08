@@ -11,7 +11,7 @@ Produção (dois deploys independentes):
 
 `backend/server.mjs` também sabe servir o build do `frontend/` no mesmo processo (`/api/*` → API, o resto → site)
 quando `FRONTEND_DIR` aponta para um frontend buildado; sem essa variável (como na imagem Docker) responde só a API.
-Esse modo de processo único é o que `tests/server/` exercita.
+Esse modo de processo único é o que `backend/tests/e2e/` exercita.
 
 ## Pastas
 
@@ -26,7 +26,7 @@ Esse modo de processo único é o que `tests/server/` exercita.
 | `mobile-common/` | Pacote Dart com o que os dois apps dividem (cliente da API, sessão, modelos, preço, validação de pedido, tema e widgets). |
 | `downloads/` | APKs publicados e `manifest.json` (versão/build/tamanho/SHA-256 de cada app). |
 | `infra/` | Scripts de build/instalação/verificação e `infra/ci/` (pipeline). |
-| `tests/server/` | Testes de fumaça do `backend/server.mjs` (sobe o servidor de verdade e confere roteamento, saúde e desligamento). |
+| `backend/tests/e2e/` | Testes de fumaça do `backend/server.mjs` (sobe o servidor de verdade e confere roteamento, saúde e desligamento). |
 | `docs/` | Esta documentação. |
 | `raykookie-arts/` | Logos e referências visuais (fonte de design, não usada pelo build; `referencias-designs/` fica fora do git). |
 | `legacy/` | O app único de antes da divisão backend/frontend. Não roda nem é testado; veja `legacy/README.md`. |

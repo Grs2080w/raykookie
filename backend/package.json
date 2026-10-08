@@ -8,6 +8,8 @@
     "start": "node server.mjs",
     "migrate": "node scripts/migrate.mjs",
     "test": "vitest run",
+    "test:e2e": "node --test tests/e2e/server.test.mjs",
+    "test:db": "docker compose -f docker-compose.test.yml up -d --wait",
     "typecheck": "tsc --noEmit",
     "start:api": "next start -p 10006 -H 127.0.0.1"
   },

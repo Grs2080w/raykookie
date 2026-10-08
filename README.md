@@ -3,7 +3,7 @@
 Confeitaria: loja online para clientes e painel da confeiteira (estoque, receitas com preço automático, pedidos, metas e custos).
 
 ```
-backend/    API (Next.js), banco e regras — autocontida: não usa nada de fora da própria pasta; em produção, container Docker
+backend/    API (Next.js), banco e regras — autocontida: não usa nada de fora da própria pasta; em produção, container Docker. Testes de fumaça do server.mjs em backend/tests/e2e/ (npm run test:e2e); banco de teste local: npm run test:db.
 frontend/   site, loja e painel (Next.js) — em produção vai pra Vercel
 shared/     regras e tipos em TypeScript puro usados pelo frontend (o backend tem a própria cópia em backend/shared/)
 mobile-client/   app Flutter do CLIENTE (cardápio e pedidos)
@@ -11,7 +11,6 @@ mobile-server/   app Flutter de GESTÃO (estoque, receitas, pedidos, metas, cust
 mobile-common/   pacote Dart compartilhado pelos dois apps (API, sessão, modelos, preço, widgets)
 downloads/       APKs publicados + manifest.json (versões) — o container da API lê daqui
 infra/      scripts de build/verificação locais + infra/ci/ (pipeline)
-tests/server/    testes de fumaça do backend/server.mjs (node --test tests/server/server.test.mjs, depois dos builds)
 docs/       ARQUITETURA.md e API.md
 raykookie-arts/  logos e referências visuais (não entram no build)
 legacy/     app único antigo, de antes da divisão backend/frontend — não roda (veja legacy/README.md)
