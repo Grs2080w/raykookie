@@ -78,7 +78,11 @@ async function pay(p: PayInput) {
       + 'APP_USR de um aplicativo em sandbox_mode/não certificado. Use as credenciais TEST- (Credenciais de teste) '
       + 'ou ative as credenciais de produção do aplicativo do vendedor de teste — ver docs/mercadopago-cartao-diagnostico.md');
   }
-  return { http: res.status, status: json.status as string | undefined, detail: json.status_detail as string | undefined, message: json.message as string | undefined };
+  return {
+    http: res.status, status: json.status as string | undefined, detail: json.status_detail as string | undefined,
+    message: json.message as string | undefined,
+    causeCodes: (Array.isArray(json.cause) ? json.cause : []).map((c: { code?: unknown }) => String(c.code)) as string[],
+  };
 }
 
 /** Tokeniza a Mastercard com o nome mágico e paga, enviando `issuer_id` (como manda a documentação). */
@@ -176,7 +180,11 @@ d('Mercado Pago — suíte ao vivo (API real, credenciais de conta de teste)', (
     { name: 'FORM', cpf: CPF_OUTRO, status: 'rejected', detail: 'cc_rejected_bad_filled_other' },
   ];
 
+  // Todas as asserções de pagamento abaixo seguem a documentação e NUNCA foram vistas ao vivo: em 2026-10-08
+  // todo POST /v1/payments voltou 401. Conciliar na primeira execução verde, antes da Tarefa 5.2 depender delas
+  // (lista em docs/mercadopago-cartao-diagnostico.md, "Asserções não validadas ao vivo").
   describe('pagamento com cada nome mágico (POST /v1/payments com issuer_id)', () => {
+    // não validado ao vivo (401 em 2026-10-08)
     it.each(MAGIC.map((m) => ({ ...m, expected: m.detail ?? m.status })))('$name → $expected', async (m) => {
       const r = await payMagic(m.name, m.cpf);
       expect(r.http).toBe(201);
@@ -185,48 +193,66 @@ d('Mercado Pago — suíte ao vivo (API real, credenciais de conta de teste)', (
     });
   });
 
+  // H3: um pagamento por teste, para um lado não esconder o outro. Se "com" passar e "sem" falhar, H3 está confirmada.
   describe('H3: issuer_id', () => {
-    it.each(CARDS)('$label APRO: aprovado com issuer_id; sem issuer_id o resultado é registrado', async (c) => {
-      const com = await tokenize(c, 'APRO');
-      const comIssuer = await pay({ token: com.body.id, paymentMethodId: c.paymentMethodId, issuerId: c.issuerId, email: BUYER_EMAIL, cpf: CPF_DOC, firstName: 'APRO' });
-      expect(comIssuer.status).toBe('approved');
+    // não validado ao vivo (401 em 2026-10-08)
+    it.each(CARDS)('$label APRO COM issuer_id → approved', async (c) => {
+      const t = await tokenize(c, 'APRO');
+      const r = await pay({ token: t.body.id, paymentMethodId: c.paymentMethodId, issuerId: c.issuerId, email: BUYER_EMAIL, cpf: CPF_DOC, firstName: 'APRO' });
+      expect(r.http).toBe(201);
+      expect(r.status).toBe('approved');
+      expect(r.detail).toBe('accredited');
+    });
 
-      const sem = await tokenize(c, 'APRO');
-      const semIssuer = await pay({ token: sem.body.id, paymentMethodId: c.paymentMethodId, email: BUYER_EMAIL, cpf: CPF_DOC, firstName: 'APRO' });
-      console.info(`[H3] ${c.label} sem issuer_id → http ${semIssuer.http} ${semIssuer.status ?? ''} ${semIssuer.detail ?? semIssuer.message ?? ''}`);
-      expect(semIssuer.http).toBeLessThan(500);
+    // não validado ao vivo (401 em 2026-10-08). A referência da API trata issuer_id como opcional,
+    // então o documentado é aprovar também sem ele.
+    it.each(CARDS)('$label APRO SEM issuer_id → approved (documentado: issuer_id opcional)', async (c) => {
+      const t = await tokenize(c, 'APRO');
+      const r = await pay({ token: t.body.id, paymentMethodId: c.paymentMethodId, email: BUYER_EMAIL, cpf: CPF_DOC, firstName: 'APRO' });
+      expect(r.http).toBe(201);
+      expect(r.status).toBe('approved');
+      expect(r.detail).toBe('accredited');
     });
   });
 
   describe('H4: e-mail do pagador', () => {
-    it('APRO com o e-mail do comprador de teste é aprovado', async () => {
+    // não validado ao vivo (401 em 2026-10-08)
+    it('APRO com o e-mail do comprador de teste → approved', async () => {
       const r = await payMagic('APRO', CPF_DOC);
+      expect(r.http).toBe(201);
       expect(r.status).toBe('approved');
+      expect(r.detail).toBe('accredited');
     });
 
-    it('APRO com o e-mail do próprio vendedor (pagador = recebedor) é recusado com erro 4xx', async () => {
+    // não validado ao vivo (401 em 2026-10-08). Documentado: pagador e recebedor não podem ser a mesma
+    // conta (400 "Invalid users involved"). O texto exato da mensagem precisa ser conferido na 1ª execução verde.
+    it('APRO com o e-mail do próprio vendedor (pagador = recebedor) → 400 "Invalid users involved"', async () => {
       const t = await tokenize(MASTER, 'APRO');
-      const r = await pay({ token: t.body.id, paymentMethodId: 'master', issuerId: MASTER.issuerId, email: sellerEmail, cpf: CPF_DOC, firstName: 'APRO' });
-      console.info(`[H4] e-mail do vendedor → http ${r.http} ${r.status ?? ''} ${r.detail ?? r.message ?? ''}`);
-      expect(r.http).toBeGreaterThanOrEqual(400);
-      expect(r.http).toBeLessThan(500);
+      const r = await pay({ token: t.body.id, paymentMethodId: MASTER.paymentMethodId, issuerId: MASTER.issuerId, email: sellerEmail, cpf: CPF_DOC, firstName: 'APRO' });
+      expect(r.http).toBe(400);
+      expect(r.message).toMatch(/invalid users involved/i);
     });
 
-    it('APRO com um e-mail qualquer de fora (o que o teste antigo usava) — resultado registrado', async () => {
+    // não validado ao vivo (401 em 2026-10-08). A documentação não restringe o e-mail do pagador no
+    // pagamento via API, então o documentado é aprovar.
+    it('APRO com um e-mail externo (o que o teste antigo usava) → approved', async () => {
       const t = await tokenize(MASTER, 'APRO');
-      const r = await pay({ token: t.body.id, paymentMethodId: 'master', issuerId: MASTER.issuerId, email: 'teste@raykookie.com.br', cpf: CPF_DOC, firstName: 'APRO' });
-      console.info(`[H4] e-mail externo → http ${r.http} ${r.status ?? ''} ${r.detail ?? r.message ?? ''}`);
-      expect(r.http).toBeLessThan(500);
+      const r = await pay({ token: t.body.id, paymentMethodId: MASTER.paymentMethodId, issuerId: MASTER.issuerId, email: 'teste@raykookie.com.br', cpf: CPF_DOC, firstName: 'APRO' });
+      expect(r.http).toBe(201);
+      expect(r.status).toBe('approved');
+      expect(r.detail).toBe('accredited');
     });
   });
 
   describe('H5: payment_method_id errado', () => {
-    it('Visa enviada como "master" não é aprovada', async () => {
+    // não validado ao vivo (401 em 2026-10-08). Documentado: bin do token diferente do payment_method_id
+    // → 400 "diff_param_bins". Conferir a mensagem/código na 1ª execução verde.
+    it('Visa enviada como "master" → 400 diff_param_bins', async () => {
       const visa = CARDS[1];
       const t = await tokenize(visa, 'APRO');
       const r = await pay({ token: t.body.id, paymentMethodId: 'master', issuerId: visa.issuerId, email: BUYER_EMAIL, cpf: CPF_DOC, firstName: 'APRO' });
-      console.info(`[H5] Visa como master → http ${r.http} ${r.status ?? ''} ${r.detail ?? r.message ?? ''}`);
-      expect(r.status).not.toBe('approved');
+      expect(r.http).toBe(400);
+      expect(r.message).toBe('diff_param_bins');
     });
   });
 
@@ -235,7 +261,8 @@ d('Mercado Pago — suíte ao vivo (API real, credenciais de conta de teste)', (
     beforeAll(() => { prevToken = process.env.MP_ACCESS_TOKEN; process.env.MP_ACCESS_TOKEN = TOK; });
     afterAll(() => { process.env.MP_ACCESS_TOKEN = prevToken; });
 
-    it('APRO Mastercard: aprovado (se falhar aqui e passar no teste "com issuer_id" acima, H3 está confirmada)', async () => {
+    // não validado ao vivo (401 em 2026-10-08)
+    it('APRO Mastercard → approved (se falhar aqui e passar "COM issuer_id", H3 está confirmada)', async () => {
       const { createCardPayment } = await import('@/lib/mercadopago');
       const t = await tokenize(MASTER, 'APRO');
       expect(t.status).toBe(201);
@@ -244,6 +271,7 @@ d('Mercado Pago — suíte ao vivo (API real, credenciais de conta de teste)', (
         cardToken: t.body.id, paymentMethodId: MASTER.paymentMethodId, installments: 1, attempt: Date.now(),
       });
       expect(r.status).toBe('approved');
+      expect(r.statusDetail).toBe('accredited');
     });
   });
 });

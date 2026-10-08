@@ -136,6 +136,28 @@ Tokenização (`POST /v1/card_tokens`) dos 4 cartões: 201, com `first_six_digit
 o pagamento volta 401 `Unauthorized use of live credentials` antes de o nome mágico ser avaliado. A suíte afirma o
 resultado documentado (tabela do plano) e vai validá-lo assim que o par de credenciais for trocado.
 
+## Asserções não validadas ao vivo
+
+Os testes abaixo afirmam o resultado **documentado**, mas esse resultado **nunca foi observado**: em 2026-10-08
+todos voltaram 401 antes de o Mercado Pago avaliar o pagamento. No código, cada um tem o comentário
+`não validado ao vivo (401 em 2026-10-08)`. **Na primeira execução verde (com credenciais que funcionem), conciliar
+cada linha com o que a API devolver**: ajustar o teste ao comportamento real e registrar a divergência aqui, se houver.
+Isso precisa acontecer **antes de a Tarefa 5.2 gravar respostas ou depender destes resultados**.
+
+| Teste | Asserção (documentada, não observada) | Fonte / confiança |
+|---|---|---|
+| Nomes mágicos ×8 (`APRO`, `OTHE`, `CONT`, `CALL`, `FUND`, `SECU`, `EXPI`, `FORM`) | HTTP 201 + `status`/`status_detail` da tabela "Nomes mágicos" do plano | Documentação "Realizar compra teste" |
+| H3 `COM issuer_id` ×4 (Mastercard, Visa, Amex, Elo) | 201, `approved`, `accredited` | Documentação de envio de pagamento |
+| H3 `SEM issuer_id` ×4 | 201, `approved`, `accredited` | A referência da API trata `issuer_id` como opcional. Se der recusa ou erro aqui e o "COM" aprovar, **H3 está confirmada** |
+| H4 e-mail do comprador de teste | 201, `approved`, `accredited` | Documentação de contas de teste |
+| H4 e-mail do **próprio vendedor** (pagador = recebedor) | HTTP **400** com mensagem `Invalid users involved` | Erro conhecido do Mercado Pago para pagador = recebedor. **Baixa confiança no texto exato**: conferir mensagem e `cause.code` |
+| H4 e-mail externo (`teste@raykookie.com.br`) | 201, `approved`, `accredited` | A documentação não restringe o e-mail do pagador via API. Confiança média |
+| H5 Visa enviada como `master` | HTTP **400** com `message: "diff_param_bins"` | Erro conhecido para bin do token diferente do `payment_method_id`. **Baixa confiança no texto exato** |
+| `createCardPayment` (Node, sem `issuer_id`) | `approved`, `accredited` | Igual a H3 `SEM issuer_id` |
+
+Cada teste cria **um** pagamento, para que o resultado de um lado da comparação (com × sem `issuer_id`) não esconda o
+outro. Nenhum deles aceita qualquer resposta abaixo de 500 como sucesso.
+
 ## H1 — `MP_PUBLIC_KEY` ausente em produção
 
 **Veredito: confirmada.**
@@ -165,8 +187,9 @@ resultado documentado (tabela do plano) e vai validá-lo assim que o par de cred
 
 - `createCardPayment` (`backend/lib/mercadopago.ts`) não envia `issuer_id`. `CardFields.tsx` e `card_fields.dart`
   também não guardam o `issuer.id` que `/installments` devolve, então o servidor não teria o valor para mandar.
-- A comparação com e sem `issuer_id` (4 cartões, `APRO`) foi escrita na suíte (`describe('H3: issuer_id')`) e
-  também no caso que chama o `createCardPayment` real. Hoje as duas pontas voltam 401 antes de avaliar o emissor.
+- A comparação com e sem `issuer_id` (4 cartões, `APRO`) está na suíte (`describe('H3: issuer_id')`), em testes
+  separados (um pagamento cada), e também no caso que chama o `createCardPayment` real. Hoje todos voltam 401 antes
+  de avaliar o emissor.
 - Emissores reais por bin, para quando der para medir: Mastercard 24, Visa 25, Amex 18, Elo 687.
 
 ## H4 — e-mail do pagador
@@ -254,7 +277,7 @@ Equivalente, sem `source`:
 `RUN_MP_SANDBOX=1 node --env-file=$HOME/.raykookie/mercadopago.env node_modules/vitest/vitest.mjs run tests/card-pay.sandbox.test.ts`
 (dentro de `backend/`).
 
-Resultado em 2026-10-08: **13 verdes, 17 vermelhos**. Verdes: conta de teste, bandeira/emissor dos 4 cartões,
-Mastercard antiga 404, `payment_methods?bin` sem filtro, tokenização dos 4, CVV inválido e `GET card_tokens`.
-Vermelhos: todos os testes que criam pagamento (8 nomes mágicos, 4 de H3, 3 de H4, 1 de H5, 1 do `createCardPayment`),
-sempre com o mesmo 401 `Unauthorized use of live credentials`.
+Resultado em 2026-10-08 (depois da revisão que separou os testes): **13 verdes, 21 vermelhos (34)**. Verdes: conta de teste, bandeira/emissor dos 4 cartões,
+Mastercard do plano 404, `payment_methods?bin` sem filtro, tokenização dos 4, CVV inválido e `GET card_tokens`.
+Vermelhos: todos os testes que criam pagamento (8 nomes mágicos, 8 de H3 com e sem `issuer_id`, 3 de H4, 1 de H5,
+1 do `createCardPayment`), sempre com o mesmo 401 `Unauthorized use of live credentials`.
