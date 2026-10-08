@@ -1,5 +1,8 @@
 server:
   port: ${PORT:10005}
+  tomcat:
+    # Corpo recusado (413) é descartado até 1 MB; acima disso a conexão é fechada (G08).
+    max-swallow-size: 1MB
 
 spring:
   # Banco: pool Hikari, Flyway nos dois modos (banco novo / perfil prod com baseline 21). URL em rayka.db.url.
@@ -8,6 +11,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Formulários com fotos (devolução, feedback): 2 MB por foto e 12 MB no total, os limites do Node (G08).
+  # Os limites por rota de corpos que não são multipart ficam em rayka.web (WebProperties).
+  servlet:
+    multipart:
+      max-file-size: 2000000B
+      max-request-size: 12MB
 
 management:
   endpoints:

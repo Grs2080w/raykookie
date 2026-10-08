@@ -1,0 +1,9 @@
+# Mesmos limites de multipart e de descarte do app (Tarefa 2.3).
+spring:
+  servlet:
+    multipart:
+      max-file-size: 2000000B
+      max-request-size: 12MB
+server:
+  tomcat:
+    max-swallow-size: 1MB
