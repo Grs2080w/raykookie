@@ -10,25 +10,25 @@ pendente GET    /api/categories                          OWNER
 pendente POST   /api/categories                          OWNER
 pendente PATCH  /api/categories/{id}                     OWNER
 pendente DELETE /api/categories/{id}                     OWNER
-pendente POST   /api/cliente/cadastro                    PUBLIC
+POST   /api/cliente/cadastro                    PUBLIC
 pendente GET    /api/cliente/config                      PUBLIC
 pendente POST   /api/cliente/devices                     CUSTOMER
 pendente DELETE /api/cliente/devices                     CUSTOMER
 pendente GET    /api/cliente/devolucoes/{rid}/fotos/{n}  CUSTOMER
 pendente POST   /api/cliente/feedback                    CUSTOMER
 pendente GET    /api/cliente/feedback/{id}/fotos/{n}     CUSTOMER
-pendente GET    /api/cliente/google                      PUBLIC
-pendente GET    /api/cliente/google/callback             PUBLIC
-pendente POST   /api/cliente/google/token                PUBLIC
-pendente POST   /api/cliente/login                       PUBLIC
-pendente POST   /api/cliente/logout                      PUBLIC
-pendente GET    /api/cliente/me                          CUSTOMER
-pendente PATCH  /api/cliente/me                          CUSTOMER
-pendente DELETE /api/cliente/me                          CUSTOMER
-pendente GET    /api/cliente/me/dados                    CUSTOMER
-pendente GET    /api/cliente/me/exportar                 CUSTOMER
-pendente DELETE /api/cliente/me/google                   CUSTOMER
-pendente POST   /api/cliente/me/privacidade              CUSTOMER
+GET    /api/cliente/google                      PUBLIC
+GET    /api/cliente/google/callback             PUBLIC
+POST   /api/cliente/google/token                PUBLIC
+POST   /api/cliente/login                       PUBLIC
+POST   /api/cliente/logout                      PUBLIC
+GET    /api/cliente/me                          CUSTOMER
+PATCH  /api/cliente/me                          CUSTOMER
+DELETE /api/cliente/me                          CUSTOMER
+GET    /api/cliente/me/dados                    CUSTOMER
+GET    /api/cliente/me/exportar                 CUSTOMER
+DELETE /api/cliente/me/google                   CUSTOMER
+POST   /api/cliente/me/privacidade              CUSTOMER
 pendente GET    /api/cliente/pedidos                     CUSTOMER
 pendente POST   /api/cliente/pedidos                     CUSTOMER
 pendente POST   /api/cliente/pedidos/{id}/cancelar       CUSTOMER
@@ -94,8 +94,8 @@ pendente POST   /api/price-alerts/{id}/apply             OWNER
 pendente POST   /api/prices/link                         OWNER
 pendente POST   /api/prices/quote                        OWNER
 pendente POST   /api/prices/search                       OWNER
-pendente GET    /api/privacy-requests                    OWNER
-pendente POST   /api/privacy-requests/{id}               OWNER
+GET    /api/privacy-requests                    OWNER
+POST   /api/privacy-requests/{id}               OWNER
 pendente GET    /api/recipes                             OWNER
 pendente POST   /api/recipes                             OWNER
 pendente GET    /api/recipes/{id}                        OWNER

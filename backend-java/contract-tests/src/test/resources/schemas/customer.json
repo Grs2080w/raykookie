@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/cliente/me",
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer" }, "email": { "type": "string" }, "name": { "type": "string" },
+    "phone": { "type": "string" }, "cep": { "type": "string" }, "street": { "type": "string" },
+    "number": { "type": "string" }, "complement": { "type": "string" }, "district": { "type": "string" },
+    "city": { "type": "string" }
+  },
+  "required": ["id", "email", "name", "phone", "cep", "street", "number", "complement", "district", "city"],
+  "additionalProperties": false
+}

@@ -3,6 +3,7 @@ package br.com.kntap.raykookie.security;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,16 +16,16 @@ public class ActorResolver {
     /** Sessões da dona. */
     private final OwnerSessions owners;
 
-    /** Sessões de cliente. */
-    private final CustomerSessions customers;
+    /** Sessões de cliente (o módulo {@code customers}); sem ele, nenhuma sessão de cliente vale. */
+    private final ObjectProvider<CustomerSessions> customers;
 
     /**
      * Cria o resolvedor.
      *
      * @param owners    sessões da dona
-     * @param customers sessões de cliente
+     * @param customers sessões de cliente, se o módulo existir
      */
-    public ActorResolver(OwnerSessions owners, CustomerSessions customers) {
+    public ActorResolver(OwnerSessions owners, ObjectProvider<CustomerSessions> customers) {
         this.owners = owners;
         this.customers = customers;
     }
@@ -46,6 +47,7 @@ public class ActorResolver {
      * @return o id do cliente, se houver
      */
     public Optional<CustomerId> customer(String tokenHash) {
-        return customers.customer(tokenHash);
+        CustomerSessions sessions = customers.getIfAvailable();
+        return sessions == null ? Optional.empty() : sessions.customer(tokenHash);
     }
 }

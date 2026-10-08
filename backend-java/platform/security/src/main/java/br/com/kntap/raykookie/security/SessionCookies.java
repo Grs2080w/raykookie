@@ -49,6 +49,19 @@ public class SessionCookies {
     }
 
     /**
+     * Cookie com caminho e validade próprios (ex.: {@code rk_oauth}, do login com Google pelo site).
+     *
+     * @param name   nome
+     * @param value  valor (já codificado)
+     * @param path   caminho em que o navegador manda o cookie
+     * @param maxAge validade
+     * @return o cookie
+     */
+    public ResponseCookie scoped(String name, String value, String path, Duration maxAge) {
+        return base(name, value).path(path).maxAge(maxAge).build();
+    }
+
+    /**
      * Atributos comuns.
      *
      * @param name  nome

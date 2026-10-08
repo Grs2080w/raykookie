@@ -66,8 +66,8 @@ public class AccessInterceptor implements HandlerInterceptor {
 
         // ── 3. Aplica o nível declarado.
         switch (access.value()) {
-            case OWNER -> request.setAttribute(CurrentActor.OWNER, requireShopOwner(request));
-            case CUSTOMER -> request.setAttribute(CurrentActor.CUSTOMER, requireCustomer(request));
+            case OWNER -> request.setAttribute(CurrentActor.OWNER, requireShopOwner(request, access));
+            case CUSTOMER -> request.setAttribute(CurrentActor.CUSTOMER, requireCustomer(request, access));
             case OWNER_OR_PUBLIC -> shopOwnerIfAny(request)
                     .ifPresent(id -> request.setAttribute(CurrentActor.OWNER, id));
             case PUBLIC, PAY_LINK_TOKEN, SIGNED_WEBHOOK -> {
@@ -81,12 +81,24 @@ public class AccessInterceptor implements HandlerInterceptor {
      * Exige sessão da dona da loja: sessão de outra conta é tratada como sem sessão (G01, G24).
      *
      * @param request requisição
+     * @param access  a declaração da rota (mensagem do 401)
      * @return o id da dona
      * @throws UnauthorizedException se não houver sessão válida da dona
      */
-    private OwnerId requireShopOwner(HttpServletRequest request) {
+    private OwnerId requireShopOwner(HttpServletRequest request, Access access) {
         return shopOwnerIfAny(request)
-                .orElseThrow(() -> new UnauthorizedException(UnauthorizedException.OWNER_MESSAGE));
+                .orElseThrow(() -> new UnauthorizedException(message(access, UnauthorizedException.OWNER_MESSAGE)));
+    }
+
+    /**
+     * Mensagem do 401 da rota.
+     *
+     * @param access   a declaração da rota
+     * @param fallback mensagem padrão do nível
+     * @return a mensagem própria da rota, ou a padrão
+     */
+    private static String message(Access access, String fallback) {
+        return access.unauthorizedMessage().isEmpty() ? fallback : access.unauthorizedMessage();
     }
 
     /**
@@ -106,13 +118,14 @@ public class AccessInterceptor implements HandlerInterceptor {
      * Exige sessão de cliente.
      *
      * @param request requisição
+     * @param access  a declaração da rota (mensagem do 401)
      * @return o id do cliente
      * @throws UnauthorizedException se não houver sessão válida de cliente
      */
-    private CustomerId requireCustomer(HttpServletRequest request) {
+    private CustomerId requireCustomer(HttpServletRequest request, Access access) {
         return SessionTokens.fromRequest(request, SessionTokens.CUSTOMER_COOKIE)
                 .map(SessionTokens::hash)
                 .flatMap(actors::customer)
-                .orElseThrow(() -> new UnauthorizedException(UnauthorizedException.CUSTOMER_MESSAGE));
+                .orElseThrow(() -> new UnauthorizedException(message(access, UnauthorizedException.CUSTOMER_MESSAGE)));
     }
 }

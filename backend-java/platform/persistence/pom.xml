@@ -42,6 +42,11 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
+        <!-- Colunas JSON/JSONB lidas como árvore JSON (NodeRows). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jackson</artifactId>
+        </dependency>
         <!-- @Validated nas propriedades do banco. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

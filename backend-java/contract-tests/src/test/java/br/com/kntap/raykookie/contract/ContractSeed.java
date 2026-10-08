@@ -91,6 +91,75 @@ public final class ContractSeed {
     }
 
     /**
+     * Um cliente que só entra pelo Google (sem senha), com sessão aberta.
+     *
+     * @param email e-mail
+     * @return id e token da sessão
+     */
+    public Session googleCustomer(String email) {
+        try (Connection db = connect()) {
+            long id = upsertId(db, "INSERT INTO customers (email, name, google_sub) VALUES (?, ?, ?) RETURNING id",
+                    email, "Cliente Google", "google-" + newToken());
+            String token = newToken();
+            update(db, "INSERT INTO customer_sessions (token_hash, customer_id, expires_at) "
+                    + "VALUES (?, ?, now() + interval '30 days')", sha256(token), id);
+            return new Session(id, token);
+        } catch (SQLException error) {
+            throw new IllegalStateException("Não consegui criar o cliente " + email, error);
+        }
+    }
+
+    /**
+     * Executa um SQL qualquer no banco sob teste (para preparar casos raros).
+     *
+     * @param sql    comando
+     * @param params parâmetros
+     */
+    public void exec(String sql, Object... params) {
+        try (Connection db = connect()) {
+            update(db, sql, params);
+        } catch (SQLException error) {
+            throw new IllegalStateException("Falhou: " + sql, error);
+        }
+    }
+
+    /**
+     * Lê um valor (primeira coluna da primeira linha).
+     *
+     * @param sql    consulta
+     * @param params parâmetros
+     * @return o valor, ou nulo
+     */
+    public Object value(String sql, Object... params) {
+        try (Connection db = connect(); PreparedStatement statement = prepare(db, sql, params);
+                ResultSet row = statement.executeQuery()) {
+            return row.next() ? row.getObject(1) : null;
+        } catch (SQLException error) {
+            throw new IllegalStateException("Falhou: " + sql, error);
+        }
+    }
+
+    /**
+     * Um e-mail que nenhum outro teste usa.
+     *
+     * @param prefix começo do e-mail
+     * @return o e-mail
+     */
+    public static String uniqueEmail(String prefix) {
+        return prefix + "-" + newToken().substring(0, 10).toLowerCase().replaceAll("[^a-z0-9]", "x") + "@teste.com";
+    }
+
+    /**
+     * Um {@code X-Forwarded-For} que nenhum outro teste usa, para os limites por IP não se misturarem: no Node
+     * a chave é o cabeçalho inteiro; no Java, o IP mais à direita (o que o proxy confiável acrescentou).
+     *
+     * @return o valor do cabeçalho
+     */
+    public static String uniqueForwardedFor() {
+        return "198.51.100." + (1 + RANDOM.nextInt(250)) + ", 203.0." + RANDOM.nextInt(250) + "." + RANDOM.nextInt(250);
+    }
+
+    /**
      * Id de um cliente já cadastrado com este e-mail.
      *
      * @param db    conexão

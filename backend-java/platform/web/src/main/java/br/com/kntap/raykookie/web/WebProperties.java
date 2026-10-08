@@ -23,7 +23,7 @@ import org.springframework.validation.annotation.Validated;
 public record WebProperties(
         @DefaultValue("1048576") @Positive long defaultMaxBodyBytes,
         @DefaultValue(DEFAULT_MESSAGE) @NotBlank String defaultMessage,
-        @Valid List<BodyLimit> bodyLimits,
+        List<@Valid BodyLimit> bodyLimits,
         @DefaultValue("127.0.0.1/32,::1/128") String trustedProxies) {
 
     /** Mensagem padrão do 413. */

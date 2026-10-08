@@ -22,4 +22,11 @@ public @interface Access {
      * @return o nível
      */
     AccessLevel value();
+
+    /**
+     * Mensagem do 401 quando falta a sessão; vazio = a mensagem padrão do nível (a do Node).
+     *
+     * @return a mensagem
+     */
+    String unauthorizedMessage() default "";
 }

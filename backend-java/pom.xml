@@ -22,6 +22,7 @@
         <module>platform/observability</module>
         <module>platform/scheduling</module>
         <module>modules/identity</module>
+        <module>modules/customers</module>
         <module>app</module>
         <module>contract-tests</module>
     </modules>
@@ -54,6 +55,7 @@
         <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
         <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
         <bouncycastle.version>1.86</bouncycastle.version>
+        <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
         <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
 
         <!-- Cobertura mínima de linhas do sistema inteiro (agregado de todos os módulos). -->
@@ -82,6 +84,11 @@
                 <groupId>io.rest-assured</groupId>
                 <artifactId>rest-assured</artifactId>
                 <version>${rest-assured.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus-jose-jwt.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -152,6 +159,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-identity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-customers</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
