@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST/PUT /api/recipes (linha de recipes)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "user_id": {
+      "type": "integer"
+    },
+    "category_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "yield_units": {
+      "type": "number"
+    },
+    "margin_pct": {
+      "type": "number"
+    },
+    "prep_hours": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "unit_weight_g": {
+      "type": "number"
+    },
+    "sale_price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "show_on_menu": {
+      "type": "boolean"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "category_id",
+    "name",
+    "yield_units",
+    "margin_pct",
+    "prep_hours",
+    "notes",
+    "created_at",
+    "unit_weight_g",
+    "sale_price",
+    "show_on_menu",
+    "tags"
+  ],
+  "additionalProperties": false
+}

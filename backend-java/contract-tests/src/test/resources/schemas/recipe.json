@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/recipes/{id}",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "category_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "yield_units": {
+      "type": "number"
+    },
+    "margin_pct": {
+      "type": "number"
+    },
+    "prep_hours": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "unit_weight_g": {
+      "type": "number"
+    },
+    "sale_price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "show_on_menu": {
+      "type": "boolean"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "photo_v": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ingredient_id": {
+            "type": "integer"
+          },
+          "qty": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ingredient_id",
+          "qty"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "category_id",
+    "yield_units",
+    "margin_pct",
+    "prep_hours",
+    "notes",
+    "unit_weight_g",
+    "sale_price",
+    "show_on_menu",
+    "tags",
+    "photo_v",
+    "items"
+  ],
+  "additionalProperties": false
+}

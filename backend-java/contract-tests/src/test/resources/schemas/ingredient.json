@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ingrediente (linha de ingredients)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "user_id": {
+      "type": "integer"
+    },
+    "category_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "unit": {
+      "enum": [
+        "g",
+        "ml",
+        "un"
+      ]
+    },
+    "stock_qty": {
+      "type": "number"
+    },
+    "package_size": {
+      "type": "number"
+    },
+    "package_cost": {
+      "type": "number"
+    },
+    "min_stock": {
+      "type": "number"
+    },
+    "supplier": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "price_updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "category_id",
+    "name",
+    "unit",
+    "stock_qty",
+    "package_size",
+    "package_cost",
+    "min_stock",
+    "supplier",
+    "notes",
+    "created_at",
+    "price_updated_at"
+  ],
+  "additionalProperties": false
+}

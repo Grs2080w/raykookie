@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/recipes/cardapio",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "string"
+      },
+      "show_on_menu": {
+        "type": "boolean"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "has_photo": {
+        "type": "boolean"
+      },
+      "priced": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "show_on_menu",
+      "tags",
+      "has_photo",
+      "priced"
+    ],
+    "additionalProperties": false
+  }
+}

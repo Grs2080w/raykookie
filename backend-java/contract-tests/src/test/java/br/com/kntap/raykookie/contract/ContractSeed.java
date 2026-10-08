@@ -124,6 +124,21 @@ public final class ContractSeed {
     }
 
     /**
+     * Executa um {@code INSERT … RETURNING id} qualquer no banco sob teste.
+     *
+     * @param sql    comando
+     * @param params parâmetros
+     * @return o id criado
+     */
+    public long insert(String sql, Object... params) {
+        try (Connection db = connect()) {
+            return upsertId(db, sql, params);
+        } catch (SQLException error) {
+            throw new IllegalStateException("Falhou: " + sql, error);
+        }
+    }
+
+    /**
      * Lê um valor (primeira coluna da primeira linha).
      *
      * @param sql    consulta

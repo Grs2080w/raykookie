@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/categories",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "kind": {
+        "enum": [
+          "ingredient",
+          "recipe",
+          "expense"
+        ]
+      },
+      "name": {
+        "type": "string"
+      },
+      "icon": {
+        "type": "string"
+      },
+      "color": {
+        "type": "string"
+      },
+      "uses": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "id",
+      "kind",
+      "name",
+      "icon",
+      "color",
+      "uses"
+    ],
+    "additionalProperties": false
+  }
+}

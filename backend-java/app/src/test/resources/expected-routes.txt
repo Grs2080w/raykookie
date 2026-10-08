@@ -6,10 +6,10 @@
 POST   /api/auth/login                          PUBLIC
 POST   /api/auth/logout                         PUBLIC
 POST   /api/auth/register                       PUBLIC
-pendente GET    /api/categories                          OWNER
-pendente POST   /api/categories                          OWNER
-pendente PATCH  /api/categories/{id}                     OWNER
-pendente DELETE /api/categories/{id}                     OWNER
+GET    /api/categories                          OWNER
+POST   /api/categories                          OWNER
+PATCH  /api/categories/{id}                     OWNER
+DELETE /api/categories/{id}                     OWNER
 POST   /api/cliente/cadastro                    PUBLIC
 pendente GET    /api/cliente/config                      PUBLIC
 POST   /api/cliente/devices                     CUSTOMER
@@ -49,18 +49,18 @@ pendente GET    /api/downloads/{app}                     OWNER_OR_PUBLIC
 pendente POST   /api/downloads/{app}/link                OWNER
 pendente GET    /api/feedback                            OWNER
 pendente GET    /api/feedback/{id}/fotos/{n}             OWNER
-pendente GET    /api/fixed-costs                         OWNER
-pendente POST   /api/fixed-costs                         OWNER
-pendente PATCH  /api/fixed-costs/{id}                    OWNER
-pendente DELETE /api/fixed-costs/{id}                    OWNER
-pendente GET    /api/fotos/{id}                          OWNER_OR_PUBLIC
+GET    /api/fixed-costs                         OWNER
+POST   /api/fixed-costs                         OWNER
+PATCH  /api/fixed-costs/{id}                    OWNER
+DELETE /api/fixed-costs/{id}                    OWNER
+GET    /api/fotos/{id}                          OWNER_OR_PUBLIC
 pendente GET    /api/goals                               OWNER
 pendente PUT    /api/goals                               OWNER
 GET    /api/health                              PUBLIC
-pendente GET    /api/ingredients                         OWNER
-pendente POST   /api/ingredients                         OWNER
-pendente PATCH  /api/ingredients/{id}                    OWNER
-pendente DELETE /api/ingredients/{id}                    OWNER
+GET    /api/ingredients                         OWNER
+POST   /api/ingredients                         OWNER
+PATCH  /api/ingredients/{id}                    OWNER
+DELETE /api/ingredients/{id}                    OWNER
 pendente GET    /api/ingredients/{id}/prices             OWNER
 pendente POST   /api/ingredients/{id}/use-price          OWNER
 POST   /api/jobs/tick                           PUBLIC
@@ -88,25 +88,25 @@ pendente GET    /api/pickup-addresses                    OWNER
 pendente POST   /api/pickup-addresses                    OWNER
 pendente PATCH  /api/pickup-addresses/{id}               OWNER
 pendente DELETE /api/pickup-addresses/{id}               OWNER
-pendente GET    /api/price-alerts                        OWNER
-pendente POST   /api/price-alerts/{id}                   OWNER
-pendente POST   /api/price-alerts/{id}/apply             OWNER
+GET    /api/price-alerts                        OWNER
+POST   /api/price-alerts/{id}                   OWNER
+POST   /api/price-alerts/{id}/apply             OWNER
 pendente POST   /api/prices/link                         OWNER
 pendente POST   /api/prices/quote                        OWNER
 pendente POST   /api/prices/search                       OWNER
 GET    /api/privacy-requests                    OWNER
 POST   /api/privacy-requests/{id}               OWNER
-pendente GET    /api/recipes                             OWNER
-pendente POST   /api/recipes                             OWNER
-pendente GET    /api/recipes/{id}                        OWNER
-pendente PUT    /api/recipes/{id}                        OWNER
-pendente DELETE /api/recipes/{id}                        OWNER
-pendente PUT    /api/recipes/{id}/photo                  OWNER
-pendente DELETE /api/recipes/{id}/photo                  OWNER
-pendente GET    /api/recipes/cardapio                    OWNER
-pendente PATCH  /api/recipes/{id}/cardapio               OWNER
-pendente GET    /api/settings                            OWNER
-pendente PUT    /api/settings                            OWNER
+GET    /api/recipes                             OWNER
+POST   /api/recipes                             OWNER
+GET    /api/recipes/{id}                        OWNER
+PUT    /api/recipes/{id}                        OWNER
+DELETE /api/recipes/{id}                        OWNER
+PUT    /api/recipes/{id}/photo                  OWNER
+DELETE /api/recipes/{id}/photo                  OWNER
+GET    /api/recipes/cardapio                    OWNER
+PATCH  /api/recipes/{id}/cardapio               OWNER
+GET    /api/settings                            OWNER
+PUT    /api/settings                            OWNER
 pendente GET    /api/story/cardapio                      PUBLIC
 pendente GET    /api/story/produto/{id}                  PUBLIC
 pendente GET    /api/suppliers                           OWNER
