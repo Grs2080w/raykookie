@@ -80,6 +80,14 @@ public interface ShopOrders {
     Optional<CancelTarget> cancelTarget(long orderId, CustomerId customer);
 
     /**
+     * Trava o pedido (antes das linhas, na mesma ordem da confirmação de pagamento) e diz se já foi pago.
+     *
+     * @param orderId pedido
+     * @return verdadeiro se já está pago
+     */
+    boolean lockPaid(long orderId);
+
+    /**
      * Trava os itens do pedido e lê a situação de cada um ({@code FOR UPDATE}).
      *
      * @param orderId pedido

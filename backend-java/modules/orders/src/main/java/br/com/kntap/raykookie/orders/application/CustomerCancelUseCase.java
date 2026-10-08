@@ -115,6 +115,9 @@ public class CustomerCancelUseCase {
 
         // ── 3. Não pago: cancela os itens ainda novos, sob trava.
         String state = transactions.execute(status -> cancelUnpaid(orderId, code, note));
+        if ("paid".equals(state)) {
+            return refundAndCancel(target, customer, code, note);
+        }
         if ("started".equals(state)) {
             throw new ConflictException(STARTED);
         }
@@ -172,11 +175,14 @@ public class CustomerCancelUseCase {
      * @param orderId pedido
      * @param code    motivo
      * @param note    texto do cliente
-     * @return {@code cancelled}, {@code already} ou {@code started}
+     * @return {@code cancelled}, {@code already}, {@code started} ou {@code paid} (pago no meio do caminho)
      */
     private String cancelUnpaid(long orderId, String code, String note) {
 
-        // ── 1. Trava os itens: a dona não muda a situação no meio.
+        // ── 1. Trava o pedido e os itens (a confirmação de pagamento trava na mesma ordem); pago agora: devolução.
+        if (shopOrders.lockPaid(orderId)) {
+            return "paid";
+        }
         List<String> statuses = shopOrders.lockStatuses(orderId);
         if (!statuses.isEmpty() && statuses.stream().allMatch("cancelado"::equals)) {
             return "already";

@@ -14,7 +14,7 @@ POST   /api/cliente/cadastro                    PUBLIC
 GET    /api/cliente/config                      PUBLIC
 POST   /api/cliente/devices                     CUSTOMER
 DELETE /api/cliente/devices                     CUSTOMER
-pendente GET    /api/cliente/devolucoes/{rid}/fotos/{n}  CUSTOMER
+GET    /api/cliente/devolucoes/{rid}/fotos/{n}  CUSTOMER
 pendente POST   /api/cliente/feedback                    CUSTOMER
 pendente GET    /api/cliente/feedback/{id}/fotos/{n}     CUSTOMER
 GET    /api/cliente/google                      PUBLIC
@@ -33,17 +33,17 @@ GET    /api/cliente/pedidos                     CUSTOMER
 POST   /api/cliente/pedidos                     CUSTOMER
 POST   /api/cliente/pedidos/{id}/cancelar       CUSTOMER
 POST   /api/cliente/pedidos/{id}/cartao         CUSTOMER
-pendente POST   /api/cliente/pedidos/{id}/devolucao      CUSTOMER
-pendente DELETE /api/cliente/pedidos/{id}/devolucao      CUSTOMER
+POST   /api/cliente/pedidos/{id}/devolucao      CUSTOMER
+DELETE /api/cliente/pedidos/{id}/devolucao      CUSTOMER
 POST   /api/cliente/pedidos/{id}/pix            CUSTOMER
 pendente GET    /api/dashboard                           OWNER
 POST   /api/devices                             OWNER
 DELETE /api/devices                             OWNER
-pendente GET    /api/devolucoes                          OWNER
-pendente GET    /api/devolucoes/{id}                     OWNER
-pendente POST   /api/devolucoes/{id}/decisao             OWNER
-pendente GET    /api/devolucoes/{id}/fotos/{n}           OWNER
-pendente POST   /api/devolucoes/{id}/tentar              OWNER
+GET    /api/devolucoes                          OWNER
+GET    /api/devolucoes/{id}                     OWNER
+POST   /api/devolucoes/{id}/decisao             OWNER
+GET    /api/devolucoes/{id}/fotos/{n}           OWNER
+POST   /api/devolucoes/{id}/tentar              OWNER
 pendente GET    /api/downloads                           OWNER_OR_PUBLIC
 pendente GET    /api/downloads/{app}                     OWNER_OR_PUBLIC
 pendente POST   /api/downloads/{app}/link                OWNER
@@ -75,12 +75,12 @@ PATCH  /api/orders/{id}                         OWNER
 DELETE /api/orders/{id}                         OWNER
 POST   /api/orders/{id}/pagamento               OWNER
 POST   /api/orders/shop/{id}/cancelar           OWNER
-pendente POST   /api/orders/shop/{id}/devolver           OWNER
+POST   /api/orders/shop/{id}/devolver           OWNER
 GET    /api/pagar/{token}                       PAY_LINK_TOKEN
 POST   /api/pagar/{token}/cancelar              PAY_LINK_TOKEN
 POST   /api/pagar/{token}/cartao                PAY_LINK_TOKEN
-pendente POST   /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
-pendente DELETE /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
+POST   /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
+DELETE /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
 POST   /api/pagar/{token}/pix                   PAY_LINK_TOKEN
 GET    /api/payment-config                      PUBLIC
 GET    /api/pickup                              PUBLIC

@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/devolucoes/{id}",
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer" }, "order_id": { "type": "integer" }, "code": { "type": "integer" },
+    "customer": { "type": "string" }, "phone": { "type": "string" }, "order_total": { "type": "number" },
+    "refunded_total": { "type": "number" }, "order_items": { "type": "array" },
+    "delivered_at": { "type": ["string", "null"] }, "paid_at": { "type": ["string", "null"] },
+    "kind": { "type": "string" }, "status": { "type": "string" }, "reason_code": { "type": "string" },
+    "description": { "type": "string" }, "items": { "type": "array" }, "priority": { "type": "boolean" },
+    "requested_amount": { "type": "number" }, "approved_amount": { "type": ["number", "null"] },
+    "decision_code": { "type": "string" }, "decision_note": { "type": "string" },
+    "decided_at": { "type": ["string", "null"] }, "fail_reason": { "type": ["string", "null"] },
+    "attempts": { "type": "integer" }, "next_try_at": { "type": ["string", "null"] },
+    "created_at": { "type": "string" }, "refunded_at": { "type": ["string", "null"] },
+    "statuses": { "type": ["array", "null"] }, "reason": { "type": "string" },
+    "decision_reason": { "type": "string" },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": { "n": { "type": "integer" }, "url": { "type": "string" } },
+        "required": ["n", "url"], "additionalProperties": false
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": { "type": "string" }, "actor": { "type": "string" }, "type": { "type": "string" },
+          "data": { "type": "object" }
+        },
+        "required": ["at", "actor", "type", "data"], "additionalProperties": false
+      }
+    }
+  },
+  "required": ["id", "order_id", "code", "customer", "status", "reason", "decision_reason", "photos", "events",
+    "requested_amount", "items", "order_items"],
+  "additionalProperties": false
+}

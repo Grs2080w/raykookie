@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/orders/shop/{id}/cancelar e /devolver",
+  "type": "object",
+  "properties": {
+    "ok": { "const": true },
+    "refundId": { "type": ["integer", "null"] },
+    "refunded": { "type": "number" }
+  },
+  "required": ["ok", "refundId", "refunded"],
+  "additionalProperties": false
+}

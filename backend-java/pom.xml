@@ -29,6 +29,7 @@
         <module>modules/storefront</module>
         <module>modules/orders</module>
         <module>modules/payments</module>
+        <module>modules/refunds</module>
         <module>app</module>
         <module>contract-tests</module>
     </modules>
@@ -165,6 +166,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-identity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-refunds</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

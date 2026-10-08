@@ -184,6 +184,13 @@ public class JdbcShopOrders implements ShopOrders {
 
     /** {@inheritDoc} */
     @Override
+    public boolean lockPaid(long orderId) {
+        return jdbc.sql("SELECT paid_at IS NOT NULL FROM shop_orders WHERE id = :id FOR UPDATE").param("id", orderId)
+                .query(Boolean.class).single();
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public List<String> lockStatuses(long orderId) {
         return jdbc.sql("SELECT status FROM orders WHERE shop_order_id = :id FOR UPDATE").param("id", orderId)
                 .query(String.class).list();

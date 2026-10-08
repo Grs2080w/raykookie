@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/devolucoes",
+  "type": "object",
+  "properties": {
+    "list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" }, "order_id": { "type": "integer" }, "code": { "type": "integer" },
+          "customer": { "type": "string" }, "kind": { "type": "string" }, "status": { "type": "string" },
+          "reason_code": { "type": "string" }, "priority": { "type": "boolean" },
+          "requested_amount": { "type": "number" }, "approved_amount": { "type": ["number", "null"] },
+          "fail_reason": { "type": ["string", "null"] }, "created_at": { "type": "string" },
+          "photos": { "type": "integer" }
+        },
+        "required": ["id", "order_id", "code", "customer", "kind", "status", "reason_code", "priority",
+          "requested_amount", "approved_amount", "fail_reason", "created_at", "photos"],
+        "additionalProperties": false
+      }
+    },
+    "counts": {
+      "type": "object",
+      "properties": {
+        "aguardando": { "type": "integer" }, "andamento": { "type": "integer" },
+        "concluidas": { "type": "integer" }, "negadas": { "type": "integer" }
+      },
+      "required": ["aguardando", "andamento", "concluidas", "negadas"],
+      "additionalProperties": false
+    },
+    "pending_amount": { "type": "number" }
+  },
+  "required": ["list", "counts", "pending_amount"],
+  "additionalProperties": false
+}
