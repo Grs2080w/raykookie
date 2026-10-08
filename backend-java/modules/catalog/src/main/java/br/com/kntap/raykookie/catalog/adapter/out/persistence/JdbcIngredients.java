@@ -3,7 +3,7 @@ package br.com.kntap.raykookie.catalog.adapter.out.persistence;
 import br.com.kntap.raykookie.catalog.api.PriceChange.PriceState;
 import br.com.kntap.raykookie.catalog.api.PricingEngine;
 import br.com.kntap.raykookie.catalog.application.ports.Ingredients;
-import br.com.kntap.raykookie.catalog.domain.IngredientForm;
+import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.persistence.NodeRows;
 import java.math.BigDecimal;

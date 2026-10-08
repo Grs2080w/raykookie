@@ -1,7 +1,7 @@
 package br.com.kntap.raykookie.catalog.application.ports;
 
 import br.com.kntap.raykookie.catalog.api.PriceChange.PriceState;
-import br.com.kntap.raykookie.catalog.domain.IngredientForm;
+import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import java.util.Collection;
 import java.util.List;

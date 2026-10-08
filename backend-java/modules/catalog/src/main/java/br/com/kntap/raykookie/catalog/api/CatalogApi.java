@@ -35,6 +35,15 @@ public interface CatalogApi {
     List<Map<String, Object>> ingredients(OwnerId owner);
 
     /**
+     * Cria um ingrediente (na transação de quem chama, como a leitura de nota fiscal).
+     *
+     * @param owner dona
+     * @param form  dados já validados
+     * @return a linha criada no formato do Node
+     */
+    Map<String, Object> createIngredient(OwnerId owner, IngredientForm form);
+
+    /**
      * Depois de mudar o preço de um ingrediente: grava o histórico e cria os alertas de margem
      * ({@code onPriceChange}). Nunca lança erro: é um extra que não pode derrubar a edição.
      *

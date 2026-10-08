@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/prices/search",
+  "type": "object",
+  "properties": {
+    "term": {
+      "type": "string"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "supplier_id": {
+            "type": "integer"
+          },
+          "supplier": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "size": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "match_unit": {
+                  "type": "boolean"
+                },
+                "per_base": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "url",
+                "price",
+                "available",
+                "size",
+                "unit",
+                "match_unit",
+                "per_base"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "supplier_id",
+          "supplier",
+          "products"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "supplier_id": {
+            "type": "integer"
+          },
+          "supplier": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "supplier_id",
+          "supplier",
+          "error"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "term",
+    "unit",
+    "results",
+    "errors"
+  ],
+  "additionalProperties": false
+}

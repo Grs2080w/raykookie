@@ -1,4 +1,4 @@
-package br.com.kntap.raykookie.catalog.domain;
+package br.com.kntap.raykookie.catalog.api;
 
 import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.web.NodeInput;
@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Formulário de ingrediente, com as regras e as mensagens de {@code backend/lib/ingredient-input.ts}.
+ * Formulário de ingrediente (também usado pela leitura de nota fiscal), com as regras e as mensagens de
+ * {@code backend/lib/ingredient-input.ts}.
  *
  * @param categoryId  categoria (nula = nenhuma)
  * @param name        nome (até 80)

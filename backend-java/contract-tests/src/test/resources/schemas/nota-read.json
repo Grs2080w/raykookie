@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/nota/ler",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "store": {
+      "type": "string"
+    },
+    "date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "total": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "already_imported": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "match": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "ingredient_id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "exact": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "ingredient_id",
+              "name",
+              "exact"
+            ],
+            "additionalProperties": false
+          },
+          "add": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "add_qty": {
+                "type": "number"
+              },
+              "package_cost": {
+                "type": "number"
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "add_qty",
+              "package_cost",
+              "note"
+            ],
+            "additionalProperties": false
+          },
+          "create": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "unit": {
+                "enum": [
+                  "g",
+                  "ml",
+                  "un"
+                ]
+              },
+              "package_size": {
+                "type": "number"
+              },
+              "package_cost": {
+                "type": "number"
+              },
+              "stock_qty": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "unit",
+              "package_size",
+              "package_cost",
+              "stock_qty"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "index",
+          "name",
+          "code",
+          "qty",
+          "unit",
+          "unit_price",
+          "total",
+          "match",
+          "add",
+          "create"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "key",
+    "store",
+    "date",
+    "total",
+    "already_imported",
+    "items"
+  ],
+  "additionalProperties": false
+}

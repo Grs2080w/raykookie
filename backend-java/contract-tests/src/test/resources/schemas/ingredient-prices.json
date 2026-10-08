@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/ingredients/{id}/prices",
+  "type": "object",
+  "properties": {
+    "ingredient": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "package_cost": {
+          "type": "number"
+        },
+        "package_size": {
+          "type": "number"
+        },
+        "price_updated_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "unit",
+        "package_cost",
+        "package_size",
+        "price_updated_at"
+      ],
+      "additionalProperties": false
+    },
+    "current_per_base": {
+      "type": "number"
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "supplier_id": {
+            "type": "integer"
+          },
+          "supplier": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "pack_size": {
+            "type": "number"
+          },
+          "pack_unit": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "per_base": {
+            "type": "number"
+          },
+          "product": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "supplier_id",
+          "supplier",
+          "kind",
+          "price",
+          "pack_size",
+          "pack_unit",
+          "source",
+          "at",
+          "per_base",
+          "product",
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "number"
+          },
+          "pack_size": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "supplier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "price",
+          "pack_size",
+          "source",
+          "at",
+          "supplier"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "ingredient",
+    "current_per_base",
+    "quotes",
+    "history"
+  ],
+  "additionalProperties": false
+}

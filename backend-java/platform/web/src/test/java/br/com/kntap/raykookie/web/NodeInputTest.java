@@ -66,6 +66,15 @@ class NodeInputTest {
         assertThat(NodeInput.text(7L)).isEqualTo("7");
         assertThat(NodeInput.cut("abcdef", 3)).isEqualTo("abc");
         assertThat(NodeInput.cut("ab", 3)).isEqualTo("ab");
+        assertThat(NodeInput.jsNumberText(1e7)).isEqualTo("10000000");
+        assertThat(NodeInput.jsNumberText(0.000001)).isEqualTo("0.000001");
+        assertThat(NodeInput.jsNumberText(1.5e-7)).isEqualTo("1.5e-7");
+        assertThat(NodeInput.jsNumberText(1e-7)).isEqualTo("1e-7");
+        assertThat(NodeInput.jsNumberText(1e21)).isEqualTo("1e+21");
+        assertThat(NodeInput.jsNumberText(-2.5)).isEqualTo("-2.5");
+        assertThat(NodeInput.jsNumberText(0.1 + 0.2)).isEqualTo("0.30000000000000004");
+        assertThat(NodeInput.jsNumberText(Double.NaN)).isEqualTo("NaN");
+        assertThat(NodeInput.jsNumberText(Double.NEGATIVE_INFINITY)).isEqualTo("-Infinity");
     }
 
     /**

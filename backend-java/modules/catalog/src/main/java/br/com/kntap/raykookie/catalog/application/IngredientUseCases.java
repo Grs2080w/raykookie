@@ -3,7 +3,7 @@ package br.com.kntap.raykookie.catalog.application;
 import br.com.kntap.raykookie.catalog.api.PriceChange;
 import br.com.kntap.raykookie.catalog.api.PriceChange.PriceState;
 import br.com.kntap.raykookie.catalog.application.ports.Ingredients;
-import br.com.kntap.raykookie.catalog.domain.IngredientForm;
+import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.web.NodeInput;
 import br.com.kntap.raykookie.kernel.NotFoundException;

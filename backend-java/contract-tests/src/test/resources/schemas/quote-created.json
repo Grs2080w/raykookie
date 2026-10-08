@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/prices/link e /api/prices/quote",
+  "type": "object",
+  "properties": {
+    "ok": {
+      "const": true
+    },
+    "quote_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ok",
+    "quote_id"
+  ],
+  "additionalProperties": false
+}

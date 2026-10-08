@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.catalog.application;
 
 import br.com.kntap.raykookie.catalog.api.CatalogApi;
+import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.catalog.api.PriceChange;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.ports.Categories;
@@ -60,6 +61,12 @@ public class CatalogService implements CatalogApi {
     @Override
     public List<Map<String, Object>> ingredients(OwnerId owner) {
         return ingredients.list(owner);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Map<String, Object> createIngredient(OwnerId owner, IngredientForm form) {
+        return ingredients.create(owner, form);
     }
 
     /** {@inheritDoc} */

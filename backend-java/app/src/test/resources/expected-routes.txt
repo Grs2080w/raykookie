@@ -61,14 +61,14 @@ GET    /api/ingredients                         OWNER
 POST   /api/ingredients                         OWNER
 PATCH  /api/ingredients/{id}                    OWNER
 DELETE /api/ingredients/{id}                    OWNER
-pendente GET    /api/ingredients/{id}/prices             OWNER
-pendente POST   /api/ingredients/{id}/use-price          OWNER
+GET    /api/ingredients/{id}/prices             OWNER
+POST   /api/ingredients/{id}/use-price          OWNER
 POST   /api/jobs/tick                           PUBLIC
 pendente GET    /api/legal/{doc}                         PUBLIC
 pendente GET    /api/menu                                PUBLIC
 GET    /api/me                                  OWNER
-pendente POST   /api/nota/importar                       OWNER
-pendente POST   /api/nota/ler                            OWNER
+POST   /api/nota/importar                       OWNER
+POST   /api/nota/ler                            OWNER
 pendente GET    /api/orders                              OWNER
 pendente POST   /api/orders                              OWNER
 pendente PATCH  /api/orders/{id}                         OWNER
@@ -91,9 +91,9 @@ pendente DELETE /api/pickup-addresses/{id}               OWNER
 GET    /api/price-alerts                        OWNER
 POST   /api/price-alerts/{id}                   OWNER
 POST   /api/price-alerts/{id}/apply             OWNER
-pendente POST   /api/prices/link                         OWNER
-pendente POST   /api/prices/quote                        OWNER
-pendente POST   /api/prices/search                       OWNER
+POST   /api/prices/link                         OWNER
+POST   /api/prices/quote                        OWNER
+POST   /api/prices/search                       OWNER
 GET    /api/privacy-requests                    OWNER
 POST   /api/privacy-requests/{id}               OWNER
 GET    /api/recipes                             OWNER
@@ -109,8 +109,8 @@ GET    /api/settings                            OWNER
 PUT    /api/settings                            OWNER
 pendente GET    /api/story/cardapio                      PUBLIC
 pendente GET    /api/story/produto/{id}                  PUBLIC
-pendente GET    /api/suppliers                           OWNER
-pendente POST   /api/suppliers                           OWNER
-pendente PATCH  /api/suppliers/{id}                      OWNER
-pendente DELETE /api/suppliers/{id}                      OWNER
+GET    /api/suppliers                           OWNER
+POST   /api/suppliers                           OWNER
+PATCH  /api/suppliers/{id}                      OWNER
+DELETE /api/suppliers/{id}                      OWNER
 pendente POST   /api/webhooks/mercadopago                SIGNED_WEBHOOK

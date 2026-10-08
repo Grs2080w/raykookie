@@ -52,7 +52,7 @@ public final class NodeInput {
     public static double number(Object value, double defaultValue) {
 
         // ── 1. Vazio (nulo ou só espaços) vira o padrão.
-        String text = value == null ? "" : jsString(value).strip();
+        String text = value == null ? "" : jsTrim(jsString(value));
         if (text.isEmpty()) {
             return defaultValue;
         }
@@ -88,7 +88,36 @@ public final class NodeInput {
      * @return o texto
      */
     public static String text(Object value) {
-        return value == null ? "" : CONTROL.matcher(jsString(value)).replaceAll("").strip();
+        return value == null ? "" : jsTrim(CONTROL.matcher(jsString(value)).replaceAll(""));
+    }
+
+    /**
+     * {@code trim()} do JavaScript: tira das pontas também o espaço não separável e o BOM (o {@code strip()} do
+     * Java não tira o U+00A0).
+     *
+     * @param text texto
+     * @return o texto sem espaços nas pontas
+     */
+    public static String jsTrim(String text) {
+        int start = 0;
+        int end = text.length();
+        while (start < end && isJsSpace(text.charAt(start))) {
+            start++;
+        }
+        while (end > start && isJsSpace(text.charAt(end - 1))) {
+            end--;
+        }
+        return text.substring(start, end);
+    }
+
+    /**
+     * Espaço para o JavaScript.
+     *
+     * @param c caractere
+     * @return verdadeiro para espaços, quebras de linha, espaço não separável e BOM
+     */
+    private static boolean isJsSpace(char c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c) || c == '\ufeff';
     }
 
     /**
@@ -163,15 +192,15 @@ public final class NodeInput {
     }
 
     /**
-     * {@code Number(texto)} do JavaScript.
+     * {@code Number(texto)} do JavaScript (vazio = 0; texto inválido = NaN).
      *
      * @param raw texto
      * @return o número, ou NaN
      */
-    static double jsNumber(String raw) {
+    public static double jsNumber(String raw) {
 
         // ── 1. Vazio é zero; "Infinity" é infinito (e o chamador recusa).
-        String text = raw.strip();
+        String text = jsTrim(raw);
         if (text.isEmpty()) {
             return 0;
         }
@@ -231,15 +260,34 @@ public final class NodeInput {
     }
 
     /**
-     * Número como o JavaScript o escreve em texto (inteiro sem ".0").
+     * Número como o JavaScript o escreve em texto ({@code String(n)}): inteiro sem ".0", decimal sem notação
+     * científica entre {@code 1e-6} e {@code 1e21}, e os mesmos dígitos (a menor forma que volta ao mesmo double).
      *
      * @param number o número
      * @return o texto
      */
-    private static String jsNumberText(double number) {
-        if (number == Math.rint(number) && Math.abs(number) < 1e21) {
-            return BigDecimal.valueOf(number).toBigInteger().toString();
+    public static String jsNumberText(double number) {
+
+        // ── 1. Casos especiais e inteiros.
+        if (Double.isNaN(number)) {
+            return "NaN";
         }
-        return Double.toString(number);
+        if (Double.isInfinite(number)) {
+            return number > 0 ? "Infinity" : "-Infinity";
+        }
+        if (number == Math.rint(number) && Math.abs(number) < 1e21) {
+            return new BigDecimal(number).toBigInteger().toString();
+        }
+
+        // ── 2. Os dígitos mais curtos (Double.toString) na forma decimal ou com expoente, como o JavaScript.
+        BigDecimal shortest = new BigDecimal(Double.toString(number)).stripTrailingZeros();
+        double magnitude = Math.abs(number);
+        if (magnitude >= 1e-6 && magnitude < 1e21) {
+            return shortest.toPlainString();
+        }
+        String digits = shortest.unscaledValue().abs().toString();
+        int exponent = digits.length() - 1 - shortest.scale();
+        String mantissa = digits.length() == 1 ? digits : digits.charAt(0) + "." + digits.substring(1);
+        return (number < 0 ? "-" : "") + mantissa + "e" + (exponent >= 0 ? "+" : "") + exponent;
     }
 }

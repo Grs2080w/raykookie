@@ -55,6 +55,10 @@
         </dependency>
         <dependency>
             <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-purchasing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
             <artifactId>raykookie-catalog</artifactId>
         </dependency>
         <dependency>
