@@ -22,6 +22,7 @@
         <module>platform/observability</module>
         <module>platform/scheduling</module>
         <module>app</module>
+        <module>contract-tests</module>
     </modules>
 
     <properties>
