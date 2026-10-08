@@ -56,14 +56,14 @@ pendente DELETE /api/fixed-costs/{id}                    OWNER
 pendente GET    /api/fotos/{id}                          OWNER_OR_PUBLIC
 pendente GET    /api/goals                               OWNER
 pendente PUT    /api/goals                               OWNER
-pendente GET    /api/health                              PUBLIC
+GET    /api/health                              PUBLIC
 pendente GET    /api/ingredients                         OWNER
 pendente POST   /api/ingredients                         OWNER
 pendente PATCH  /api/ingredients/{id}                    OWNER
 pendente DELETE /api/ingredients/{id}                    OWNER
 pendente GET    /api/ingredients/{id}/prices             OWNER
 pendente POST   /api/ingredients/{id}/use-price          OWNER
-pendente POST   /api/jobs/tick                           PUBLIC
+POST   /api/jobs/tick                           PUBLIC
 pendente GET    /api/legal/{doc}                         PUBLIC
 pendente GET    /api/menu                                PUBLIC
 GET    /api/me                                  OWNER
