@@ -51,7 +51,7 @@ class MercadoPagoEnvironmentCheckTest {
         mercadoPago.start();
         mercadoPago.stubFor(get(urlPathEqualTo("/users/me")).willReturn(aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/json").withBody(REAL_ACCOUNT)));
-        mercadoPago.stubFor(get(urlPathEqualTo("/v1/payment_methods/installments")).willReturn(aResponse()
+        mercadoPago.stubFor(get(urlPathEqualTo("/v1/payment_methods")).willReturn(aResponse()
                 .withStatus(200).withHeader("Content-Type", "application/json").withBody("[]")));
         registry = new SimpleMeterRegistry();
         status = new CardPaymentsStatus();
@@ -118,9 +118,8 @@ class MercadoPagoEnvironmentCheckTest {
         assertThat(integrationAlerts()).isZero();
         mercadoPago.verify(getRequestedFor(urlPathEqualTo("/users/me"))
                 .withHeader("Authorization", equalTo("Bearer APP_USR-token")));
-        mercadoPago.verify(getRequestedFor(urlPathEqualTo("/v1/payment_methods/installments"))
-                .withQueryParam("public_key", equalTo("APP_USR-chave publica"))
-                .withQueryParam("bin", equalTo("503143")));
+        mercadoPago.verify(getRequestedFor(urlPathEqualTo("/v1/payment_methods"))
+                .withQueryParam("public_key", equalTo("APP_USR-chave publica")));
     }
 
     /**
@@ -150,7 +149,7 @@ class MercadoPagoEnvironmentCheckTest {
     void rejectedPublicKey() {
 
         // ── 1. O Mercado Pago recusa a chave.
-        mercadoPago.stubFor(get(urlPathEqualTo("/v1/payment_methods/installments"))
+        mercadoPago.stubFor(get(urlPathEqualTo("/v1/payment_methods"))
                 .willReturn(aResponse().withStatus(404)));
 
         // ── 2. Confere.
