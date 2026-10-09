@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/nota/importar",
+  "type": "object",
+  "properties": {
+    "added": {
+      "type": "integer"
+    },
+    "created": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "added",
+    "created"
+  ],
+  "additionalProperties": false
+}

@@ -29,3 +29,6 @@ downloads/*
 .claude/
 .vercel
 .env*
+
+# fotos de referência de design (~100 MB): ficam só na máquina, fora do git
+raykookie-arts/referencias-designs/

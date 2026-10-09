@@ -1,0 +1,21 @@
+# Postgres de desenvolvimento local, igual ao de produção (postgres:17.11, fuso America/Sao_Paulo).
+# Só escuta em 127.0.0.1:54331 (não conflita com o Postgres de produção na 5432).
+#   docker compose -f docker-compose.dev.yml up -d
+#   ./mvnw -pl app spring-boot:run -Dspring-boot.run.profiles=local
+services:
+  postgres:
+    image: postgres:17.11
+    command: ["postgres", "-c", "timezone=America/Sao_Paulo"]
+    environment:
+      POSTGRES_DB: raykookie
+      POSTGRES_USER: raykookie
+      POSTGRES_PASSWORD: raykookie
+      TZ: America/Sao_Paulo
+      PGTZ: America/Sao_Paulo
+    ports:
+      - "127.0.0.1:54331:5432"
+    volumes:
+      - raykookie-dev-db:/var/lib/postgresql/data
+
+volumes:
+  raykookie-dev-db:

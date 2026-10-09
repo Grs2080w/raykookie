@@ -1,0 +1,124 @@
+package br.com.kntap.raykookie.payments.application;
+
+import java.net.URI;
+import java.time.Duration;
+import java.util.Locale;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+/**
+ * Configuração de pagamentos (as variáveis do {@code .env}, já conferidas pelo app na subida).
+ */
+@Component
+public class PaymentSettings {
+
+    /** Token de acesso do Mercado Pago. */
+    private final String accessToken;
+
+    /** Segredo das notificações. */
+    private final String webhookSecret;
+
+    /** Distância máxima do {@code ts} da notificação (G18). */
+    private final Duration webhookMaxSkew;
+
+    /** Validade do Pix. */
+    private final Duration pixValidity;
+
+    /** Endereço público do site. */
+    private final String siteUrl;
+
+    /** E-mail do pagador no link de pagamento. */
+    private final String payerEmail;
+
+    /**
+     * Lê a configuração.
+     *
+     * @param accessToken    {@code MP_ACCESS_TOKEN}
+     * @param webhookSecret  {@code MP_WEBHOOK_SECRET}
+     * @param webhookMaxSkew {@code MP_WEBHOOK_MAX_SKEW}
+     * @param pixMinutes     {@code PIX_EXPIRES_MINUTES}
+     * @param siteUrl        {@code SITE_URL}
+     * @param payerEmail     {@code PAY_LINK_PAYER_EMAIL}
+     */
+    public PaymentSettings(@Value("${rayka.mp.access-token:}") String accessToken,
+            @Value("${rayka.mp.webhook-secret:}") String webhookSecret,
+            @Value("${rayka.mp.webhook-max-skew:10m}") Duration webhookMaxSkew,
+            @Value("${rayka.pix-expires-minutes:60}") int pixMinutes,
+            @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl,
+            @Value("${rayka.pay-link-payer-email:}") String payerEmail) {
+        this.accessToken = accessToken;
+        this.webhookSecret = webhookSecret;
+        this.webhookMaxSkew = webhookMaxSkew;
+        this.pixValidity = Duration.ofMinutes(Math.min(Math.max(pixMinutes, 31), 30 * 24 * 60));
+        this.siteUrl = siteUrl.replaceAll("/+$", "");
+        this.payerEmail = payerEmail;
+    }
+
+    /**
+     * Diz se o Mercado Pago está configurado ({@code mpConfigured}).
+     *
+     * @return verdadeiro se há token
+     */
+    public boolean configured() {
+        return !accessToken.isEmpty();
+    }
+
+    /**
+     * Token de acesso.
+     *
+     * @return o token
+     */
+    public String accessToken() {
+        return accessToken;
+    }
+
+    /**
+     * Segredo das notificações.
+     *
+     * @return o segredo (vazio = webhook desligado)
+     */
+    public String webhookSecret() {
+        return webhookSecret;
+    }
+
+    /**
+     * Distância máxima do {@code ts}.
+     *
+     * @return a janela
+     */
+    public Duration webhookMaxSkew() {
+        return webhookMaxSkew;
+    }
+
+    /**
+     * Validade do Pix (31 min a 30 dias).
+     *
+     * @return a validade
+     */
+    public Duration pixValidity() {
+        return pixValidity;
+    }
+
+    /**
+     * Endereço completo de um caminho do site.
+     *
+     * @param path caminho começando com {@code /}
+     * @return a URL
+     */
+    public String siteUrl(String path) {
+        return siteUrl + path;
+    }
+
+    /**
+     * E-mail do pagador no link: o do {@code .env} ou {@code pagamentos@<domínio do site>}.
+     *
+     * @return o e-mail
+     */
+    public String payerEmail() {
+        if (payerEmail != null && !payerEmail.isBlank()) {
+            return payerEmail;
+        }
+        String host = URI.create(siteUrl).getHost().toLowerCase(Locale.ROOT);
+        return "pagamentos@" + host.replaceFirst("^www\\.", "");
+    }
+}

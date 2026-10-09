@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+  br.com.kntap.raykookie.persistence.DatabaseUrlEnvironmentPostProcessor

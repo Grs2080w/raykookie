@@ -1,0 +1,54 @@
+server:
+  port: ${PORT:10005}
+  tomcat:
+    # Corpo recusado (413) é descartado até 1 MB; acima disso a conexão é fechada (G08).
+    max-swallow-size: 1MB
+
+spring:
+  # Banco: pool Hikari, Flyway nos dois modos (banco novo / perfil prod com baseline 21). URL em rayka.db.url.
+  config:
+    import: classpath:persistence.yml
+  threads:
+    virtual:
+      enabled: true
+  # Formulários com fotos (devolução, feedback): 2 MB por foto e 12 MB no total, os limites do Node (G08).
+  # Os limites por rota de corpos que não são multipart ficam em rayka.web (WebProperties).
+  servlet:
+    multipart:
+      max-file-size: 2000000B
+      max-request-size: 12MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+# Variáveis do .env (as mesmas do Node, ver .env.example) → rayka.*, conferidas por RaykookieProperties.
+# O banco vem de DATABASE_URL (postgres://…), convertido para rayka.db.* na subida.
+rayka:
+  site-url: ${SITE_URL:https://raykookie.kntap.com.br}
+  cookie-secure: ${COOKIE_SECURE:false}
+  # Única conta que entra no painel (G24); o servidor não sobe se ela não existir em users.
+  shop-owner: ${SHOP_OWNER:rayka}
+  registration-enabled: ${REGISTRATION_ENABLED:false}
+  download-secret: ${DOWNLOAD_SECRET:}
+  downloads-dir: ${DOWNLOADS_DIR:downloads}
+  jobs-enabled: ${JOBS_ENABLED:true}
+  payments-card-enabled: ${PAYMENTS_CARD_ENABLED:false}
+  pix-expires-minutes: ${PIX_EXPIRES_MINUTES:60}
+  pay-link-payer-email: ${PAY_LINK_PAYER_EMAIL:}
+  firebase-service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
+  alert-webhook-url: ${ALERT_WEBHOOK_URL:}
+  mp:
+    access-token: ${MP_ACCESS_TOKEN:}
+    public-key: ${MP_PUBLIC_KEY:}
+    webhook-secret: ${MP_WEBHOOK_SECRET:}
+    api-base: ${MP_API_BASE:https://api.mercadopago.com}
+    webhook-max-skew: ${MP_WEBHOOK_MAX_SKEW:10m}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+  web:
+    # Proxies cujo X-Forwarded-For é aceito (G05). Ver docs/ip-do-cliente.md.
+    trusted-proxies: ${TRUSTED_PROXIES:127.0.0.1/32,::1/128}

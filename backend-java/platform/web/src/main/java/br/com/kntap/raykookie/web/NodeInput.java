@@ -1,0 +1,366 @@
+package br.com.kntap.raykookie.web;
+
+import br.com.kntap.raykookie.kernel.InvalidInputException;
+import br.com.kntap.raykookie.kernel.Money;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+/**
+ * Leitura dos campos dos formulários do painel com as regras de {@code num} e {@code str} do backend Node
+ * ({@code backend/lib/api.ts}): número vindo do JSON vale como está; texto é lido em pt-BR
+ * ({@code parseLocaleNumber}); vazio vira o padrão; texto que não é número ou número negativo é recusado.
+ *
+ * <p>Os números ficam em {@code double} de propósito: são quantidades, tamanhos e porcentagens que o Node
+ * grava como chegaram (o Postgres arredonda para as casas da coluna). Dinheiro que entra num cálculo exato
+ * passa por {@link Money}.
+ */
+public final class NodeInput {
+
+    /** Caracteres de controle que o {@code cleanText} do Node remove. */
+    private static final Pattern CONTROL = Pattern.compile("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]");
+
+    /** Ponto seguido de exatamente 3 dígitos, sem vírgula e sem zero à esquerda, é milhar ("1.000" = mil). */
+    private static final Pattern THOUSANDS = Pattern.compile("[1-9]\\d{0,2}(\\.\\d{3})+");
+
+    /** Número decimal como o {@code Number()} do JavaScript aceita. */
+    private static final Pattern DECIMAL = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?");
+
+    /** Inteiro em hexadecimal, octal ou binário ({@code 0x10}, {@code 0o7}, {@code 0b1}). */
+    private static final Pattern RADIX = Pattern.compile("0([xXoObB])([0-9a-fA-F]+)");
+
+    /** Tamanho do trecho do valor citado na mensagem de erro. */
+    private static final int QUOTE_LENGTH = 20;
+
+    /**
+     * Classe só de funções estáticas; não é instanciada.
+     */
+    private NodeInput() {
+    }
+
+    /**
+     * {@code num(v, d)} do Node.
+     *
+     * @param value        valor do JSON (número, texto ou nulo)
+     * @param defaultValue valor quando vier vazio
+     * @return o número (nunca negativo)
+     * @throws InvalidInputException se não for número ou for negativo
+     */
+    public static double number(Object value, double defaultValue) {
+
+        // ── 1. Vazio (nulo ou só espaços) vira o padrão.
+        String text = value == null ? "" : jsTrim(jsString(value));
+        if (text.isEmpty()) {
+            return defaultValue;
+        }
+
+        // ── 2. Número do JSON vale como está; texto é lido em pt-BR.
+        double number = value instanceof Number n ? n.doubleValue() : parseLocaleNumber(text);
+        if (!Double.isFinite(number)) {
+            String quoted = text.length() > QUOTE_LENGTH ? text.substring(0, QUOTE_LENGTH) : text;
+            throw new InvalidInputException("“" + quoted + "” não é um número válido.");
+        }
+
+        // ── 3. Negativo nunca passa.
+        if (number < 0) {
+            throw new InvalidInputException("Os valores não podem ser negativos.");
+        }
+        return number;
+    }
+
+    /**
+     * {@code num(v)} do Node, com 0 como padrão.
+     *
+     * @param value valor do JSON
+     * @return o número
+     */
+    public static double number(Object value) {
+        return number(value, 0);
+    }
+
+    /**
+     * {@code str(v)} ({@code cleanText}) do Node: texto sem caracteres de controle e sem espaços nas pontas.
+     *
+     * @param value valor do JSON (nulo vira vazio)
+     * @return o texto
+     */
+    public static String text(Object value) {
+        return value == null ? "" : jsTrim(CONTROL.matcher(jsString(value)).replaceAll(""));
+    }
+
+    /**
+     * {@code trim()} do JavaScript: tira das pontas também o espaço não separável e o BOM (o {@code strip()} do
+     * Java não tira o U+00A0).
+     *
+     * @param text texto
+     * @return o texto sem espaços nas pontas
+     */
+    public static String jsTrim(String text) {
+        int start = 0;
+        int end = text.length();
+        while (start < end && isJsSpace(text.charAt(start))) {
+            start++;
+        }
+        while (end > start && isJsSpace(text.charAt(end - 1))) {
+            end--;
+        }
+        return text.substring(start, end);
+    }
+
+    /**
+     * Espaço para o JavaScript.
+     *
+     * @param c caractere
+     * @return verdadeiro para espaços, quebras de linha, espaço não separável e BOM
+     */
+    private static boolean isJsSpace(char c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c) || c == '\ufeff';
+    }
+
+    /**
+     * Corta o texto como o {@code slice(0, max)} do JavaScript (em unidades UTF-16).
+     *
+     * @param text texto
+     * @param max  tamanho máximo
+     * @return o texto cortado
+     */
+    public static String cut(String text, int max) {
+        return text.length() > max ? text.substring(0, max) : text;
+    }
+
+    /**
+     * Valor "verdadeiro" no sentido do JavaScript ({@code if (v)}).
+     *
+     * @param value valor do JSON
+     * @return falso para nulo, {@code false}, 0, NaN e texto vazio
+     */
+    public static boolean truthy(Object value) {
+        return switch (value) {
+            case null -> false;
+            case Boolean b -> b;
+            case Number n -> n.doubleValue() != 0 && !Double.isNaN(n.doubleValue());
+            case String s -> !s.isEmpty();
+            default -> true;
+        };
+    }
+
+    /**
+     * Id opcional como {@code b.x ? Number(b.x) : null} do Node.
+     *
+     * @param value valor do JSON
+     * @return o id, ou nulo quando ausente
+     * @throws InvalidInputException se vier preenchido mas não for um inteiro positivo
+     */
+    public static Long optionalId(Object value) {
+        if (!truthy(value)) {
+            return null;
+        }
+        return positiveId(value).orElseThrow(() -> new InvalidInputException("Algum valor está fora do permitido."));
+    }
+
+    /**
+     * {@code Number(v)} do JavaScript, aceito só quando dá um inteiro positivo (um id).
+     *
+     * @param value valor do JSON
+     * @return o id, ou vazio quando não for um id
+     */
+    public static Optional<Long> positiveId(Object value) {
+        double number = value instanceof Number n ? n.doubleValue() : jsNumber(value == null ? "" : jsString(value));
+        if (number > 0 && number == Math.rint(number) && number <= Integer.MAX_VALUE) {
+            return Optional.of((long) number);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * {@code num(v, d)} como decimal exato (para colunas {@code NUMERIC} e domínios que não usam {@code double}).
+     *
+     * @param value        valor do JSON
+     * @param defaultValue valor quando vier vazio
+     * @return o número como o JavaScript o enviaria ao banco
+     */
+    public static BigDecimal decimal(Object value, double defaultValue) {
+        return new BigDecimal(jsNumberText(number(value, defaultValue)));
+    }
+
+    /**
+     * {@code Number(v)} do JavaScript, aceito só quando é um inteiro ({@code Number.isInteger}).
+     *
+     * @param value valor do JSON
+     * @return o inteiro, ou vazio
+     */
+    public static Optional<Long> integer(Object value) {
+        double number = value instanceof Number n ? n.doubleValue()
+                : value instanceof String || value instanceof Boolean ? jsNumber(jsString(value)) : Double.NaN;
+        if (value instanceof Boolean flag) {
+            number = flag ? 1 : 0;
+        }
+        return Double.isFinite(number) && number == Math.rint(number) && Math.abs(number) < 1e15
+                ? Optional.of((long) number)
+                : Optional.empty();
+    }
+
+    /**
+     * {@code Math.floor(Number(v))} do Node: número do JSON ou texto, arredondado para baixo.
+     *
+     * @param value valor
+     * @return o inteiro, ou vazio se não for número finito
+     */
+    public static Optional<Long> floor(Object value) {
+        double number = value instanceof Number n ? n.doubleValue() : jsNumber(text(value));
+        return Double.isFinite(number) && Math.abs(number) < 1e15 ? Optional.of((long) Math.floor(number))
+                : Optional.empty();
+    }
+
+    /**
+     * Valor em reais digitado em pt-BR ({@code parseLocaleNumber}), arredondado em centavos como o
+     * {@code Math.round(n * 100) / 100} do Node.
+     *
+     * @param text texto
+     * @return o valor, ou vazio se não for número
+     */
+    public static Optional<Money> localeMoney(String text) {
+        double number = parseLocaleNumber(jsTrim(text == null ? "" : text));
+        return Double.isFinite(number) ? Optional.of(Money.ofCents(Math.round(number * 100))) : Optional.empty();
+    }
+
+    /**
+     * Número digitado em pt-BR ({@code parseLocaleNumber}) como decimal exato, para comparar sem {@code double}.
+     *
+     * @param text texto
+     * @return o número, ou vazio se não for número
+     */
+    public static Optional<BigDecimal> localeDecimal(String text) {
+        double number = parseLocaleNumber(jsTrim(text == null ? "" : text));
+        return Double.isFinite(number) ? Optional.of(new BigDecimal(jsNumberText(number))) : Optional.empty();
+    }
+
+    /**
+     * Reais (como o Node os guarda, em {@code double}) para centavos.
+     *
+     * @param value número do JSON ou do banco
+     * @return o valor em centavos
+     */
+    public static Money money(Number value) {
+        return Money.ofCents(Math.round(value.doubleValue() * 100));
+    }
+
+    /**
+     * {@code parseLocaleNumber} do Node ({@code backend/shared/text.ts}).
+     *
+     * @param text texto sem espaços nas pontas
+     * @return o número, ou NaN
+     */
+    static double parseLocaleNumber(String text) {
+        if (text.contains(",")) {
+            return jsNumber(text.replace(".", "").replaceFirst(",", "."));
+        }
+        if (THOUSANDS.matcher(text).matches()) {
+            return jsNumber(text.replace(".", ""));
+        }
+        return jsNumber(text);
+    }
+
+    /**
+     * {@code Number(texto)} do JavaScript (vazio = 0; texto inválido = NaN).
+     *
+     * @param raw texto
+     * @return o número, ou NaN
+     */
+    public static double jsNumber(String raw) {
+
+        // ── 1. Vazio é zero; "Infinity" é infinito (e o chamador recusa).
+        String text = jsTrim(raw);
+        if (text.isEmpty()) {
+            return 0;
+        }
+        if (text.matches("[+-]?Infinity")) {
+            return text.startsWith("-") ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+        }
+
+        // ── 2. Decimal comum, com expoente opcional.
+        if (DECIMAL.matcher(text).matches()) {
+            return Double.parseDouble(text);
+        }
+
+        // ── 3. Inteiro em outra base (sem sinal, como no JavaScript).
+        var radix = RADIX.matcher(text);
+        if (radix.matches()) {
+            int base = switch (Character.toLowerCase(radix.group(1).charAt(0))) {
+                case 'x' -> 16;
+                case 'o' -> 8;
+                default -> 2;
+            };
+            return parseRadix(radix.group(2), base);
+        }
+        return Double.NaN;
+    }
+
+    /**
+     * Inteiro numa base, ou NaN se tiver dígito fora dela.
+     *
+     * @param digits dígitos
+     * @param base   base
+     * @return o número
+     */
+    private static double parseRadix(String digits, int base) {
+        try {
+            return new BigInteger(digits, base).doubleValue();
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
+    /**
+     * {@code String(v)} do JavaScript para os tipos que chegam do JSON.
+     *
+     * @param value valor não nulo
+     * @return o texto
+     */
+    private static String jsString(Object value) {
+        return switch (value) {
+            case Double d -> jsNumberText(d);
+            case Float f -> jsNumberText(f.doubleValue());
+            case BigDecimal b -> jsNumberText(b.doubleValue());
+            case List<?> list -> String.join(",", list.stream().map(v -> v == null ? "" : jsString(v))
+                    .toList());
+            case Map<?, ?> map -> "[object Object]";
+            default -> String.valueOf(value);
+        };
+    }
+
+    /**
+     * Número como o JavaScript o escreve em texto ({@code String(n)}): inteiro sem ".0", decimal sem notação
+     * científica entre {@code 1e-6} e {@code 1e21}, e os mesmos dígitos (a menor forma que volta ao mesmo double).
+     *
+     * @param number o número
+     * @return o texto
+     */
+    public static String jsNumberText(double number) {
+
+        // ── 1. Casos especiais e inteiros.
+        if (Double.isNaN(number)) {
+            return "NaN";
+        }
+        if (Double.isInfinite(number)) {
+            return number > 0 ? "Infinity" : "-Infinity";
+        }
+        if (number == Math.rint(number) && Math.abs(number) < 1e21) {
+            return new BigDecimal(number).toBigInteger().toString();
+        }
+
+        // ── 2. Os dígitos mais curtos (Double.toString) na forma decimal ou com expoente, como o JavaScript.
+        BigDecimal shortest = new BigDecimal(Double.toString(number)).stripTrailingZeros();
+        double magnitude = Math.abs(number);
+        if (magnitude >= 1e-6 && magnitude < 1e21) {
+            return shortest.toPlainString();
+        }
+        String digits = shortest.unscaledValue().abs().toString();
+        int exponent = digits.length() - 1 - shortest.scale();
+        String mantissa = digits.length() == 1 ? digits : digits.charAt(0) + "." + digits.substring(1);
+        return (number < 0 ? "-" : "") + mantissa + "e" + (exponent >= 0 ? "+" : "") + exponent;
+    }
+}

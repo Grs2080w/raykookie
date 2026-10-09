@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/devolucoes/{id}/decisao e /tentar",
+  "type": "object",
+  "properties": { "ok": { "const": true }, "status": { "type": "string" } },
+  "required": ["ok", "status"],
+  "additionalProperties": false
+}

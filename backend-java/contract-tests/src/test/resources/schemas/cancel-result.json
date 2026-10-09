@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/cliente/pedidos/{id}/cancelar",
+  "type": "object",
+  "properties": {
+    "ok": {
+      "const": true
+    },
+    "state": {
+      "enum": [
+        "cancelled",
+        "already"
+      ]
+    },
+    "refunded": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "ok",
+    "state"
+  ],
+  "additionalProperties": false
+}

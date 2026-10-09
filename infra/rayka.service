@@ -11,6 +11,8 @@ WorkingDirectory=/home/g_snts/works/rayka-estoque/backend
 EnvironmentFile=/home/g_snts/works/rayka-estoque/backend/.env
 Environment=NODE_ENV=production
 Environment=PORT=10005
+Environment=FRONTEND_DIR=/home/g_snts/works/rayka-estoque/frontend
+Environment=DOWNLOADS_DIR=/home/g_snts/works/rayka-estoque/downloads
 ExecStart=/home/g_snts/.nvm/versions/node/v22.21.1/bin/node server.mjs
 Restart=always
 RestartSec=3

@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/price-alerts",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "recipe_id": {
+        "type": "integer"
+      },
+      "recipe": {
+        "type": "string"
+      },
+      "kind": {
+        "enum": [
+          "margem",
+          "preco"
+        ]
+      },
+      "before_value": {
+        "type": "number"
+      },
+      "after_value": {
+        "type": "number"
+      },
+      "suggested": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "cause": {
+        "type": "string"
+      },
+      "created_at": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "recipe_id",
+      "recipe",
+      "kind",
+      "before_value",
+      "after_value",
+      "suggested",
+      "cause",
+      "created_at"
+    ],
+    "additionalProperties": false
+  }
+}

@@ -27,14 +27,13 @@
         "./*"
       ],
       "@shared/*": [
-        "../shared/*"
+        "./shared/*"
       ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "../shared/**/*.ts",
     ".next-test/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",

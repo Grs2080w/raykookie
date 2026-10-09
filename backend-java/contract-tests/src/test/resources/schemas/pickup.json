@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/pickup",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "instructions": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "label",
+    "address",
+    "instructions"
+  ],
+  "additionalProperties": false
+}

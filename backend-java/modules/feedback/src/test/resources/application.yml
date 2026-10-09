@@ -1,0 +1,4 @@
+# Os testes deste módulo usam a mesma configuração de banco que o app importa.
+spring:
+  config:
+    import: classpath:persistence.yml

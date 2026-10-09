@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/dashboard",
+  "type": "object",
+  "properties": {
+    "refundsWaiting": { "type": "integer" }, "refundsPending": { "type": "number" },
+    "refundsFailed": { "type": "integer" }, "username": { "type": "string" },
+    "month": { "type": "string", "pattern": "^\\d{4}-\\d{2}-01$" }, "ingredientCount": { "type": "integer" },
+    "goal": { "type": "object" }, "stats": { "type": "object" }, "receivable": { "type": "number" },
+    "empty": { "type": "boolean" }, "low": { "type": "array" }, "upcoming": { "type": "array" },
+    "best": { "type": "array" }
+  },
+  "required": ["refundsWaiting", "refundsPending", "refundsFailed", "username", "month", "ingredientCount", "goal",
+    "stats", "receivable", "empty", "low", "upcoming", "best"],
+  "additionalProperties": false
+}

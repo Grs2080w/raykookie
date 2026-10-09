@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST /api/cliente/pedidos/{id}/devolucao",
+  "type": "object",
+  "properties": { "ok": { "const": true }, "id": { "type": "integer" } },
+  "required": ["ok", "id"],
+  "additionalProperties": false
+}

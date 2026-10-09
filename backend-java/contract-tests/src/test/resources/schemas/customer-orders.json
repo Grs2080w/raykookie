@@ -1,0 +1,320 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/cliente/pedidos",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "code": {
+        "type": "integer"
+      },
+      "pickup_address": {
+        "type": "string"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "scheduled_for": {
+        "type": "string"
+      },
+      "time_window": {
+        "type": "string"
+      },
+      "fulfillment": {
+        "type": "string"
+      },
+      "street": {
+        "type": "string"
+      },
+      "number": {
+        "type": "string"
+      },
+      "complement": {
+        "type": "string"
+      },
+      "district": {
+        "type": "string"
+      },
+      "city": {
+        "type": "string"
+      },
+      "payment_method": {
+        "type": "string"
+      },
+      "installments": {
+        "type": "integer"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "total": {
+        "type": "number"
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "qty": {
+              "type": "number"
+            },
+            "unit_price": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "qty",
+            "unit_price"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "refunded_total": {
+        "type": "number"
+      },
+      "cancelled_by": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "cancel_reason": {
+        "type": "string"
+      },
+      "cancel_reason_code": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "cancel_note": {
+        "type": "string"
+      },
+      "manual": {
+        "type": "boolean"
+      },
+      "can_cancel": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string"
+      },
+      "paid": {
+        "type": "boolean"
+      },
+      "payment_state": {
+        "enum": [
+          "pendente",
+          "expirado",
+          "cancelado",
+          "pago",
+          "devolucao_parcial",
+          "devolvido"
+        ]
+      },
+      "refund": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "enum": [
+              "automatico",
+              "solicitacao",
+              "nenhum"
+            ]
+          },
+          "max_amount": {
+            "type": "number"
+          },
+          "photos_required": {
+            "type": "boolean"
+          },
+          "deadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "why_not": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "max_amount",
+          "photos_required",
+          "deadline",
+          "why_not"
+        ],
+        "additionalProperties": false
+      },
+      "cancel": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "by",
+          "code",
+          "reason",
+          "note",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "refunds": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "requested_amount": {
+              "type": "number"
+            },
+            "approved_amount": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "decision_note": {
+              "type": "string"
+            },
+            "decision_reason": {
+              "type": "string"
+            },
+            "photos": {
+              "type": "integer"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "refunded_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "status",
+            "label",
+            "reason",
+            "requested_amount",
+            "approved_amount",
+            "decision_note",
+            "decision_reason",
+            "photos",
+            "created_at",
+            "refunded_at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "pix": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "qr_base64": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "integer"
+          },
+          "expired": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "qr_base64",
+          "expires_in",
+          "expired"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "id",
+      "code",
+      "pickup_address",
+      "created_at",
+      "scheduled_for",
+      "time_window",
+      "fulfillment",
+      "street",
+      "number",
+      "complement",
+      "district",
+      "city",
+      "payment_method",
+      "installments",
+      "notes",
+      "total",
+      "items",
+      "refunded_total",
+      "cancelled_by",
+      "cancel_reason",
+      "cancel_reason_code",
+      "cancel_note",
+      "manual",
+      "can_cancel",
+      "status",
+      "paid",
+      "payment_state",
+      "refund",
+      "cancel",
+      "refunds",
+      "pix"
+    ],
+    "additionalProperties": false
+  }
+}

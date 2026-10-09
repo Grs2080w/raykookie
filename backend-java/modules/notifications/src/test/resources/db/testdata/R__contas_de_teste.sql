@@ -1,0 +1,4 @@
+-- Contas dos testes do customers: a dona (SHOP_OWNER=dona) e dois clientes, com a senha "senha-de-teste-123".
+INSERT INTO users (username, password_hash) VALUES ('dona', 'scrypt$00112233445566778899aabbccddeeff$216992f0b9009b3af7a1ae842f0b167c45e4c876e89b9ebea0aae61d62c690a42dea16df88ba4d801cf641c80e33edeacb7d65df1e739162cb307c6536e905ff') ON CONFLICT DO NOTHING;
+INSERT INTO customers (email, name, password_hash) VALUES ('ana@teste.com', 'Ana', 'scrypt$00112233445566778899aabbccddeeff$216992f0b9009b3af7a1ae842f0b167c45e4c876e89b9ebea0aae61d62c690a42dea16df88ba4d801cf641c80e33edeacb7d65df1e739162cb307c6536e905ff') ON CONFLICT DO NOTHING;
+INSERT INTO customers (email, name, password_hash) VALUES ('bia@teste.com', 'Bia', 'scrypt$00112233445566778899aabbccddeeff$216992f0b9009b3af7a1ae842f0b167c45e4c876e89b9ebea0aae61d62c690a42dea16df88ba4d801cf641c80e33edeacb7d65df1e739162cb307c6536e905ff') ON CONFLICT DO NOTHING;

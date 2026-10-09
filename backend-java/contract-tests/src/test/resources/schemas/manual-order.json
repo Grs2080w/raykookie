@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "POST/PATCH /api/orders",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "user_id": {
+      "type": "integer"
+    },
+    "number": {
+      "type": "integer"
+    },
+    "order_date": {
+      "type": "string"
+    },
+    "customer": {
+      "type": "string"
+    },
+    "recipe_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "product": {
+      "type": "string"
+    },
+    "qty": {
+      "type": "number"
+    },
+    "unit_price": {
+      "type": "number"
+    },
+    "delivery_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "novo",
+        "producao",
+        "pronto",
+        "entregue",
+        "cancelado"
+      ]
+    },
+    "payment": {
+      "enum": [
+        "pendente",
+        "sinal",
+        "pago"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "shop_order_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "address": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "number",
+    "order_date",
+    "customer",
+    "recipe_id",
+    "product",
+    "qty",
+    "unit_price",
+    "delivery_date",
+    "status",
+    "payment",
+    "notes",
+    "created_at",
+    "shop_order_id",
+    "address"
+  ],
+  "additionalProperties": false
+}

@@ -1,13 +1,17 @@
 # Arquitetura
 
+Produção (dois deploys independentes):
+
 ```
-                         ┌─────────────────────────────────────────┐
- navegador ────────────▶ │  um processo Node, porta 10005           │ ───▶ PostgreSQL
- app Flutter ──────────▶ │  (backend/server.mjs)                    │
-   https://…             │    /api/*  → API        (backend/)       │
-                         │    o resto → site/painel (frontend/ build)│
-                         └─────────────────────────────────────────┘
+ navegador ──▶ Vercel (frontend/, raykookie.kntap.com.br) ── /api/* (vercel.json) ──┐
+                                                                                    ▼
+ app Flutter ─────────────────────────────▶ container Docker raykookie-api (backend/server.mjs,
+                                             raykookie-api.kntap.com.br) ───▶ PostgreSQL
 ```
+
+`backend/server.mjs` também sabe servir o build do `frontend/` no mesmo processo (`/api/*` → API, o resto → site)
+quando `FRONTEND_DIR` aponta para um frontend buildado; sem essa variável (como na imagem Docker) responde só a API.
+Esse modo de processo único é o que `backend/tests/e2e/` exercita.
 
 ## Pastas
 
@@ -15,17 +19,21 @@
 |---|---|
 | `backend/` | API em Next.js (somente rotas `app/api`), regras de negócio, acesso ao banco, `migrations/` e `scripts/`. Em produção o `server.mjs` dele também entrega o build do frontend. |
 | `frontend/` | Telas em Next.js: landing, loja do cliente (`/cliente/*`) e painel (`/dashboard`, `/estoque`, …). Não acessa o banco: busca tudo na API (chamada ao próprio processo). No desenvolvimento, repassa `/api/*` ao backend de desenvolvimento. |
-| `shared/` | TypeScript puro usado pelos dois: cálculo de preço, regras/validação do pedido, leitura de números pt-BR, tipos do contrato da API. |
+| `shared/` | TypeScript puro usado pelo frontend: cálculo de preço, regras/validação do pedido, leitura de números pt-BR, tipos do contrato da API. |
+| `backend/shared/` | Cópia desses módulos para o backend, que é autocontido (nada fora de `backend/` é usado). Mudou uma regra em `shared/`? Copie também para `backend/shared/` — `backend/tests/isolation.test.ts` impede que o backend volte a importar de fora. |
 | `mobile-client/` | App Flutter do **cliente**: cardápio (landing), login, pedidos e novo pedido. Pacote `br.com.kntap.raykookie`. |
 | `mobile-server/` | App Flutter de **gestão**: dashboard, estoque (com leitura de nota fiscal por QR code), receitas, pedidos, metas, categorias e custos, com login por biometria. Pacote `br.com.kntap.raykookie_gestao`, ícone escuro. |
 | `mobile-common/` | Pacote Dart com o que os dois apps dividem (cliente da API, sessão, modelos, preço, validação de pedido, tema e widgets). |
 | `downloads/` | APKs publicados e `manifest.json` (versão/build/tamanho/SHA-256 de cada app). |
-| `infra/` | Serviços systemd e scripts de build/instalação/verificação. |
+| `infra/` | Scripts de build/instalação/verificação e `infra/ci/` (pipeline). |
+| `backend/tests/e2e/` | Testes de fumaça do `backend/server.mjs` (sobe o servidor de verdade e confere roteamento, saúde e desligamento). |
 | `docs/` | Esta documentação. |
+| `raykookie-arts/` | Logos e referências visuais (fonte de design, não usada pelo build; `referencias-designs/` fica fora do git). |
+| `legacy/` | O app único de antes da divisão backend/frontend. Não roda nem é testado; veja `legacy/README.md`. |
 
 ## Decisões
 
-- **Um só processo e uma só porta.** `backend/server.mjs` sobe o Next do backend e o Next do frontend juntos e decide pela URL (`/api/*` ou o resto). Um serviço, uma porta, um domínio: Google OAuth, cookies e app usam o mesmo endereço, sem CORS e sem proxy.
+- **Mesma origem para o navegador.** Em produção o site (Vercel) reescreve `/api/*` para a API, então Google OAuth e cookies funcionam como num domínio só, sem CORS. Localmente, `backend/server.mjs` ainda pode subir backend e frontend num processo e decidir pela URL (`/api/*` ou o resto).
 - **Backend sem telas, frontend sem banco.** O frontend (e o app) só conhecem o contrato em `docs/API.md`. O que vale para o site vale para o app.
 - **Duas contas separadas.** Confeiteira (`users`/`sessions`) e cliente (`customers`/`customer_sessions`). Tokens não se misturam.
 - **Sessão por cookie (web) ou Bearer (mobile).** O mesmo token de sessão; o mobile o recebe no corpo do login (`x-client: mobile`).

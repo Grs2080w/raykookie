@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>br.com.kntap.raykookie</groupId>
+        <artifactId>raykookie-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>raykookie-app</artifactId>
+    <name>Raykookie App</name>
+    <description>Ponto de entrada Spring Boot: liga os módulos e carrega a configuração.</description>
+
+    <properties>
+        <!-- Mockito vem do spring-boot-starter-test; carregado como agente, sem aviso no JDK 26. -->
+        <mockito.javaagent>-javaagent:${org.mockito:mockito-core:jar}</mockito.javaagent>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-kernel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-ratelimit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-observability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-scheduling</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-identity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-releases</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-insights</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-feedback</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-refunds</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-payments</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-orders</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-storefront</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-purchasing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-catalog</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-notifications</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-customers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-testing</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- O Dockerfile (Tarefa 1.3) copia app/target/raykookie-app.jar. -->
+        <finalName>raykookie-app</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- O jar repackaged guarda as classes em BOOT-INF; o teste usa as classes compiladas. -->
+                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- Publica o caminho de cada dependência como propriedade (usado pelo -javaagent do Mockito). -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>dependency-paths</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!--
+                    Cobertura agregada do sistema inteiro: junta o jacoco.exec de todo módulo (já construídos,
+                    porque o app depende de todos) com as classes de todo módulo e exige o mínimo de linhas.
+                    O jacoco:check do Maven só enxerga as classes do próprio módulo, por isso a tarefa Ant.
+                    platform/testing fica de fora: é código de apoio aos testes, que os testes dos outros módulos
+                    marcariam como coberto de graça; ele tem a sua própria verificação no pom dele.
+                -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>org.jacoco.ant</artifactId>
+                        <version>${jacoco.version}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>coverage-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml"
+                                         classpathref="maven.plugin.classpath"/>
+                                <jacoco:report xmlns:jacoco="antlib:org.jacoco.ant">
+                                    <executiondata>
+                                        <fileset dir="${maven.multiModuleProjectDirectory}"
+                                                 includes="**/target/jacoco.exec"/>
+                                    </executiondata>
+                                    <structure name="Raykookie (agregado)">
+                                        <classfiles>
+                                            <fileset dir="${maven.multiModuleProjectDirectory}"
+                                                     includes="**/target/classes/**/*.class"
+                                                     excludes="platform/testing/**"/>
+                                        </classfiles>
+                                        <sourcefiles encoding="UTF-8">
+                                            <fileset dir="${maven.multiModuleProjectDirectory}"
+                                                     includes="**/src/main/java/**/*.java"
+                                                     excludes="**/target/**,platform/testing/**"/>
+                                        </sourcefiles>
+                                    </structure>
+                                    <html destdir="${project.build.directory}/site/jacoco-aggregate"/>
+                                    <xml destfile="${project.build.directory}/site/jacoco-aggregate/jacoco.xml"/>
+                                    <check failonviolation="true">
+                                        <rule element="BUNDLE">
+                                            <limit counter="LINE" value="COVEREDRATIO"
+                                                   minimum="${coverage.aggregate.minimum}"/>
+                                        </rule>
+                                    </check>
+                                </jacoco:report>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

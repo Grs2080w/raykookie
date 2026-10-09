@@ -1,0 +1,5 @@
+CREATE TABLE beta (id INTEGER);
+DO $$
+BEGIN
+  INSERT INTO alpha VALUES (1);
+END $$;

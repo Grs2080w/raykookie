@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/payment-config",
+  "type": "object",
+  "properties": {
+    "cardEnabled": {
+      "type": "boolean"
+    },
+    "publicKey": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "cardEnabled",
+    "publicKey"
+  ],
+  "additionalProperties": false
+}

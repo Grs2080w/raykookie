@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/cliente/config",
+  "type": "object",
+  "properties": {
+    "googleEnabled": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "googleEnabled"
+  ],
+  "additionalProperties": false
+}

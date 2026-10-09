@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/settings",
+  "type": "object",
+  "properties": {
+    "hourly_rate": {
+      "type": "number"
+    },
+    "monthly_units": {
+      "type": "number"
+    },
+    "min_margin_pct": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "hourly_rate",
+    "monthly_units",
+    "min_margin_pct"
+  ],
+  "additionalProperties": false
+}

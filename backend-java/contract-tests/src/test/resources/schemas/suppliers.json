@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/suppliers",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "string"
+      },
+      "kind": {
+        "enum": [
+          "site",
+          "loja"
+        ]
+      },
+      "url": {
+        "type": "string"
+      },
+      "address": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "scraper": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "last_ok_at": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "last_error": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "kind",
+      "url",
+      "address",
+      "notes",
+      "scraper",
+      "last_ok_at",
+      "last_error"
+    ],
+    "additionalProperties": false
+  }
+}

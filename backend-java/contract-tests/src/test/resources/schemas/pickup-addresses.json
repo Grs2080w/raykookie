@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GET /api/pickup-addresses",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "label": {
+        "type": "string"
+      },
+      "cep": {
+        "type": "string"
+      },
+      "street": {
+        "type": "string"
+      },
+      "number": {
+        "type": "string"
+      },
+      "complement": {
+        "type": "string"
+      },
+      "district": {
+        "type": "string"
+      },
+      "city": {
+        "type": "string"
+      },
+      "instructions": {
+        "type": "string"
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "address": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "label",
+      "cep",
+      "street",
+      "number",
+      "complement",
+      "district",
+      "city",
+      "instructions",
+      "is_active",
+      "address"
+    ],
+    "additionalProperties": false
+  }
+}
