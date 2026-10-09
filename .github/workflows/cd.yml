@@ -90,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Builda a imagem candidata (não mexe em "latest" ainda, pra sobrar algo pro rollback)
-        run: docker build -f backend/Dockerfile -t raykookie-api:candidate .
+        run: docker build -t raykookie-api:candidate backend
       - name: Roda as migrations pendentes (aditivas — o container antigo, ainda no ar, continua funcionando)
         run: docker run --rm --network host --env-file "$ENV_FILE" raykookie-api:candidate node scripts/migrate.mjs
       - name: Troca o container (guarda a imagem atual como "previous" para o rollback)
