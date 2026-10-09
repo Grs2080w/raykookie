@@ -27,8 +27,9 @@ import tools.jackson.databind.json.JsonMapper;
  * <ol>
  *   <li>o access token precisa ser aceito ({@code GET /users/me} → 200) e, em produção, não pode ser de
  *       uma conta de teste ({@code tags} com {@code test_user}; ver o diagnóstico da Tarefa 0.3);</li>
- *   <li>a chave pública precisa ser aceita
- *       ({@code GET /v1/payment_methods/installments?bin=503143&amount=10&public_key=…} → 200).</li>
+ *   <li>a chave pública precisa ser aceita ({@code GET /v1/payment_methods?public_key=…} → 200; chave
+ *       inválida → 400). Não usa {@code /installments?bin=…}: o BIN 503143 é de cartão de teste e, com
+ *       credenciais de produção, responde 404 mesmo com a chave certa.</li>
  * </ol>
  *
  * <p>Conferir se os dois são da mesma conta ficou de fora: a Tarefa 0.3 não achou um jeito documentado de
@@ -147,8 +148,7 @@ public class MercadoPagoEnvironmentCheck implements ApplicationRunner {
      */
     private Optional<String> problemWithPublicKey() {
         String key = URLEncoder.encode(properties.mp().publicKey(), StandardCharsets.UTF_8);
-        Response response = call(get("/v1/payment_methods/installments?bin=503143&amount=10&public_key=" + key)
-                .build());
+        Response response = call(get("/v1/payment_methods?public_key=" + key).build());
         if (response.status() != 200) {
             return Optional.of("MP_PUBLIC_KEY recusada pelo Mercado Pago (" + response.describe() + ").");
         }

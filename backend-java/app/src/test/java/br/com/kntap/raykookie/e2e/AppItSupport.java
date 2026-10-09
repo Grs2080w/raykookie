@@ -86,7 +86,7 @@ abstract class AppItSupport extends PostgresTestBase {
         MP.start();
         FIREBASE.start();
         MP.stubFor(get(urlPathEqualTo("/users/me")).willReturn(json("{\"id\":1}")));
-        MP.stubFor(get(urlPathEqualTo("/v1/payment_methods/installments")).willReturn(json("[]")));
+        MP.stubFor(get(urlPathEqualTo("/v1/payment_methods")).willReturn(json("[]")));
         FIREBASE.stubFor(any(anyUrl()).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
     }
 
