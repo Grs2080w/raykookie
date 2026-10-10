@@ -147,24 +147,37 @@ class _OrderFormState extends State<_OrderForm> {
   }
 
   /// "Continuar": confere a etapa atual antes de avançar.
-  void _next() {
+  /// Na etapa do pagamento com cartão, tokeniza antes de validar: a validação exige o token, e o formulário
+  /// do cartão some nas etapas seguintes (não dá para tokenizar só no "Finalizar pedido").
+  Future<void> _next() async {
+    if (_form.paymentMethod == 'cartao' && _cardKey.currentState != null) {
+      setState(() => _busy = true);
+      final ok = await _tokenizeCard();
+      if (mounted) setState(() => _busy = false);
+      if (!ok) return;
+    }
     final err = validateOrderStep(_stepIdx, _form, _cart, widget.menu.items);
     if (err != null) return Toast.error(err);
     _goTo(_stepIdx + 1);
   }
 
+  /// Tokeniza o cartão do formulário e guarda no pedido. `false` = não validou (o aviso já apareceu).
+  Future<bool> _tokenizeCard() async {
+    final t = await _cardKey.currentState?.tokenize();
+    if (t == null) return false;
+    _form
+      ..cardToken = t.cardToken
+      ..cardPaymentMethodId = t.paymentMethodId
+      ..cpf = t.cpf
+      ..installments = t.installments;
+    return true;
+  }
+
   Future<void> _submit() async {
-    if (_form.paymentMethod == 'cartao') {
-      final t = await _cardKey.currentState?.tokenize();
-      if (t == null) return;
-      _form
-        ..cardToken = t.cardToken
-        ..cardPaymentMethodId = t.paymentMethodId
-        ..cpf = t.cpf
-        ..installments = t.installments;
-    }
+    if (_form.paymentMethod == 'cartao' && _form.cardToken.isEmpty && !await _tokenizeCard()) return;
     final err = validateOrder(_form, _cart, widget.menu.items);
     if (err != null) return Toast.error(err);
+    if (!mounted) return;
     final session = context.read<Session>();
     setState(() => _busy = true);
     try {
@@ -174,6 +187,8 @@ class _OrderFormState extends State<_OrderForm> {
       if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}. Você pode tentar outro cartão no pedido.');
       if (mounted) context.go('/cliente/pedidos?novo=${r['id']}');
     } on ApiException catch (e) {
+      // o token do cartão é de uso único: numa nova tentativa, o cliente preenche o cartão de novo
+      _form.cardToken = '';
       Toast.error(e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
