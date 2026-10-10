@@ -39,6 +39,15 @@ public sealed interface CustomerNotice {
     }
 
     /**
+     * Cartão que estava em análise no Mercado Pago foi recusado (nada foi cobrado).
+     *
+     * @param order  pedido
+     * @param reason motivo da recusa, em português
+     */
+    record CardRefused(OrderRef order, String reason) implements CustomerNotice {
+    }
+
+    /**
      * Mudança de etapa (em preparo, pronto, entregue).
      *
      * @param order  pedido

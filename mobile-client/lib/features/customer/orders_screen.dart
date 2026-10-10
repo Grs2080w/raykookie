@@ -367,7 +367,7 @@ class _OrderCardState extends State<_OrderCard> {
             if (o.hasPix && o.status != 'cancelado')
               _PixBox(o, onChanged: onChanged),
             if (o.paymentMethod == 'cartao' && !o.paid && o.status != 'cancelado')
-              _CardRetryBox(o, onChanged: onChanged),
+              o.cardInReview ? const _CardInReviewBox() : _CardRetryBox(o, onChanged: onChanged),
             if (o.canCancel)
               Padding(
                 padding: const EdgeInsets.only(top: 14),
@@ -779,7 +779,27 @@ class _PixBoxState extends State<_PixBox> {
   }
 }
 
-/// Pagamento com cartão recusado ou pendente: deixa tentar outro cartão no mesmo pedido.
+/// Cartão em análise no Mercado Pago: sem formulário (outra tentativa seria barrada e poderia cobrar duas vezes).
+class _CardInReviewBox extends StatelessWidget {
+  const _CardInReviewBox();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: AppCard(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.hourglass_top_rounded, color: c.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Text(cardInReview, style: TextStyle(color: c.muted, fontSize: 13.5))),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Pagamento com cartão recusado: deixa tentar outro cartão no mesmo pedido.
 class _CardRetryBox extends StatefulWidget {
   const _CardRetryBox(this.o, {required this.onChanged});
   final ShopOrder o;
@@ -804,17 +824,20 @@ class _CardRetryBoxState extends State<_CardRetryBox> {
   }
 
   Future<void> _retry() async {
+    final api = context.read<Session>().customerApi;
     final t = await _cardKey.currentState?.tokenize();
-    if (t == null) return;
+    if (t == null || !mounted) return;
     setState(() => _busy = true);
     try {
-      final r = Map<String, dynamic>.from(await context.read<Session>().customerApi.post('/api/cliente/pedidos/${widget.o.id}/cartao', {
+      final r = Map<String, dynamic>.from(await api.post('/api/cliente/pedidos/${widget.o.id}/cartao', {
         'card_token': t.cardToken, 'card_payment_method_id': t.paymentMethodId, 'cpf': t.cpf, 'installments': t.installments,
+        if (t.issuerId.isNotEmpty) 'card_issuer_id': t.issuerId,
+        if (t.deviceId.isNotEmpty) 'device_id': t.deviceId,
       }) as Map);
       if (r['approved'] == true) {
         Toast.ok('Pagamento aprovado!');
       } else if (r['pending'] == true) {
-        Toast.ok('Pagamento em análise. Avisamos quando confirmar.');
+        Toast.warn(cardInReview);
       } else {
         Toast.error('${r['reason'] ?? 'Pagamento recusado'}');
       }
@@ -952,7 +975,7 @@ class _CancelDialogState extends State<_CancelDialog> {
   }
 }
 
-String _payState(ShopOrder o) => switch (o.paymentState) {
+String _payState(ShopOrder o) => o.cardInReview ? 'Em análise' : switch (o.paymentState) {
       'pago' => 'Pago',
       'devolucao_parcial' => 'Devolvido ${money(o.refundedTotal)}',
       'devolvido' => 'Devolvido',

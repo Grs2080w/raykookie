@@ -97,8 +97,22 @@ public interface PaymentGateway {
      * @param email          e-mail do pagador
      * @param firstName      primeiro nome
      * @param cpf            CPF só com dígitos
+     * @param buyer          dados do comprador para o antifraude do Mercado Pago
      */
     record CardCharge(String reference, String idempotencyKey, Money amount, String description, String token,
-            int installments, String methodId, String issuerId, String email, String firstName, String cpf) {
+            int installments, String methodId, String issuerId, String email, String firstName, String cpf,
+            Buyer buyer) {
+    }
+
+    /**
+     * O que o antifraude do Mercado Pago usa para reconhecer o comprador (sem isso ele recusa mais, com
+     * {@code cc_rejected_high_risk}). Qualquer campo pode ser nulo.
+     *
+     * @param lastName sobrenome
+     * @param phone    telefone com DDD, só dígitos
+     * @param deviceId device ID do script de segurança do Mercado Pago (header {@code X-meli-session-id})
+     * @param ip       IP real do cliente
+     */
+    record Buyer(String lastName, String phone, String deviceId, String ip) {
     }
 }

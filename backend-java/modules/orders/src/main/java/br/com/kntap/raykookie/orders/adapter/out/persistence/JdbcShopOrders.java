@@ -35,7 +35,10 @@ public class JdbcShopOrders implements ShopOrders {
                    so.cancel_reason, so.cancel_reason_code, so.cancel_note, so.pix_qr_code, so.pix_qr_base64,
                    so.pix_expires_at, so.manual,
                    GREATEST(0, floor(extract(epoch from (so.pix_expires_at - now()))))::int AS pix_left,
-                   (SELECT array_agg(o.status) FROM orders o WHERE o.shop_order_id = so.id) AS statuses
+                   (SELECT array_agg(o.status) FROM orders o WHERE o.shop_order_id = so.id) AS statuses,
+                   EXISTS (SELECT 1 FROM payment_attempts pa WHERE pa.shop_order_id = so.id
+                              AND pa.state IN ('in_flight', 'pending')
+                              AND pa.created_at > now() - interval '7 days') AS card_in_review
               FROM shop_orders so
              WHERE so.customer_id = :customer AND (CAST(:only AS int) IS NULL OR so.id = :only)
              ORDER BY so.created_at DESC, so.id DESC LIMIT 100""";

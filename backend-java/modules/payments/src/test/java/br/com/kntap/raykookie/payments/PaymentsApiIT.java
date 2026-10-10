@@ -183,7 +183,8 @@ class PaymentsApiIT extends PaymentsItSupport {
                 VALUES (:id, :link, '1.2.3.4', 'cartao', 'in_flight', now() - interval '3 minutes')""")
                 .param("id", lost).param("link", link).update();
         expireStaleAttempts.run();
+        // nada foi cobrado: a tentativa fecha e não volta a ser conferida a cada 5 minutos
         assertThat(jdbc.sql("SELECT state FROM payment_attempts WHERE id = :id").param("id", lost).query(String.class)
-                .single()).isEqualTo("error");
+                .single()).isEqualTo("rejected");
     }
 }

@@ -191,6 +191,9 @@ public final class Messages {
             case CustomerNotice.Paid p -> Optional.of(customerMessage(token, o, "pagamento",
                     "Pagamento confirmado · #" + o.code(), "Recebemos o pagamento de " + brl(o.total())
                             + ". Seu pedido entra na fila de produção."));
+            case CustomerNotice.CardRefused r -> Optional.of(customerMessage(token, o, "pagamento",
+                    "Cartão não aprovado · #" + o.code(), "Nada foi cobrado. " + r.reason()
+                            + " Abra o pedido para tentar outro cartão."));
             case CustomerNotice.Status s -> status(token, o, s.status());
             case CustomerNotice.StoreCancel c -> Optional.of(customerMessage(token, o, "cancelado",
                     "Pedido cancelado pela loja · #" + o.code(), "Motivo: " + c.reason() + "."

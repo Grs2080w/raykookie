@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.payments;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
@@ -572,7 +573,7 @@ class PayLinkIT extends PaymentsItSupport {
      * Cartão do link: recusa, pendente e limite.
      */
     @Test
-    @DisplayName("cartão do link: recusa conta a tentativa; pendente guarda o pagamento; 5 tentativas 429; cancelado 409")
+    @DisplayName("cartão do link: recusa conta; pendente guarda o pagamento; recusado depois, 5 tentativas 429")
     void linkCard() {
         Seeded s = seedLink(null);
         MP.stubFor(post(urlEqualTo("/v1/payments")).willReturn(json("{\"id\":" + paymentId() + ",\"status\":"
@@ -586,6 +587,8 @@ class PayLinkIT extends PaymentsItSupport {
                 .getBoolean("pending")).isTrue();
         assertThat(jdbc.sql("SELECT card_attempts || ':' || array_to_string(mp_payment_ids, ',') FROM order_pay_links "
                 + "WHERE id = :id").param("id", s.link()).query(String.class).single()).isEqualTo("2:" + pending);
+        MP.stubFor(get(urlEqualTo("/v1/payments/" + pending)).willReturn(json("{\"id\":" + pending + ",\"status\":"
+                + "\"rejected\",\"status_detail\":\"cc_rejected_high_risk\"}")));
         jdbc.sql("UPDATE order_pay_links SET card_attempts = 5 WHERE id = :id").param("id", s.link()).update();
         assertThat(api().body(card("APRO")).post("/api/pagar/" + s.token() + "/cartao").statusCode()).isEqualTo(429);
         jdbc.sql("UPDATE orders SET status = 'cancelado' WHERE id = :id").param("id", s.order()).update();

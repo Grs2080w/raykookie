@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.Optional;
 
 /**
@@ -234,8 +235,24 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
      * @param issuerId     emissor ({@code card_issuer_id}, opcional: as versões antigas do app não mandam)
      * @param cpf          CPF só com dígitos
      * @param installments parcelas
+     * @param deviceId     device ID do antifraude do Mercado Pago ({@code device_id}, opcional)
      */
-    public record Card(String token, String methodId, String issuerId, String cpf, int installments) {
+    public record Card(String token, String methodId, String issuerId, String cpf, int installments,
+            String deviceId) {
+
+        /** Formato do device ID do Mercado Pago (letras, números e {@code :._-}). */
+        private static final Pattern DEVICE_ID = Pattern.compile("[A-Za-z0-9:._-]{1,128}");
+
+        /**
+         * Device ID do antifraude do Mercado Pago, se veio num formato aceitável.
+         *
+         * @param raw valor do corpo
+         * @return o device ID, ou nulo
+         */
+        public static String deviceId(Object raw) {
+            String text = NodeInput.text(raw);
+            return DEVICE_ID.matcher(text).matches() ? text : null;
+        }
 
         /**
          * Confere os dados do cartão.
@@ -259,7 +276,8 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
             require(installments <= 1 || INSTALLMENTS_MIN.isLessThan(total),
                     "Parcelamento só para pedidos acima de R$ 150.");
             String issuer = NodeInput.text(body.get("card_issuer_id"));
-            return new Card(token, method, issuer.isEmpty() ? null : issuer, Cpf.clean(body.get("cpf")), installments);
+            return new Card(token, method, issuer.isEmpty() ? null : issuer, Cpf.clean(body.get("cpf")), installments,
+                    deviceId(body.get("device_id")));
         }
 
         /**

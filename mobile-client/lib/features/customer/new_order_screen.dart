@@ -171,7 +171,9 @@ class _OrderFormState extends State<_OrderForm> {
       ..cardToken = t.cardToken
       ..cardPaymentMethodId = t.paymentMethodId
       ..cpf = t.cpf
-      ..installments = t.installments;
+      ..installments = t.installments
+      ..cardIssuerId = t.issuerId
+      ..deviceId = t.deviceId;
     return true;
   }
 
@@ -186,7 +188,8 @@ class _OrderFormState extends State<_OrderForm> {
       final r = Map<String, dynamic>.from(await session.customerApi.post('/api/cliente/pedidos', _form.toJson(_cart)) as Map);
       await session.refreshProfile();
       final card = r['card'] is Map ? Map<String, dynamic>.from(r['card'] as Map) : null;
-      if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}. Você pode tentar outro cartão no pedido.');
+      if (card != null && card['pending'] == true) Toast.warn(cardInReview);
+      if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}');
       if (mounted) context.go('/cliente/pedidos?novo=${r['id']}');
     } on ApiException catch (e) {
       // o token do cartão é de uso único: a nova tentativa gera outro com o mesmo formulário

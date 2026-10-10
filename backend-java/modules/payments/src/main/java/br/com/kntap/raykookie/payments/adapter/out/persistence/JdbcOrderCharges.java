@@ -38,7 +38,8 @@ public class JdbcOrderCharges implements OrderCharges {
     @Override
     public Optional<ChargeTarget> target(long orderId, CustomerId customer) {
         return jdbc.sql("""
-                SELECT so.id, so.owner_id, so.public_code, so.total, so.contact_name, c.email, so.payment_method,
+                SELECT so.id, so.owner_id, so.public_code, so.total, so.contact_name, c.email, so.phone,
+                       so.payment_method,
                        so.paid_at IS NOT NULL AS paid, so.mp_payment_id, so.pix_qr_code, so.pix_qr_base64,
                        so.pix_expires_at, so.pix_attempts, so.card_attempts,
                        (SELECT array_agg(o.status) FROM orders o WHERE o.shop_order_id = so.id) AS statuses,
@@ -48,7 +49,8 @@ public class JdbcOrderCharges implements OrderCharges {
                 .param("id", orderId).param("customer", customer.value())
                 .query((rs, row) -> new ChargeTarget(rs.getLong("id"), new OwnerId(rs.getLong("owner_id")),
                         rs.getInt("public_code"), Jdbc.money(rs, "total"), rs.getString("contact_name"),
-                        rs.getString("email"), rs.getString("payment_method"), rs.getBoolean("paid"),
+                        rs.getString("email"), rs.getString("phone"), rs.getString("payment_method"),
+                        rs.getBoolean("paid"),
                         rs.getString("mp_payment_id"), rs.getString("pix_qr_code"), rs.getString("pix_qr_base64"),
                         Jdbc.instant(rs, "pix_expires_at"), rs.getInt("pix_attempts"), rs.getInt("card_attempts"),
                         strings(rs.getArray("statuses")), rs.getInt("items")))

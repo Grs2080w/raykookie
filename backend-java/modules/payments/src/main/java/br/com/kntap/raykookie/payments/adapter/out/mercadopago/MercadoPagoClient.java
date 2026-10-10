@@ -39,6 +39,9 @@ public class MercadoPagoClient implements PaymentGateway {
     /** Tempo limite de leitura. */
     static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
 
+    /** Nome que aparece na fatura do cartão (até 13 caracteres, sem acento). */
+    static final String STATEMENT_DESCRIPTOR = "RAYKOOKIE";
+
     /** JSON. */
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -101,11 +104,75 @@ public class MercadoPagoClient implements PaymentGateway {
         }
 
         // ── 2. Pagador, referência e aviso.
-        body.put("payer", Map.of("email", charge.email(), "first_name", charge.firstName(), "identification",
-                Map.of("type", "CPF", "number", charge.cpf())));
+        PaymentGateway.Buyer buyer = charge.buyer() == null ? new PaymentGateway.Buyer(null, null, null, null)
+                : charge.buyer();
+        Map<String, Object> payer = new LinkedHashMap<>();
+        payer.put("email", charge.email());
+        payer.put("first_name", charge.firstName());
+        if (present(buyer.lastName())) {
+            payer.put("last_name", buyer.lastName());
+        }
+        payer.put("identification", Map.of("type", "CPF", "number", charge.cpf()));
+        body.put("payer", payer);
         body.put("external_reference", charge.reference());
         body.put("notification_url", settings.siteUrl("/api/webhooks/mercadopago"));
-        return payment(call(HttpMethod.POST, "/v1/payments", body, charge.idempotencyKey()));
+
+        // ── 3. Antifraude: o item, o comprador, o IP, o nome na fatura e o aparelho (device ID).
+        body.put("statement_descriptor", STATEMENT_DESCRIPTOR);
+        body.put("additional_info", additionalInfo(charge, buyer));
+        Map<String, String> headers = present(buyer.deviceId()) ? Map.of("X-meli-session-id", buyer.deviceId())
+                : Map.of();
+        return payment(call(HttpMethod.POST, "/v1/payments", body, charge.idempotencyKey(), headers));
+    }
+
+    /**
+     * {@code additional_info} da cobrança no cartão: o pedido como item, o comprador com telefone e o IP. É o que o
+     * Mercado Pago pede para aprovar mais (sem isso o antifraude recusa com {@code cc_rejected_high_risk}).
+     *
+     * @param charge cobrança
+     * @param buyer  dados do comprador
+     * @return o objeto
+     */
+    private static Map<String, Object> additionalInfo(CardCharge charge, PaymentGateway.Buyer buyer) {
+
+        // ── 1. O pedido inteiro como um item.
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", charge.reference());
+        item.put("title", charge.description());
+        item.put("description", charge.description());
+        item.put("category_id", "food");
+        item.put("quantity", 1);
+        item.put("unit_price", reais(charge.amount()));
+
+        // ── 2. Comprador, com o telefone separado em DDD e número.
+        Map<String, Object> payer = new LinkedHashMap<>();
+        payer.put("first_name", charge.firstName());
+        if (present(buyer.lastName())) {
+            payer.put("last_name", buyer.lastName());
+        }
+        String phone = buyer.phone() == null ? "" : buyer.phone().replaceAll("\\D", "");
+        if (phone.length() >= 10) {
+            payer.put("phone", Map.of("area_code", phone.substring(0, 2), "number", phone.substring(2)));
+        }
+
+        // ── 3. Tudo junto, com o IP real do cliente.
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("items", List.of(item));
+        info.put("payer", payer);
+        if (present(buyer.ip())) {
+            info.put("ip_address", buyer.ip());
+        }
+        return info;
+    }
+
+    /**
+     * Diz se o texto tem conteúdo.
+     *
+     * @param text texto (pode ser nulo)
+     * @return verdadeiro se não for nulo nem vazio
+     */
+    private static boolean present(String text) {
+        return text != null && !text.isBlank();
     }
 
     /** {@inheritDoc} */
@@ -156,13 +223,30 @@ public class MercadoPagoClient implements PaymentGateway {
      * @return a resposta
      */
     private JsonNode call(HttpMethod method, String path, Object body, String idempotencyKey, Object... variables) {
+        return call(method, path, body, idempotencyKey, Map.of(), variables);
+    }
 
-        // ── 1. Requisição com o token e a chave de idempotência.
+    /**
+     * Chama a API com cabeçalhos extras (como o {@code X-meli-session-id} do antifraude).
+     *
+     * @param method         método
+     * @param path           caminho
+     * @param body           corpo (nulo = sem corpo)
+     * @param idempotencyKey chave de idempotência (nulo = sem)
+     * @param headers        cabeçalhos extras
+     * @param variables      variáveis do caminho
+     * @return a resposta
+     */
+    private JsonNode call(HttpMethod method, String path, Object body, String idempotencyKey,
+            Map<String, String> headers, Object... variables) {
+
+        // ── 1. Requisição com o token, a chave de idempotência e os cabeçalhos extras.
         RestClient.RequestBodySpec request = http.method(method).uri(path, variables)
                 .header("Authorization", "Bearer " + settings.accessToken()).contentType(MediaType.APPLICATION_JSON);
         if (idempotencyKey != null) {
             request.header("X-Idempotency-Key", idempotencyKey);
         }
+        headers.forEach(request::header);
         if (body != null) {
             request.body(JSON.writeValueAsString(body));
         }

@@ -96,6 +96,8 @@ class OrderForm {
   String contactName, phone, fulfillment, cep, street, number, complement, district, city, scheduledFor, timeWindow, paymentMethod, changeFor, notes;
   // só preenchidos quando paymentMethod == 'cartao'; cardToken/cpf nunca são guardados no servidor (ver shared/legal.ts)
   String cardToken = '', cardPaymentMethodId = '', cpf = '';
+  /// Emissor do cartão (vazio = não reconhecido) e device ID do antifraude do Mercado Pago (vazio = não obtido).
+  String cardIssuerId = '', deviceId = '';
   int installments = 1;
 
   Map<String, dynamic> toJson(Map<String, int> cart) => {
@@ -105,6 +107,8 @@ class OrderForm {
         'payment_method': paymentMethod, 'change_for': changeFor, 'notes': notes,
         if (paymentMethod == 'cartao') ...{
           'card_token': cardToken, 'card_payment_method_id': cardPaymentMethodId, 'cpf': cpf, 'installments': installments,
+          if (cardIssuerId.isNotEmpty) 'card_issuer_id': cardIssuerId,
+          if (deviceId.isNotEmpty) 'device_id': deviceId,
         },
       };
 }

@@ -36,6 +36,32 @@ public interface PaymentAttempts {
     List<Stale> stale(Instant before);
 
     /**
+     * Tentativas que o Mercado Pago deixou em análise ({@code pending}) num pedido ou link.
+     *
+     * @param shopOrderId pedido (nulo se for link)
+     * @param payLinkId   link (nulo se for pedido)
+     * @return as tentativas, com o pagamento no gateway
+     */
+    List<Open> open(Long shopOrderId, Long payLinkId);
+
+    /**
+     * Tentativas de um pedido ou link que ficaram sem resposta do Mercado Pago (erro sem pagamento conhecido, do
+     * último dia): ele pode ter criado o pagamento mesmo assim.
+     *
+     * @param shopOrderId pedido (nulo se for link)
+     * @param payLinkId   link (nulo se for pedido)
+     * @return os ids, da mais antiga para a mais nova
+     */
+    List<UUID> unanswered(Long shopOrderId, Long payLinkId);
+
+    /**
+     * Tentativas em análise da última semana, de qualquer pedido ou link (para a conciliação).
+     *
+     * @return as tentativas
+     */
+    List<Open> allOpen();
+
+    /**
      * Tentativa nova.
      *
      * @param id          id (também a chave de idempotência)
@@ -56,5 +82,16 @@ public interface PaymentAttempts {
      * @param state       estado atual
      */
     record Stale(UUID id, Long shopOrderId, Long payLinkId, String state) {
+    }
+
+    /**
+     * Tentativa em análise no Mercado Pago.
+     *
+     * @param id          id
+     * @param shopOrderId pedido da loja (nulo se for link)
+     * @param payLinkId   link (nulo se for pedido)
+     * @param gatewayId   pagamento no gateway
+     */
+    record Open(UUID id, Long shopOrderId, Long payLinkId, String gatewayId) {
     }
 }

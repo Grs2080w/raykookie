@@ -37,11 +37,12 @@ public interface ChargeStarter {
      * @param customer cliente
      * @param email    e-mail do cliente
      * @param name     nome para contato
+     * @param phone    telefone para contato (só dígitos)
      * @param total    total
      * @param items    quantos itens
      */
-    record NewOrder(long id, int code, OwnerId owner, CustomerId customer, String email, String name, Money total,
-            int items) {
+    record NewOrder(long id, int code, OwnerId owner, CustomerId customer, String email, String name, String phone,
+            Money total, int items) {
     }
 
     /**
@@ -52,7 +53,8 @@ public interface ChargeStarter {
      * @param issuerId     emissor (nulo em versões antigas do app)
      * @param cpf          CPF só com dígitos
      * @param installments parcelas
+     * @param deviceId     device ID do antifraude do Mercado Pago (nulo se o app não mandou)
      */
-    record Card(String token, String methodId, String issuerId, String cpf, int installments) {
+    record Card(String token, String methodId, String issuerId, String cpf, int installments, String deviceId) {
     }
 }

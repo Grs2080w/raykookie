@@ -211,7 +211,13 @@ class ShopOrderFormTest {
         body.put("items", List.of(Map.of("id", "3", "qty", 2)));
         body.put("installments", 3);
         ShopOrderForm form = parse(body);
-        assertThat(form.card()).isEqualTo(new ShopOrderForm.Card("tok_123", "master", null, "52998224725", 3));
+        assertThat(form.card()).isEqualTo(new ShopOrderForm.Card("tok_123", "master", null, "52998224725", 3, null));
+
+        // ── 3. Device ID do antifraude: aceito só no formato do Mercado Pago.
+        body.put("device_id", "armor.abc123:def-456_7.8");
+        assertThat(parse(body).card().deviceId()).isEqualTo("armor.abc123:def-456_7.8");
+        body.put("device_id", "<script>");
+        assertThat(parse(body).card().deviceId()).isNull();
     }
 
     /**

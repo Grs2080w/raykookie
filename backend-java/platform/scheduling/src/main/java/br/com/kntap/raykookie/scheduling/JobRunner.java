@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.Set;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
@@ -82,9 +83,21 @@ public class JobRunner {
      * @return o desfecho de cada tarefa, pelo nome
      */
     public Map<String, JobOutcome> runDue() {
+        return runDue(job -> true);
+    }
+
+    /**
+     * Roda, uma após a outra, as tarefas escolhidas que estão na hora.
+     *
+     * @param which quais tarefas podem rodar
+     * @return o desfecho de cada tarefa escolhida, pelo nome
+     */
+    public Map<String, JobOutcome> runDue(Predicate<ScheduledJob> which) {
         Map<String, JobOutcome> outcomes = new LinkedHashMap<>();
         for (ScheduledJob job : jobs) {
-            outcomes.put(job.name(), runIfDue(job));
+            if (which.test(job)) {
+                outcomes.put(job.name(), runIfDue(job));
+            }
         }
         return outcomes;
     }

@@ -1,16 +1,19 @@
 package br.com.kntap.raykookie.payments.application;
 
+import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.payments.application.ports.OrderCharges;
 import br.com.kntap.raykookie.payments.application.ports.PayLinks;
 import br.com.kntap.raykookie.payments.application.ports.PaymentAttempts;
 import br.com.kntap.raykookie.payments.application.ports.PaymentGateway;
 import br.com.kntap.raykookie.payments.application.ports.WebhookDeliveries;
+import br.com.kntap.raykookie.payments.domain.CardFailReasons;
 import br.com.kntap.raykookie.payments.domain.GatewayPayment;
 import br.com.kntap.raykookie.scheduling.JobFrequency;
 import br.com.kntap.raykookie.scheduling.ScheduledJob;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Tarefas agendadas de pagamentos: conciliação dos Pix e dos links (a cada 6 h, como o Node), tentativas de cartão
- * sem resposta (a cada 5 min) e limpeza das entregas de webhook (diária).
+ * sem resposta ou em análise (a cada 5 min) e limpeza das entregas de webhook (diária).
  */
 @Configuration
 public class PaymentJobs {
@@ -62,10 +65,11 @@ public class PaymentJobs {
     }
 
     /**
-     * Tentativas de cartão sem resposta: libera o pedido e aplica a cobrança que tiver sido aprovada (G03).
+     * Tentativas de cartão sem resposta: procura o pagamento no Mercado Pago pela referência; aprovado confirma o
+     * pedido ou o link, em análise passa para o job de análise, nenhum fecha a tentativa (G03).
      *
      * @param attempts tentativas
-     * @param gateway  gateway
+     * @param card     cobrança no cartão
      * @param charges  colunas de cobrança
      * @param confirm  confirmação única
      * @param links    links
@@ -74,27 +78,84 @@ public class PaymentJobs {
      * @return a tarefa
      */
     @Bean
-    public ScheduledJob expireStaleAttemptsJob(PaymentAttempts attempts, PaymentGateway gateway,
+    public ScheduledJob expireStaleAttemptsJob(PaymentAttempts attempts, CardChargeUseCase card,
             OrderCharges charges, ConfirmPaymentUseCase confirm, PayLinks links, LinkPayments linkPay, Clock clock) {
-        return job("payments.expire-stale-attempts", JobFrequency.EVERY_5_MIN, () -> {
+        return alongsideNode("payments.expire-stale-attempts", () -> {
             for (PaymentAttempts.Stale stale : attempts.stale(clock.instant().minus(STALE_AFTER))) {
                 String ref = stale.shopOrderId() != null ? String.valueOf(stale.shopOrderId())
                         : LinkPayments.LINK_REF + stale.payLinkId();
-                GatewayPayment approved = gateway.search(ref).stream().filter(GatewayPayment::approved).findFirst()
-                        .orElse(null);
-                if (approved == null) {
-                    attempts.finish(stale.id(), "error", null);
-                } else if (stale.shopOrderId() != null) {
-                    charges.addPaymentId(stale.shopOrderId(), approved.id());
-                    confirm.confirm(stale.shopOrderId(), approved, null, "cartao");
-                    attempts.finish(stale.id(), "approved", approved.id());
-                } else {
-                    links.addCardPayment(stale.payLinkId(), approved.id(), null);
-                    linkPay.markPaid(stale.payLinkId(), approved.id(), approved.amount());
-                    attempts.finish(stale.id(), "approved", approved.id());
-                }
+                each("tentativa " + stale.id(), () -> card.recover(ref, List.of(stale.id()),
+                        applier(stale.shopOrderId(), stale.payLinkId(), charges, confirm, links, linkPay)));
             }
         });
+    }
+
+    /**
+     * Cartões que o Mercado Pago deixou em análise: aprovados confirmam o pedido ou o link; recusados fecham a
+     * tentativa e avisam o cliente do pedido (o webhook pode não chegar).
+     *
+     * @param attempts tentativas
+     * @param card     cobrança no cartão
+     * @param charges  colunas de cobrança
+     * @param confirm  confirmação única
+     * @param links    links
+     * @param linkPay  pagamento de link
+     * @return a tarefa
+     */
+    @Bean
+    public ScheduledJob settleReviewedCardsJob(PaymentAttempts attempts, CardChargeUseCase card,
+            OrderCharges charges, ConfirmPaymentUseCase confirm, PayLinks links, LinkPayments linkPay) {
+        return alongsideNode("payments.settle-reviewed-cards", () -> {
+            for (PaymentAttempts.Open open : attempts.allOpen()) {
+                each("tentativa " + open.id(), () -> card.refresh(open,
+                        applier(open.shopOrderId(), open.payLinkId(), charges, confirm, links, linkPay), pay -> {
+                            if (open.shopOrderId() != null) {
+                                confirm.notifyCardRefused(open.shopOrderId(), CardFailReasons.of(pay.statusDetail()));
+                            }
+                        }));
+            }
+        });
+    }
+
+    /**
+     * O que fazer com um cartão aprovado fora da requisição do cliente: confirma o pedido ou marca o link como pago.
+     *
+     * @param shopOrderId pedido (nulo se for link)
+     * @param payLinkId   link (nulo se for pedido)
+     * @param charges     colunas de cobrança
+     * @param confirm     confirmação única
+     * @param links       links
+     * @param linkPay     pagamento de link
+     * @return a ação
+     */
+    static Consumer<GatewayPayment> applier(Long shopOrderId, Long payLinkId, OrderCharges charges,
+            ConfirmPaymentUseCase confirm, PayLinks links, LinkPayments linkPay) {
+        return pay -> {
+            if (shopOrderId != null) {
+                charges.addPaymentId(shopOrderId, pay.id());
+                confirm.confirm(shopOrderId, pay, null, "cartao");
+            } else {
+                links.addCardPayment(payLinkId, pay.id(), null);
+                linkPay.markPaid(payLinkId, pay.id(), pay.amount());
+            }
+        };
+    }
+
+    /**
+     * Roda o trabalho de um item: falha de um não impede os outros (o item volta na próxima rodada). Pagamento ainda
+     * em análise não é falha.
+     *
+     * @param what o item (para o log)
+     * @param work o trabalho
+     */
+    static void each(String what, Runnable work) {
+        try {
+            work.run();
+        } catch (ConflictException e) {
+            LOG.debug("{}: ainda em análise", what);
+        } catch (RuntimeException e) {
+            LOG.warn("{}: falhou; tenta na próxima rodada", what, e);
+        }
     }
 
     /**
@@ -140,17 +201,31 @@ public class PaymentJobs {
      * @return a tarefa
      */
     static ScheduledJob job(String name, JobFrequency frequency, Runnable work) {
-        return new NamedJob(name, frequency, work);
+        return new NamedJob(name, frequency, work, false);
     }
 
     /**
-     * Tarefa simples: nome, frequência e o trabalho.
+     * Tarefa de cartão de 5 em 5 minutos que roda mesmo com {@code JOBS_ENABLED=false}: só mexe em
+     * {@code payment_attempts}, que o Node não conhece, e confirma pela confirmação única (idempotente).
      *
-     * @param name      nome
-     * @param frequency frequência
-     * @param work      trabalho
+     * @param name nome
+     * @param work trabalho
+     * @return a tarefa
      */
-    record NamedJob(String name, JobFrequency frequency, Runnable work) implements ScheduledJob {
+    static ScheduledJob alongsideNode(String name, Runnable work) {
+        return new NamedJob(name, JobFrequency.EVERY_5_MIN, work, true);
+    }
+
+    /**
+     * Tarefa simples: nome, frequência, o trabalho e se roda junto com o Node.
+     *
+     * @param name              nome
+     * @param frequency         frequência
+     * @param work              trabalho
+     * @param runsAlongsideNode se roda mesmo com as tarefas desligadas
+     */
+    record NamedJob(String name, JobFrequency frequency, Runnable work, boolean runsAlongsideNode)
+            implements ScheduledJob {
 
         /** {@inheritDoc} */
         @Override

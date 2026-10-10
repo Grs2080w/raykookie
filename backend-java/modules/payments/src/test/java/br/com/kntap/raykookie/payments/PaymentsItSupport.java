@@ -36,6 +36,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"rayka.shop-owner=dona", "rayka.jobs-enabled=false", "rayka.mp.access-token=TEST-it",
             "rayka.mp.webhook-secret=" + PaymentsItSupport.SECRET, "rayka.site-url=https://loja.teste",
+            "rayka.mp.review-poll=PT0S",
             "spring.flyway.locations=classpath:db/migration/production,classpath:db/migration/platform,"
                     + "classpath:db/testdata"})
 abstract class PaymentsItSupport extends PostgresTestBase {

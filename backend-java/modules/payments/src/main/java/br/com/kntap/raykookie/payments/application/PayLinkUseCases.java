@@ -266,7 +266,7 @@ public class PayLinkUseCases {
      */
     public Map<String, Object> card(String token, ChargeStarter.Card data, String clientIp) {
 
-        // ── 1. Link aberto, valor válido e dentro do limite por link.
+        // ── 1. Link aberto, valor válido, sem pagamento em análise e dentro do limite por link.
         if (!isToken(token)) {
             throw new NotFoundException(NOT_FOUND);
         }
@@ -275,6 +275,13 @@ public class PayLinkUseCases {
             return CardChargeUseCase.result(true, false, null);
         }
         openAndSameValue(l);
+        Optional<Map<String, Object>> settled = card.settleOpen(null, l.id(), pay -> {
+            links.addCardPayment(l.id(), pay.id(), null);
+            payments.markPaid(l.id(), pay.id(), l.amount());
+        });
+        if (settled.isPresent()) {
+            return settled.get();
+        }
         if (l.cardAttempts() >= OrderPaymentUseCases.MAX_CARD_ATTEMPTS) {
             throw new TooManyRequestsException("Muitas tentativas de cartão para este pedido. Peça para pagar com "
                     + "Pix.");
@@ -284,7 +291,8 @@ public class PayLinkUseCases {
         PaymentGateway.CardCharge charge = new PaymentGateway.CardCharge(LinkPayments.LINK_REF + l.id(), "",
                 l.amount(), "Pedido #" + l.number() + " - Raykookie", data.token(), data.installments(),
                 data.methodId(), data.issuerId(), settings.payerEmail(), PixUseCases.firstName(l.customer()), data
-                        .cpf());
+                        .cpf(), new PaymentGateway.Buyer(PixUseCases.lastName(l.customer()), null, data.deviceId(),
+                                clientIp));
         return card.charge(charge, new PaymentAttempts.Attempt(UUID.randomUUID(), null, l.id(), null, clientIp),
                 pay -> {
             links.addCardPayment(l.id(), pay.id(), data.installments());

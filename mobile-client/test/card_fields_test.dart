@@ -27,4 +27,11 @@ void main() {
     await tester.pump();
     expect(find.textContaining('só passa no crédito'), findsNothing);
   });
+
+  test('tokenização recusada: mensagem pelo código da causa, genérica sem código conhecido', () {
+    expect(cardTokenError({'cause': [{'code': 'E302'}]}), 'Confira o código de segurança (CVV).');
+    expect(cardTokenError({'cause': [{'code': 325}]}), 'Confira o mês da validade.');
+    expect(cardTokenError({'cause': [{'code': '999'}, {'code': '214'}]}), 'Confira o CPF.');
+    expect(cardTokenError({'message': 'bad request'}), 'Confira os dados do cartão e tente de novo.');
+  });
 }

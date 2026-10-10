@@ -123,13 +123,20 @@ class MessagesTest {
      * Avisos ao cliente, com o canal único.
      */
     @Test
-    @DisplayName("cliente: pago, pronto para entrega, entregue pago, sem aviso para 'novo', devolução parcial")
+    @DisplayName("cliente: pago, cartão recusado depois da análise, pronto para entrega, entregue pago, sem aviso para "
+            + "'novo', devolução parcial")
     void customerMessages() {
         PushMessage paid = Messages.customer("tok", new CustomerNotice.Paid(REF)).orElseThrow();
         assertThat(paid.title()).isEqualTo("Pagamento confirmado · #4321");
         assertThat(paid.body()).isEqualTo("Recebemos o pagamento de R$ 120,00. Seu pedido entra na fila de produção.");
         assertThat(paid.channelId()).isEqualTo("pedidos_cliente");
         assertThat(paid.data()).isEqualTo(Map.of("type", "pagamento", "orderId", "9", "audience", "cliente"));
+        PushMessage refused = Messages.customer("tok", new CustomerNotice.CardRefused(REF, "Saldo ou limite "
+                + "insuficiente.")).orElseThrow();
+        assertThat(refused.title()).isEqualTo("Cartão não aprovado · #4321");
+        assertThat(refused.body()).isEqualTo("Nada foi cobrado. Saldo ou limite insuficiente. Abra o pedido para "
+                + "tentar outro cartão.");
+        assertThat(refused.data()).isEqualTo(Map.of("type", "pagamento", "orderId", "9", "audience", "cliente"));
         assertThat(Messages.customer("tok", new CustomerNotice.Status(REF, "pronto")).orElseThrow().body())
                 .isEqualTo("Ele sai para entrega no período da tarde.");
         assertThat(Messages.customer("tok", new CustomerNotice.Status(REF, "entregue")).orElseThrow().body())
