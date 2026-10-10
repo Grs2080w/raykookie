@@ -142,7 +142,7 @@ public class JdbcShopOrders implements ShopOrders {
         return jdbc.sql("""
                 SELECT count(*)::int FROM shop_orders
                  WHERE customer_id = :customer AND payment_method IN ('pix', 'cartao') AND paid_at IS NULL
-                   AND cancelled_at IS NULL""")
+                   AND cancelled_at IS NULL AND created_at > now() - interval '24 hours'""")
                 .param("customer", customer.value()).query(Integer.class).single();
     }
 
