@@ -34,4 +34,14 @@ void main() {
     expect(cardTokenError({'cause': [{'code': '999'}, {'code': '214'}]}), 'Confira o CPF.');
     expect(cardTokenError({'message': 'bad request'}), 'Confira os dados do cartão e tente de novo.');
   });
+
+  test('função do cartão: pré-pago (cartão de saldo do Mercado Pago, BIN 4174 01) passa como débito', () {
+    expect(cardTypeMismatch('debit_card', 'prepaid_card'), isNull);
+    expect(cardTypeMismatch('debit_card', 'debit_card'), isNull);
+    expect(cardTypeMismatch('credit_card', 'credit_card'), isNull);
+    expect(cardTypeMismatch('credit_card', ''), isNull);
+    expect(cardTypeMismatch('credit_card', 'prepaid_card'), 'Este cartão usa o saldo da conta (débito). Escolha Débito.');
+    expect(cardTypeMismatch('credit_card', 'debit_card'), 'Este é um cartão de débito. Escolha Débito.');
+    expect(cardTypeMismatch('debit_card', 'credit_card'), contains('só passa no crédito'));
+  });
 }

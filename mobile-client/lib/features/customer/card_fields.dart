@@ -18,6 +18,23 @@ import 'mp_device.dart';
 const cardInReview = 'Pagamento em análise pelo Mercado Pago. Nenhuma cobrança foi confirmada: se ele for recusado, '
     'nada é cobrado. Avisamos quando sair a resposta.';
 
+/// Cartão que desconta na hora, à vista: débito ou pré-pago. O cartão de débito do Mercado Pago (o que usa o saldo
+/// da conta, BIN 4174 01/02) vem do Mercado Pago como `prepaid_card`, não `debit_card`.
+bool isDebitLike(String type) => type == 'debit_card' || type == 'prepaid_card';
+
+/// Aviso quando a função escolhida ('credit_card' ou 'debit_card') não bate com o que o Mercado Pago diz do cartão
+/// (`payment_type_id` pelo BIN; vazio = ainda não sabemos). Nulo = pode seguir.
+String? cardTypeMismatch(String chosen, String detected) {
+  if (detected.isEmpty) return null;
+  if (chosen == 'debit_card') {
+    return isDebitLike(detected) ? null : 'Pelo Mercado Pago, este cartão só passa no crédito. Escolha Crédito ou pague com Pix.';
+  }
+  if (detected == 'credit_card') return null;
+  return detected == 'prepaid_card'
+      ? 'Este cartão usa o saldo da conta (débito). Escolha Débito.'
+      : 'Este é um cartão de débito. Escolha Débito.';
+}
+
 /// Mensagem para a recusa da tokenização do cartão (`POST /v1/card_tokens`), pelo código da causa.
 String cardTokenError(Map<String, dynamic> body) {
   const byCode = {
@@ -83,19 +100,14 @@ class CardFieldsState extends State<CardFields> {
   String _lastBin = '';
   /// O que o cliente escolheu: 'credit_card' ou 'debit_card'.
   String _type = 'credit_card';
-  /// O que o Mercado Pago diz que o cartão é, pelo BIN (vazio = ainda não sabemos). Ele decide pelo BIN:
-  /// cartão múltiplo (ex.: Nubank) só passa como crédito online.
+  /// O que o Mercado Pago diz que o cartão é, pelo BIN (vazio = ainda não sabemos): credit_card, debit_card ou
+  /// prepaid_card. Ele decide pelo BIN: cartão múltiplo (ex.: Nubank) só passa como crédito online.
   String _detectedType = '';
   /// Device ID do antifraude, lido em segundo plano enquanto o cliente preenche o cartão.
   String _deviceId = '';
 
   /// Aviso quando a escolha não bate com o cartão digitado (nulo = tudo certo).
-  String? get _typeMismatch {
-    if (_detectedType.isEmpty || _detectedType == _type) return null;
-    return _type == 'debit_card'
-        ? 'Pelo Mercado Pago, este cartão só passa no crédito. Escolha Crédito ou pague com Pix.'
-        : 'Este é um cartão de débito. Escolha Débito.';
-  }
+  String? get _typeMismatch => cardTypeMismatch(_type, _detectedType);
 
   @override
   void dispose() {
@@ -145,6 +157,8 @@ class CardFieldsState extends State<CardFields> {
         _paymentMethodId = first != null ? '${first['payment_method_id']}' : '';
         _issuerId = issuer == 'null' ? '' : issuer;
         _detectedType = type;
+        // cartão que só existe no débito (ou pré-pago, como o do Mercado Pago): já marca Débito
+        if (isDebitLike(type)) _type = 'debit_card';
         _options = semJuros;
         if (!semJuros.contains(_installments)) _installments = 1;
       });
