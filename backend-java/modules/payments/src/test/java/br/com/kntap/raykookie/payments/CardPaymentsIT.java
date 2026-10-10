@@ -275,20 +275,22 @@ class CardPaymentsIT extends PaymentsItSupport {
      * Limite de recusas (G04).
      */
     @Test
-    @DisplayName("G04: 5 recusas do mesmo cliente em pedidos diferentes: a 6ª tentativa é 429 sem chamar o gateway")
+    @DisplayName("G04: 20 recusas do mesmo cliente em 24 h: a próxima tentativa é 429 sem chamar o gateway")
     void refusalLimit() {
+
+        // ── 1. Uma recusa registrada; o contador do cliente vai para 19 (como se fossem 19 recusas no dia).
         magicNames(0);
-        long[] orders = {cardOrder("FUND").jsonPath().getLong("id"), cardOrder("FUND").jsonPath().getLong("id"),
-            cardOrder("FUND").jsonPath().getLong("id")};
-        assertThat(as(customer, card("FUND")).post("/api/cliente/pedidos/" + orders[0] + "/cartao").statusCode())
+        long first = cardOrder("FUND").jsonPath().getLong("id");
+        jdbc.sql("UPDATE rate_limits SET hits = 19 WHERE key LIKE 'card-fail-customer|%'").update();
+
+        // ── 2. A 20ª recusa ainda passa pelo gateway; a seguinte é barrada antes.
+        assertThat(as(customer, card("FUND")).post("/api/cliente/pedidos/" + first + "/cartao").statusCode())
                 .isEqualTo(200);
-        assertThat(as(customer, card("FUND")).post("/api/cliente/pedidos/" + orders[1] + "/cartao").statusCode())
-                .isEqualTo(200);
-        Response blocked = as(customer, card("APRO")).post("/api/cliente/pedidos/" + orders[2] + "/cartao");
+        Response blocked = as(customer, card("APRO")).post("/api/cliente/pedidos/" + first + "/cartao");
         assertThat(blocked.statusCode()).isEqualTo(429);
         assertThat(blocked.jsonPath().getString("error"))
                 .isEqualTo("Muitas tentativas de cartão. Tente pagar com Pix ou fale com a gente.");
-        MP.verify(5, postRequestedFor(urlEqualTo("/v1/payments")));
+        MP.verify(2, postRequestedFor(urlEqualTo("/v1/payments")));
     }
 
     /**
