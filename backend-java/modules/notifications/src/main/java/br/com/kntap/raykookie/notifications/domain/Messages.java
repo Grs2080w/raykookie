@@ -194,7 +194,7 @@ public final class Messages {
             case CustomerNotice.Status s -> status(token, o, s.status());
             case CustomerNotice.StoreCancel c -> Optional.of(customerMessage(token, o, "cancelado",
                     "Pedido cancelado pela loja · #" + o.code(), "Motivo: " + c.reason() + "."
-                            + (c.refunded().isZero() ? "" : " " + brl(c.refunded()) + " voltam por Pix.")));
+                            + (c.refunded().isZero() ? "" : " " + brl(c.refunded()) + goesBack(c.card()))));
             case CustomerNotice.Refund r -> Optional.of(customerRefund(token, o, r));
         };
     }
@@ -235,12 +235,26 @@ public final class Messages {
             case "aprovada" -> customerMessage(token, o, "devolucao", "Devolução aprovada · #" + o.code(),
                     r.amount().isLessThan(r.requested())
                             ? brl(r.amount()) + " de " + brl(r.requested()) + ". Veja a mensagem da loja."
-                            : brl(r.amount()) + " voltam por Pix.");
+                            : brl(r.amount()) + goesBack(r.card()));
             case "negada" -> customerMessage(token, o, "devolucao", "Devolução negada · #" + o.code(),
                     "Motivo: " + r.reason() + ".");
-            default -> customerMessage(token, o, "devolucao", "Pix devolvido · #" + o.code(),
-                    brl(r.amount()) + " voltaram para a conta que pagou.");
+            default -> r.card()
+                    ? customerMessage(token, o, "devolucao", "Estorno no cartão · #" + o.code(),
+                            brl(r.amount()) + " estornados no cartão. Aparece na fatura em até 2 ciclos,"
+                                    + " conforme o banco.")
+                    : customerMessage(token, o, "devolucao", "Pix devolvido · #" + o.code(),
+                            brl(r.amount()) + " voltaram para a conta que pagou.");
         };
+    }
+
+    /**
+     * Para onde volta o dinheiro: estorno no cartão (o Mercado Pago devolve na fatura) ou Pix para a conta que pagou.
+     *
+     * @param card pago com cartão
+     * @return o fim da frase, com espaço inicial e ponto final
+     */
+    private static String goesBack(boolean card) {
+        return card ? " voltam como estorno no cartão." : " voltam por Pix.";
     }
 
     /**

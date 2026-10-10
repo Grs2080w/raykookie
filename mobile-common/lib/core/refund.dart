@@ -1,4 +1,4 @@
-/// Devolução de Pix: motivos e regras. Porte de shared/refund.ts (o servidor valida de novo e decide quem pode devolver o quê).
+/// Devolução (Pix de volta ou estorno no cartão, conforme o pagamento): motivos e regras. Porte de shared/refund.ts (o servidor valida de novo e decide quem pode devolver o quê).
 const refundWindowHours = 48;
 const maxRefundPhotos = 5;
 const maxRefundPhotoBytes = 2000000;

@@ -136,8 +136,31 @@ class MessagesTest {
                 .startsWith("Bom apetite! Se algo não estiver certo");
         assertThat(Messages.customer("tok", new CustomerNotice.Status(REF, "novo"))).isEmpty();
         assertThat(Messages.customer("tok", new CustomerNotice.Refund(REF, "aprovada", Money.ofCents(500),
-                Money.ofCents(1000), null)).orElseThrow().body()).isEqualTo("R$ 5,00 de R$ 10,00. Veja a mensagem da loja.");
-        assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000)))
-                .orElseThrow().body()).isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam por Pix.");
+                Money.ofCents(1000), null, false)).orElseThrow().body())
+                .isEqualTo("R$ 5,00 de R$ 10,00. Veja a mensagem da loja.");
+        assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000),
+                false)).orElseThrow().body()).isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam por Pix.");
+    }
+
+    /**
+     * Pago com cartão, a devolução é estorno no cartão (o Mercado Pago devolve na fatura), nunca "Pix".
+     */
+    @Test
+    @DisplayName("devolução de pedido pago com cartão fala em estorno no cartão")
+    void cardRefundIsChargeback() {
+
+        // ── 1. Aprovada e concluída.
+        assertThat(Messages.customer("tok", new CustomerNotice.Refund(REF, "aprovada", Money.ofCents(1000),
+                Money.ofCents(1000), null, true)).orElseThrow().body())
+                .isEqualTo("R$ 10,00 voltam como estorno no cartão.");
+        PushMessage done = Messages.customer("tok", new CustomerNotice.Refund(REF, "concluida", Money.ofCents(1000),
+                null, null, true)).orElseThrow();
+        assertThat(done.title()).startsWith("Estorno no cartão");
+        assertThat(done.body()).doesNotContain("Pix").contains("estornados no cartão");
+
+        // ── 2. Cancelado pela loja.
+        assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000),
+                true)).orElseThrow().body())
+                .isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam como estorno no cartão.");
     }
 }

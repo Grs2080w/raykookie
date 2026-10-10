@@ -141,7 +141,7 @@ public class RefundSender {
 
         // ── 2. Avisos: o cliente sempre; a dona só se antes tinha falhado.
         if (done && first) {
-            events.publishEvent(new CustomerNotice.Refund(o.ref(), "concluida", c.amount(), null, null));
+            events.publishEvent(new CustomerNotice.Refund(o.ref(), "concluida", c.amount(), null, null, o.card()));
             if (c.attempts() > 1) {
                 events.publishEvent(new OwnerNotice.Refund(o.owner(), "concluida", c.id(), o.code(), null,
                         c.amount(), false, null, 0, false));

@@ -90,7 +90,7 @@ public class RefundReconciliation {
         for (GatewayRefund mr : list) {
             if (mr.approved()) {
                 transactions.execute(status -> apply(orderId, mr)).ifPresent(o -> events.publishEvent(
-                        new CustomerNotice.Refund(o.ref(), "concluida", mr.amount(), null, null)));
+                        new CustomerNotice.Refund(o.ref(), "concluida", mr.amount(), null, null, o.card())));
             }
         }
     }
