@@ -51,6 +51,19 @@ class CardFieldsState extends State<CardFields> {
   int _installments = 1;
   String _paymentMethodId = '';
   String _lastBin = '';
+  /// O que o cliente escolheu: 'credit_card' ou 'debit_card'.
+  String _type = 'credit_card';
+  /// O que o Mercado Pago diz que o cartão é, pelo BIN (vazio = ainda não sabemos). Ele decide pelo BIN:
+  /// cartão múltiplo (ex.: Nubank) só passa como crédito online.
+  String _detectedType = '';
+
+  /// Aviso quando a escolha não bate com o cartão digitado (nulo = tudo certo).
+  String? get _typeMismatch {
+    if (_detectedType.isEmpty || _detectedType == _type) return null;
+    return _type == 'debit_card'
+        ? 'Pelo Mercado Pago, este cartão só passa no crédito. Escolha Crédito ou pague com Pix.'
+        : 'Este é um cartão de débito. Escolha Débito.';
+  }
 
   @override
   void dispose() {
@@ -70,6 +83,7 @@ class CardFieldsState extends State<CardFields> {
     if (bin.isEmpty) {
       setState(() {
         _paymentMethodId = '';
+        _detectedType = '';
         _options = [];
       });
       return;
@@ -82,8 +96,11 @@ class CardFieldsState extends State<CardFields> {
       final list = jsonDecode(r.body) as List;
       final first = list.isNotEmpty ? list.first as Map : null;
       if (!mounted) return;
-      setState(() => _paymentMethodId = first != null ? '${first['payment_method_id']}' : '');
-      if (widget.amount > cardInstallmentsMinAmount) {
+      setState(() {
+        _paymentMethodId = first != null ? '${first['payment_method_id']}' : '';
+        _detectedType = first != null ? '${first['payment_type_id']}' : '';
+      });
+      if (widget.amount > cardInstallmentsMinAmount && _detectedType == 'credit_card') {
         final costs = first?['payer_costs'] as List? ?? const [];
         // só sem juros: a loja absorve a taxa, o preço nunca muda com a parcela escolhida
         final semJuros = [for (final p in costs) if (((p as Map)['installment_rate'] as num).toDouble() == 0) p['installments'] as int];
@@ -94,6 +111,7 @@ class CardFieldsState extends State<CardFields> {
     } catch (_) {
       if (mounted) setState(() {
         _paymentMethodId = '';
+        _detectedType = '';
         _options = [];
       });
     }
@@ -128,6 +146,11 @@ class CardFieldsState extends State<CardFields> {
       Toast.error('Não reconhecemos a bandeira desse cartão.');
       return null;
     }
+    final mismatch = _typeMismatch;
+    if (mismatch != null) {
+      Toast.error(mismatch);
+      return null;
+    }
     try {
       final r = await http.post(
         Uri.parse('https://api.mercadopago.com/v1/card_tokens?public_key=${widget.publicKey}'),
@@ -145,7 +168,9 @@ class CardFieldsState extends State<CardFields> {
         Toast.error('Confira os dados do cartão e tente de novo.');
         return null;
       }
-      return CardTokenResult(cardToken: '${data['id']}', paymentMethodId: _paymentMethodId, cpf: onlyDigits(_cpf.text, 11), installments: _installments);
+      // débito é sempre à vista
+      final installments = _type == 'debit_card' ? 1 : _installments;
+      return CardTokenResult(cardToken: '${data['id']}', paymentMethodId: _paymentMethodId, cpf: onlyDigits(_cpf.text, 11), installments: installments);
     } catch (_) {
       Toast.error('Não conseguimos falar com o Mercado Pago agora. Tente de novo.');
       return null;
@@ -154,7 +179,28 @@ class CardFieldsState extends State<CardFields> {
 
   @override
   Widget build(BuildContext context) {
+    final mismatch = _typeMismatch;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      LabeledField(
+        label: 'Função do cartão',
+        child: SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'credit_card', label: Text('Crédito'), icon: Icon(Icons.credit_card)),
+              ButtonSegment(value: 'debit_card', label: Text('Débito'), icon: Icon(Icons.account_balance_wallet_outlined)),
+            ],
+            selected: {_type},
+            onSelectionChanged: (v) => setState(() => _type = v.first),
+          ),
+        ),
+      ),
+      if (mismatch != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(mismatch, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13.5, height: 1.35)),
+        ),
+      const SizedBox(height: 14),
       AppTextField(
         label: 'Número do cartão', controller: _number, keyboardType: TextInputType.number, maxLength: 23,
         formatters: [MaskFormatter(format: _formatCardNumber, warning: 'No número do cartão só entram números.')],
@@ -186,7 +232,7 @@ class CardFieldsState extends State<CardFields> {
         helper: 'Exigido pelo Mercado Pago para pagar com cartão. Não guardamos esse número.',
         formatters: [MaskFormatter(format: formatCpf, warning: 'No CPF só entram números.')],
       ),
-      if (_options.isNotEmpty) ...[
+      if (_type == 'credit_card' && _options.isNotEmpty) ...[
         const SizedBox(height: 14),
         SelectField<int>(
           label: 'Parcelas', hint: 'Sem juros.', value: _installments,
