@@ -147,33 +147,53 @@ class _OrderFormState extends State<_OrderForm> {
   }
 
   /// "Continuar": confere a etapa atual antes de avançar.
-  void _next() {
+  /// Índice da etapa "Forma de pagamento" (a 4ª).
+  static const _paymentStep = 3;
+
+  /// Na etapa do pagamento com cartão, tokeniza antes de validar: a validação da etapa exige o token.
+  Future<void> _next() async {
+    if (_stepIdx == _paymentStep && _form.paymentMethod == 'cartao' && _cardKey.currentState != null) {
+      setState(() => _busy = true);
+      final ok = await _tokenizeCard();
+      if (mounted) setState(() => _busy = false);
+      if (!ok) return;
+    }
     final err = validateOrderStep(_stepIdx, _form, _cart, widget.menu.items);
     if (err != null) return Toast.error(err);
     _goTo(_stepIdx + 1);
   }
 
+  /// Tokeniza o cartão do formulário e guarda no pedido. `false` = não validou (o aviso já apareceu).
+  Future<bool> _tokenizeCard() async {
+    final t = await _cardKey.currentState?.tokenize();
+    if (t == null) return false;
+    _form
+      ..cardToken = t.cardToken
+      ..cardPaymentMethodId = t.paymentMethodId
+      ..cpf = t.cpf
+      ..installments = t.installments
+      ..cardIssuerId = t.issuerId
+      ..deviceId = t.deviceId;
+    return true;
+  }
+
   Future<void> _submit() async {
-    if (_form.paymentMethod == 'cartao') {
-      final t = await _cardKey.currentState?.tokenize();
-      if (t == null) return;
-      _form
-        ..cardToken = t.cardToken
-        ..cardPaymentMethodId = t.paymentMethodId
-        ..cpf = t.cpf
-        ..installments = t.installments;
-    }
+    if (_form.paymentMethod == 'cartao' && _form.cardToken.isEmpty && !await _tokenizeCard()) return;
     final err = validateOrder(_form, _cart, widget.menu.items);
     if (err != null) return Toast.error(err);
+    if (!mounted) return;
     final session = context.read<Session>();
     setState(() => _busy = true);
     try {
       final r = Map<String, dynamic>.from(await session.customerApi.post('/api/cliente/pedidos', _form.toJson(_cart)) as Map);
       await session.refreshProfile();
       final card = r['card'] is Map ? Map<String, dynamic>.from(r['card'] as Map) : null;
-      if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}. Você pode tentar outro cartão no pedido.');
+      if (card != null && card['pending'] == true) Toast.warn(cardInReview);
+      if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}');
       if (mounted) context.go('/cliente/pedidos?novo=${r['id']}');
     } on ApiException catch (e) {
+      // o token do cartão é de uso único: a nova tentativa gera outro com o mesmo formulário
+      _form.cardToken = '';
       Toast.error(e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -397,11 +417,13 @@ class _OrderFormState extends State<_OrderForm> {
               _section(4, 'Forma de pagamento', hint: 'Com Pix, o código aparece logo depois que você finalizar o pedido.', children: [
                 for (final p in paymentMethods.where((p) => p.id != 'cartao' || _cardEnabled))
                   _choice(selected: _form.paymentMethod == p.id, title: p.label, hint: p.hint, tag: p.id == 'pix' ? 'Mais rápido' : null, onTap: () => setState(() => _form.paymentMethod = p.id)),
-                if (_form.paymentMethod == 'cartao' && _cardPublicKey != null)
-                  AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, amount: total)),
                 if (_form.paymentMethod == 'dinheiro')
                   AppCard(child: NumberField(label: 'Precisa de troco para quanto? (opcional)', helper: 'Deixe em branco se tiver o valor certinho.', hint: 'Ex.: 100', controller: _c('change'), onChanged: (v) => _form.changeFor = v)),
               ]),
+              // O cartão fica montado (só escondido fora da etapa de pagamento): assim o que foi digitado não se
+              // perde ao voltar/avançar, e o "Finalizar pedido" consegue gerar outro token depois de uma falha.
+              if (_form.paymentMethod == 'cartao' && _cardPublicKey != null)
+                Offstage(offstage: _stepIdx != _paymentStep, child: AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, amount: total))),
               _section(5, 'Algo mais?', children: [
                 AppTextField(label: 'Observações (opcional)', helper: 'Sabor, decoração, alergias, recado no bolo, ponto de referência…', controller: _c('notes'), maxLength: 300, maxLines: 4, onChanged: (v) => _form.notes = v, capitalization: TextCapitalization.sentences),
               ]),

@@ -65,6 +65,7 @@ public interface OrderCharges {
      * @param total         total
      * @param contactName   nome
      * @param email         e-mail do cliente
+     * @param phone         telefone para contato (só dígitos)
      * @param paymentMethod forma de pagamento
      * @param paid          se já foi pago
      * @param mpPaymentId   Pix mais recente
@@ -76,7 +77,7 @@ public interface OrderCharges {
      * @param statuses      situação de cada item
      * @param items         quantos itens
      */
-    record ChargeTarget(long id, OwnerId owner, int code, Money total, String contactName, String email,
+    record ChargeTarget(long id, OwnerId owner, int code, Money total, String contactName, String email, String phone,
             String paymentMethod, boolean paid, String mpPaymentId, String pixQrCode, String pixQrBase64,
             Instant pixExpiresAt, int pixAttempts, int cardAttempts, List<String> statuses, int items) {
 

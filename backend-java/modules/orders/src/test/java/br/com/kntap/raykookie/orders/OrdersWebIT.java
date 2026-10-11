@@ -93,7 +93,7 @@ class OrdersWebIT extends OrdersItSupport {
      * Limites por cliente (G11).
      */
     @Test
-    @DisplayName("G11: 4º pedido online sem pagar é 429; 11º pedido na hora é 429")
+    @DisplayName("G11: 4º pedido online sem pagar é 429 (só conta as últimas 24 h); 11º pedido na hora é 429")
     void limits() {
 
         // ── 1. Três Pix em aberto: o quarto é recusado.
@@ -105,9 +105,13 @@ class OrdersWebIT extends OrdersItSupport {
         assertThat(fourth.jsonPath().getString("error"))
                 .isEqualTo("Você fez muitos pedidos em pouco tempo. Tente de novo mais tarde.");
 
-        // ── 2. Pagos, saem da conta; o limite por hora vale para qualquer forma de pagamento.
+        // ── 2. Com mais de 24 horas, os Pix em aberto não travam mais o cliente.
+        jdbc.sql("UPDATE shop_orders SET created_at = now() - interval '2 days' WHERE paid_at IS NULL").update();
+        assertThat(create("pix").statusCode()).isEqualTo(201);
+
+        // ── 3. Pagos, saem da conta; o limite por hora vale para qualquer forma de pagamento.
         jdbc.sql("UPDATE shop_orders SET paid_at = now() WHERE payment_method = 'pix' AND paid_at IS NULL").update();
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 6; i++) {
             assertThat(create("dinheiro").statusCode()).isEqualTo(201);
         }
         assertThat(create("dinheiro").statusCode()).isEqualTo(429);

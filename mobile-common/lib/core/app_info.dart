@@ -17,14 +17,16 @@ Future<InstalledVersion> installedVersion() async {
 
 /// Versão publicada no servidor (downloads/manifest.json).
 class Release {
-  const Release({required this.version, required this.build, required this.size, required this.date, required this.url});
+  const Release({required this.version, required this.build, required this.size, required this.date, required this.url, this.sha256 = ''});
   final String version, date, url;
+  /// Hash do APK publicado (vazio = não conferir).
+  final String sha256;
   final int build, size;
   String get label => '$version (build $build)';
 
   factory Release.fromJson(Map<String, dynamic> j) => Release(
         version: '${j['version']}', build: (j['build'] as num?)?.toInt() ?? 0, size: (j['size'] as num?)?.toInt() ?? 0,
-        date: '${j['date']}', url: '${j['url'] ?? ''}',
+        date: '${j['date']}', url: '${j['url'] ?? ''}', sha256: '${j['sha256'] ?? ''}',
       );
 }
 

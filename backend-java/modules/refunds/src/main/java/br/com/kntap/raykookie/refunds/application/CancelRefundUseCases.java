@@ -140,7 +140,7 @@ public class CancelRefundUseCases implements PaidOrderCanceller, RefundRequester
             events.publishEvent(new OwnerNotice.Cancelled(o.owner(), orderId, o.code(), o.contactName(), o.total(),
                     reason, out.refunded()));
         } else {
-            events.publishEvent(new CustomerNotice.StoreCancel(o.ref(), label, out.refunded()));
+            events.publishEvent(new CustomerNotice.StoreCancel(o.ref(), label, out.refunded(), o.card()));
         }
 
         // ── 3. Devolve pelo Mercado Pago.

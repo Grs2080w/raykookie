@@ -21,10 +21,10 @@ public final class RateLimits {
     public static final RateLimit ORDER_CREATE = new RateLimit("order-create", 10, Duration.ofHours(1));
 
     /** Cartões recusados, por cliente (G04). */
-    public static final RateLimit CARD_FAIL_CUSTOMER = new RateLimit("card-fail-customer", 5, Duration.ofHours(24));
+    public static final RateLimit CARD_FAIL_CUSTOMER = new RateLimit("card-fail-customer", 20, Duration.ofHours(24));
 
     /** Cartões recusados, por IP (G04). */
-    public static final RateLimit CARD_FAIL_IP = new RateLimit("card-fail-ip", 10, Duration.ofHours(24));
+    public static final RateLimit CARD_FAIL_IP = new RateLimit("card-fail-ip", 20, Duration.ofHours(24));
 
     /** Pix gerados, por cliente (G11). */
     public static final RateLimit PIX_CREATE = new RateLimit("pix-create", 20, Duration.ofHours(1));

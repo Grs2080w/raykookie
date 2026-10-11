@@ -12,6 +12,7 @@ import br.com.kntap.raykookie.payments.application.ports.PaymentAttempts;
 import br.com.kntap.raykookie.payments.application.ports.PaymentGateway;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,8 +82,8 @@ public class OrderPaymentUseCases implements ChargeStarter {
     @Override
     public Map<String, Object> startCard(NewOrder order, Card data, String clientIp) {
         try {
-            return chargeOrder(order.id(), order.code(), order.total(), order.email(), order.name(), order.customer(),
-                    data, clientIp);
+            return chargeOrder(order.id(), order.code(), order.total(), order.email(), order.name(), order.phone(),
+                    order.customer(), data, clientIp);
         } catch (DomainException e) {
             Map<String, Object> refused = new LinkedHashMap<>();
             refused.put("approved", false);
@@ -115,13 +116,22 @@ public class OrderPaymentUseCases implements ChargeStarter {
             throw new InvalidInputException("Este pedido foi cancelado.");
         }
 
-        // ── 2. Limite por pedido e cobrança.
+        // ── 2. Pagamento anterior em análise: aprovado, confirma; ainda aberto, barra a nova tentativa.
+        Optional<Map<String, Object>> settled = card.settleOpen(order.id(), null, pay -> {
+            charges.addPaymentId(order.id(), pay.id());
+            confirm.confirm(order.id(), pay, null, "cartao");
+        });
+        if (settled.isPresent()) {
+            return settled.get();
+        }
+
+        // ── 3. Limite por pedido e cobrança.
         if (order.cardAttempts() >= MAX_CARD_ATTEMPTS) {
             throw new TooManyRequestsException("Muitas tentativas de cartão para este pedido. Tente pagar com Pix "
                     + "ou fale com a gente.");
         }
-        return chargeOrder(order.id(), order.code(), order.total(), order.email(), order.contactName(), customer, data,
-                clientIp);
+        return chargeOrder(order.id(), order.code(), order.total(), order.email(), order.contactName(), order.phone(),
+                customer, data, clientIp);
     }
 
     /**
@@ -132,16 +142,18 @@ public class OrderPaymentUseCases implements ChargeStarter {
      * @param total    total
      * @param email    e-mail
      * @param name     nome
+     * @param phone    telefone
      * @param customer cliente
      * @param data     cartão
      * @param clientIp IP real
      * @return a resposta
      */
     private Map<String, Object> chargeOrder(long orderId, int code, Money total, String email, String name,
-            CustomerId customer, Card data, String clientIp) {
+            String phone, CustomerId customer, Card data, String clientIp) {
         PaymentGateway.CardCharge charge = new PaymentGateway.CardCharge(String.valueOf(orderId), "", total,
                 "Pedido #" + code + " - Raykookie", data.token(), data.installments(), data.methodId(),
-                data.issuerId(), email, PixUseCases.firstName(name), data.cpf());
+                data.issuerId(), email, PixUseCases.firstName(name), data.cpf(),
+                new PaymentGateway.Buyer(PixUseCases.lastName(name), phone, data.deviceId(), clientIp));
         PaymentAttempts.Attempt attempt = new PaymentAttempts.Attempt(UUID.randomUUID(), orderId, null,
                 customer.value(), clientIp);
         return card.charge(charge, attempt, pay -> {

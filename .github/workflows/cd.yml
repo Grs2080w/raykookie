@@ -2,9 +2,10 @@
 #   - publica os apps Android que mudaram: compilados e ASSINADOS na nuvem, conferidos contra o fingerprint de
 #     produção, registrados em downloads/ (um runner self-hosted grava direto no disco da máquina — é lá que o
 #     container da API lê o manifesto) e publicados como Release no GitHub;
-#   - se backend/, frontend/ ou shared/ mudaram: builda a imagem Docker da API, roda as migrations pendentes
-#     (aditivas — o código antigo continua funcionando no banco novo) e troca o container, com rollback
-#     automático para a imagem anterior se a saúde não voltar (ver o job deploy-backend).
+#   - se backend-java/ mudou: builda a imagem Docker da API Java e troca o container "raykookie-api" (as
+#     migrations, aditivas, rodam no próprio boot pelo Flyway), com rollback automático para a imagem anterior
+#     se a saúde não voltar (ver o job deploy-backend). O backend Node (backend/) não é mais implantado: o
+#     container dele ficou parado como "raykookie-api-node".
 # O site (frontend/) também é implantado pela própria integração da Vercel com o GitHub, em paralelo a este
 # workflow — não depende dele.
 name: CD
@@ -47,6 +48,7 @@ jobs:
     outputs:
       apps: ${{ steps.d.outputs.apps }}
       web: ${{ steps.c.outputs.web || 'true' }} # fora de push (workflow_dispatch) não roda changes.sh: assume que mudou
+      api: ${{ steps.c.outputs.api || 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,49 +78,37 @@ jobs:
           echo "- apps: \`$apps\`" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-backend:
-    name: Implanta a API (Docker)
+    name: Implanta a API Java (Docker)
     needs: [ci, plan]
-    if: ${{ always() && needs.ci.result == 'success' && needs.plan.result == 'success' && needs.plan.outputs.web == 'true' }}
+    if: ${{ always() && needs.ci.result == 'success' && needs.plan.result == 'success' && needs.plan.outputs.api == 'true' }}
     runs-on: [self-hosted, linux, rayka-prod]
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment: production
     env:
-      # arquivo de segredos que já existe no servidor (nunca no Git/GitHub); mesmo usado no "docker run" manual
+      # arquivos de segredos que já existem no servidor (nunca no Git/GitHub): o do banco/Mercado Pago (o mesmo do
+      # Node) e o só do Java (DOWNLOAD_SECRET, MP_PUBLIC_KEY, PORT=20010, JOBS_ENABLED=true…)
       ENV_FILE: ${{ vars.RAYKOOKIE_ENV_FILE || '/home/g_snts/works/raykookie/backend/.env.docker' }}
+      JAVA_ENV_FILE: ${{ vars.RAYKOOKIE_JAVA_ENV_FILE || '/home/g_snts/.raykookie/java.env' }}
       DOWNLOADS_DIR: ${{ vars.RAYKA_DOWNLOADS_DIR || '/home/g_snts/works/raykookie/downloads' }}
       DATA_DIR: ${{ vars.RAYKOOKIE_DATA_DIR || '/home/g_snts/.raykookie' }}
     steps:
       - uses: actions/checkout@v4
       - name: Builda a imagem candidata (não mexe em "latest" ainda, pra sobrar algo pro rollback)
-        run: docker build -t raykookie-api:candidate backend
-      - name: Roda as migrations pendentes (aditivas — o container antigo, ainda no ar, continua funcionando)
-        run: docker run --rm --network host --env-file "$ENV_FILE" raykookie-api:candidate node scripts/migrate.mjs
+        run: docker build -t raykookie-api-java:candidate backend-java
       - name: Troca o container (guarda a imagem atual como "previous" para o rollback)
         run: |
-          docker tag raykookie-api:latest raykookie-api:previous 2>/dev/null || true
-          docker tag raykookie-api:candidate raykookie-api:latest
-          docker stop raykookie-api 2>/dev/null || true
-          docker rm raykookie-api 2>/dev/null || true
-          docker run -d --name raykookie-api --network host --restart unless-stopped \
-            --env-file "$ENV_FILE" \
-            -v "$DATA_DIR:$DATA_DIR:ro" \
-            -v "$DOWNLOADS_DIR:/app/downloads" \
-            raykookie-api:latest
-      - name: Confere a saúde; se não ficar saudável em 1 min, volta pra imagem anterior
+          docker tag raykookie-api-java:latest raykookie-api-java:previous 2>/dev/null || true
+          docker tag raykookie-api-java:candidate raykookie-api-java:latest
+          bash infra/ci/run-api.sh raykookie-api-java:latest
+      - name: Confere a saúde; se não ficar saudável em 2 min, volta pra imagem anterior
         run: |
-          for _ in $(seq 1 30); do
+          for _ in $(seq 1 60); do
             curl -fsS --max-time 3 http://127.0.0.1:20010/api/health >/dev/null 2>&1 && { echo "API saudável"; exit 0; }
             sleep 2
           done
           echo "::error::a API não ficou saudável depois do deploy; revertendo para a imagem anterior"
-          docker stop raykookie-api 2>/dev/null || true
-          docker rm raykookie-api 2>/dev/null || true
-          docker run -d --name raykookie-api --network host --restart unless-stopped \
-            --env-file "$ENV_FILE" \
-            -v "$DATA_DIR:$DATA_DIR:ro" \
-            -v "$DOWNLOADS_DIR:/app/downloads" \
-            raykookie-api:previous
-          sleep 3
+          bash infra/ci/run-api.sh raykookie-api-java:previous
+          sleep 15
           if curl -fsS --max-time 10 http://127.0.0.1:20010/api/health >/dev/null 2>&1; then
             echo "::error::deploy falhou; revertido com sucesso para a imagem anterior"
           else

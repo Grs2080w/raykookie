@@ -226,9 +226,27 @@ class MaskFormatter extends TextInputFormatter {
   final String allowed;
   @override
   TextEditingValue formatEditUpdate(TextEditingValue old, TextEditingValue value) {
-    if (value.text.replaceAll(RegExp(allowed), '').isNotEmpty) Toast.warn(warning);
     final text = format(value.text);
+    if (hasInvalidInput(old.text, value.text, text)) Toast.warn(warning);
     return TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
+
+  /// Só o que o cliente acabou de digitar ou colar conta: os pontos, barras e traços que a própria máscara pôs
+  /// ("123.456", "12/30") não são erro, nem os que vêm num valor colado já formatado. Mudança sem texto novo
+  /// (o teclado fechando a composição ao trocar de campo) não avisa.
+  bool hasInvalidInput(String before, String after, String formatted) {
+    var start = 0;
+    while (start < before.length && start < after.length && before[start] == after[start]) {
+      start++;
+    }
+    var end = 0;
+    while (end < before.length - start && end < after.length - start &&
+        before[before.length - 1 - end] == after[after.length - 1 - end]) {
+      end++;
+    }
+    final inserted = after.substring(start, after.length - end);
+    final ok = RegExp(allowed);
+    return inserted.split('').any((c) => !ok.hasMatch(c) && !formatted.contains(c));
   }
 }
 

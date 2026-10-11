@@ -43,7 +43,8 @@ class CardFieldsTest {
         assertThatThrownBy(() -> CardFields.parse(with("installments", 1.5))).hasMessage(
                 "Escolha uma quantidade de parcelas válida.");
         assertThat(CardFields.parse(with("card_issuer_id", ""))).isEqualTo(new ChargeStarter.Card("tok", "visa", null,
-                "52998224725", 3));
+                "52998224725", 3, null));
+        assertThat(CardFields.parse(with("device_id", "dev-123")).deviceId()).isEqualTo("dev-123");
         assertThat(CardFields.parse(with("card_issuer_id", "24")).issuerId()).isEqualTo("24");
     }
 }

@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- acesso ao servidor (o Flutter só inclui isto no modo debug) -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- atualização dentro do app: abrir o instalador do APK baixado -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- entrar com a digital ou o rosto -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <!-- avisar de pedido novo (Android 13+ pede autorização) -->

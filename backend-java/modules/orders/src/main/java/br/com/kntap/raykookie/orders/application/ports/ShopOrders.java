@@ -46,7 +46,8 @@ public interface ShopOrders {
     void rememberContact(CustomerId customer, ShopOrderForm form);
 
     /**
-     * Pedidos do cliente pagos online que ainda não foram pagos nem cancelados (G11).
+     * Pedidos do cliente pagos online, feitos nas últimas 24 horas, que ainda não foram pagos nem cancelados
+     * (G11). Os mais antigos não contam: o Pix já venceu e não podem travar o cliente para sempre.
      *
      * @param customer cliente
      * @return quantos

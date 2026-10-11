@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../core/api_client.dart';
 import '../core/app_info.dart';
+import '../core/app_updates.dart';
 import 'theme.dart';
-import 'toast.dart';
 import 'widgets.dart';
 
 /// "raykookie 1.0.0 (build 3)": versão instalada, sempre visível numa tela do app.
@@ -22,59 +20,77 @@ class VersionLabel extends StatelessWidget {
       );
 }
 
-/// Aviso "Nova versão disponível" com botão de baixar, quando o servidor tem um build mais novo que o instalado.
+/// Aviso "Nova versão disponível": baixa aqui dentro, com barra de progresso, e abre o instalador do Android.
 class UpdateBanner extends StatefulWidget {
-  const UpdateBanner({super.key, required this.api, required this.app});
+  const UpdateBanner({super.key, required this.api, required this.app, this.updates});
   final ApiClient api;
   final String app; // client | server
+  /// Para testes; sem ele, usa (ou cria) o do app aberto.
+  final AppUpdates? updates;
   @override
   State<UpdateBanner> createState() => _UpdateBannerState();
 }
 
 class _UpdateBannerState extends State<UpdateBanner> {
-  late final Future<(InstalledVersion, Release?)> _check = _load();
+  // reaproveita o do app aberto (o push confere por ele) se for o mesmo app e a mesma sessão
+  late final AppUpdates _u = widget.updates ??
+      (AppUpdates.current?.app == widget.app && identical(AppUpdates.current!.api, widget.api)
+          ? AppUpdates.current!
+          : AppUpdates(api: widget.api, app: widget.app));
 
-  Future<(InstalledVersion, Release?)> _load() async => (await installedVersion(), await latestRelease(widget.api, widget.app));
-
-  bool _busy = false;
-
-  Future<void> _download(Release r) async {
-    setState(() => _busy = true);
-    try {
-      final url = await downloadUrl(widget.api, widget.app, r);
-      final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      if (!ok) Toast.error('Não foi possível abrir o download. Tente pelo site.');
-    } on ApiException catch (e) {
-      Toast.error(e.message);
-    } catch (_) {
-      Toast.error('Não foi possível abrir o download. Tente pelo site.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+  @override
+  void initState() {
+    super.initState();
+    _u.check();
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<(InstalledVersion, Release?)>(
-        future: _check,
-        builder: (context, snap) {
-          final d = snap.data;
-          if (d == null || d.$2 == null || !isNewer(d.$2!, d.$1)) return const SizedBox.shrink();
-          final (installed, r) = (d.$1, d.$2!);
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: _u,
+        builder: (context, _) {
+          final r = _u.available;
+          if (r == null || !_u.offer) return const SizedBox.shrink();
           final c = context.c;
+          final installed = _u.installedNow;
+          final pct = _u.progress;
           return Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: Container(
+              key: const Key('update_banner'),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: c.pinkTint, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.pink.withValues(alpha: 0.4))),
-              child: Row(children: [
-                Icon(Icons.system_update_rounded, color: c.pinkStrong),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Nova versão disponível', style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w800)),
-                  Text('${r.label} · você está na ${installed.label}', style: TextStyle(color: c.pinkStrong.withValues(alpha: 0.85), fontSize: 12.5)),
-                ])),
-                const SizedBox(width: 8),
-                BusyButton(label: 'Baixar', expand: false, busy: _busy, onPressed: () => _download(r)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(Icons.system_update_rounded, color: c.pinkStrong),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Nova versão disponível', style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w800)),
+                    Text(
+                      '${r.label}${installed == null ? '' : ' · você está na ${installed.label}'}${r.size > 0 ? ' · ${formatSize(r.size)}' : ''}',
+                      style: TextStyle(color: c.pinkStrong.withValues(alpha: 0.85), fontSize: 12.5),
+                    ),
+                  ])),
+                ]),
+                const SizedBox(height: 10),
+                if (pct != null) ...[
+                  ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: pct, minHeight: 8)),
+                  const SizedBox(height: 6),
+                  Text('Baixando… ${(pct * 100).round()}%', style: TextStyle(color: c.pinkStrong, fontSize: 12.5)),
+                ] else ...[
+                  if (_u.error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(_u.error!, style: TextStyle(color: c.pinkStrong, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    ),
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    if (_u.error != null)
+                      TextButton(onPressed: _u.openInBrowser, child: const Text('Baixar pelo navegador'))
+                    else
+                      TextButton(onPressed: _u.dismiss, child: const Text('Depois')),
+                    const SizedBox(width: 8),
+                    BusyButton(key: const Key('update_install'), label: 'Atualizar', expand: false, busy: false, onPressed: _u.install),
+                  ]),
+                ],
               ]),
             ),
           );

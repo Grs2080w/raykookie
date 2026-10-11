@@ -367,7 +367,7 @@ class _OrderCardState extends State<_OrderCard> {
             if (o.hasPix && o.status != 'cancelado')
               _PixBox(o, onChanged: onChanged),
             if (o.paymentMethod == 'cartao' && !o.paid && o.status != 'cancelado')
-              _CardRetryBox(o, onChanged: onChanged),
+              o.cardInReview ? const _CardInReviewBox() : _CardRetryBox(o, onChanged: onChanged),
             if (o.canCancel)
               Padding(
                 padding: const EdgeInsets.only(top: 14),
@@ -505,6 +505,9 @@ class _Timeline extends StatelessWidget {
 }
 
 /// "28:41" (ou "1 h 05 min", se faltar mais de uma hora).
+/// Pago com cartão: a devolução é estorno no cartão (o Mercado Pago devolve na fatura), não Pix.
+bool paidByCard(ShopOrder o) => o.paymentMethod == 'cartao';
+
 String pixLeft(int sec) {
   final s = sec < 0 ? 0 : sec;
   if (s >= 3600) {
@@ -776,7 +779,27 @@ class _PixBoxState extends State<_PixBox> {
   }
 }
 
-/// Pagamento com cartão recusado ou pendente: deixa tentar outro cartão no mesmo pedido.
+/// Cartão em análise no Mercado Pago: sem formulário (outra tentativa seria barrada e poderia cobrar duas vezes).
+class _CardInReviewBox extends StatelessWidget {
+  const _CardInReviewBox();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: AppCard(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.hourglass_top_rounded, color: c.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Text(cardInReview, style: TextStyle(color: c.muted, fontSize: 13.5))),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Pagamento com cartão recusado: deixa tentar outro cartão no mesmo pedido.
 class _CardRetryBox extends StatefulWidget {
   const _CardRetryBox(this.o, {required this.onChanged});
   final ShopOrder o;
@@ -801,17 +824,20 @@ class _CardRetryBoxState extends State<_CardRetryBox> {
   }
 
   Future<void> _retry() async {
+    final api = context.read<Session>().customerApi;
     final t = await _cardKey.currentState?.tokenize();
-    if (t == null) return;
+    if (t == null || !mounted) return;
     setState(() => _busy = true);
     try {
-      final r = Map<String, dynamic>.from(await context.read<Session>().customerApi.post('/api/cliente/pedidos/${widget.o.id}/cartao', {
+      final r = Map<String, dynamic>.from(await api.post('/api/cliente/pedidos/${widget.o.id}/cartao', {
         'card_token': t.cardToken, 'card_payment_method_id': t.paymentMethodId, 'cpf': t.cpf, 'installments': t.installments,
+        if (t.issuerId.isNotEmpty) 'card_issuer_id': t.issuerId,
+        if (t.deviceId.isNotEmpty) 'device_id': t.deviceId,
       }) as Map);
       if (r['approved'] == true) {
         Toast.ok('Pagamento aprovado!');
       } else if (r['pending'] == true) {
-        Toast.ok('Pagamento em análise. Avisamos quando confirmar.');
+        Toast.warn(cardInReview);
       } else {
         Toast.error('${r['reason'] ?? 'Pagamento recusado'}');
       }
@@ -861,7 +887,7 @@ class _CancelButton extends StatelessWidget {
         'reason': r.note,
       });
       final back = res is Map ? (res['refunded'] as num?)?.toDouble() ?? 0 : 0;
-      Toast.ok(back > 0 ? 'Pedido cancelado. ${money(back)} voltam por Pix.' : 'Pedido cancelado');
+      Toast.ok(back > 0 ? 'Pedido cancelado. ${money(back)} voltam ${paidByCard(o) ? 'como estorno no cartão' : 'por Pix'}.' : 'Pedido cancelado');
     } on ApiException catch (e) {
       Toast.error(e.message);
     } finally {
@@ -877,7 +903,7 @@ class _CancelButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () => _cancel(context),
         icon: const Icon(Icons.block_rounded, size: 18),
-        label: Text(o.paid ? 'Cancelar e receber o Pix de volta' : 'Cancelar pedido'),
+        label: Text(o.paid ? (paidByCard(o) ? 'Cancelar e receber o estorno no cartão' : 'Cancelar e receber o Pix de volta') : 'Cancelar pedido'),
         style: OutlinedButton.styleFrom(foregroundColor: c.bad),
       ),
     );
@@ -916,7 +942,9 @@ class _CancelDialogState extends State<_CancelDialog> {
           children: [
             Text(
               o.paid
-                  ? 'Ainda não começamos a produzir. Você recebe ${money(o.total)} de volta por Pix, na conta que pagou, normalmente em poucos minutos.'
+                  ? paidByCard(o)
+                      ? 'Ainda não começamos a produzir. Estornamos ${money(o.total)} no seu cartão; aparece na fatura em até 2 ciclos, conforme o banco.'
+                      : 'Ainda não começamos a produzir. Você recebe ${money(o.total)} de volta por Pix, na conta que pagou, normalmente em poucos minutos.'
                   : 'Ele ainda não entrou em produção. Se houver um Pix pendente, o código será desativado.',
               style: TextStyle(color: c.muted, height: 1.4),
             ),
@@ -947,7 +975,7 @@ class _CancelDialogState extends State<_CancelDialog> {
   }
 }
 
-String _payState(ShopOrder o) => switch (o.paymentState) {
+String _payState(ShopOrder o) => o.cardInReview ? 'Em análise' : switch (o.paymentState) {
       'pago' => 'Pago',
       'devolucao_parcial' => 'Devolvido ${money(o.refundedTotal)}',
       'devolvido' => 'Devolvido',
@@ -1091,6 +1119,8 @@ class _RefundBox extends StatelessWidget {
     final denied = r.status == 'negado';
     final done = r.status == 'concluido';
     final amount = r.approvedAmount ?? r.requestedAmount;
+    final card = paidByCard(o);
+    final backDone = card ? 'Estornado no cartão' : 'Pix devolvido';
     final List<Widget> lines;
     if (r.requested) {
       final partial = r.approvedAmount != null && r.approvedAmount! < r.requestedAmount;
@@ -1111,14 +1141,15 @@ class _RefundBox extends StatelessWidget {
           Text.rich(TextSpan(children: [TextSpan(text: 'Mensagem da loja: ', style: TextStyle(color: c.muted)), TextSpan(text: r.decisionNote)]), style: const TextStyle(fontSize: 13.5)),
         if (!denied) ...[
           const SizedBox(height: 8),
-          _Steps(const ['Solicitada', 'Em análise', 'Aprovada', 'Pix devolvido'], r.status == 'solicitado' ? 1 : done ? 4 : 3, finalOk: done),
+          _Steps(['Solicitada', 'Em análise', 'Aprovada', backDone], r.status == 'solicitado' ? 1 : done ? 4 : 3, finalOk: done),
+          if (card && done) Text('O estorno aparece na fatura do cartão em até 2 ciclos, conforme o banco.', style: TextStyle(color: c.muted, fontSize: 13)),
         ],
         if (r.status == 'solicitado')
           Text('Respondemos em até 1 dia útil. Você recebe uma notificação.', style: TextStyle(color: c.muted, fontSize: 13)),
       ];
     } else {
       // devolução da loja, do cancelamento antes da produção ou automática: sem análise
-      final title = done ? 'Pix devolvido: ${money(amount)}' : 'Devolução de ${money(amount)} em processamento';
+      final title = done ? '$backDone: ${money(amount)}' : 'Devolução de ${money(amount)} em processamento';
       lines = [
         if (r.kind == 'loja' && o.cancel == null)
           Text('DEVOLUÇÃO DA LOJA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.4, color: c.pinkStrong)),
@@ -1126,7 +1157,8 @@ class _RefundBox extends StatelessWidget {
         if (r.kind == 'loja' && o.cancel == null && r.decisionNote.isNotEmpty)
           Text.rich(TextSpan(children: [TextSpan(text: 'Mensagem da loja: ', style: TextStyle(color: c.muted)), TextSpan(text: r.decisionNote)]), style: const TextStyle(fontSize: 13.5)),
         const SizedBox(height: 8),
-        _Steps(const ['Devolução iniciada', 'Em processamento', 'Pix devolvido'], done ? 3 : 2, finalOk: done),
+        _Steps(['Devolução iniciada', 'Em processamento', backDone], done ? 3 : 2, finalOk: done),
+        if (card && done) Text('O estorno aparece na fatura do cartão em até 2 ciclos, conforme o banco.', style: TextStyle(color: c.muted, fontSize: 13)),
       ];
     }
     return Semantics(

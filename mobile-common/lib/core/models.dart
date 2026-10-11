@@ -234,7 +234,7 @@ class ShopOrder {
     required this.street, required this.number, required this.complement, required this.district, required this.city,
     required this.paymentMethod, required this.notes, required this.total, required this.items, required this.status,
     this.paid = false, this.canCancel = false, this.paymentState = '', this.refundedTotal = 0, this.cancelledBy = '', this.cancelReason = '',
-    this.refundMode = 'nenhum', this.refundMax = 0, this.refundPhotosRequired = false, this.refundDeadline, this.refundWhyNot = '', this.refunds = const [], this.cancel, this.hasPix = false, this.pixExpired = false, this.pixExpiresIn = 0, this.pixCode = '', this.pixQrBase64 = '', this.installments = 1,
+    this.refundMode = 'nenhum', this.refundMax = 0, this.refundPhotosRequired = false, this.refundDeadline, this.refundWhyNot = '', this.refunds = const [], this.cancel, this.hasPix = false, this.pixExpired = false, this.pixExpiresIn = 0, this.pixCode = '', this.pixQrBase64 = '', this.installments = 1, this.cardInReview = false,
   });
   final int id; // interno: usado nas rotas
   final int code; // o número que o cliente vê (4 ou 5 dígitos, aleatório)
@@ -257,6 +257,7 @@ class ShopOrder {
   final bool pixExpired; // o Pix venceu: é preciso gerar outro
   final int pixExpiresIn; // segundos restantes de validade, no momento em que a lista foi carregada
   final int installments; // só relevante para paymentMethod 'cartao' (1 = à vista)
+  final bool cardInReview; // cartão em análise no Mercado Pago: nada cobrado ainda, e outra tentativa fica bloqueada
   final List<ShopOrderItem> items;
   factory ShopOrder.fromJson(Map<String, dynamic> j) => ShopOrder(
         id: _i(j['id'])!, code: _i(j['code']) ?? _i(j['id'])!, pickupAddress: _s(j['pickup_address']), createdAt: _s(j['created_at']), scheduledFor: _s(j['scheduled_for']), timeWindow: _s(j['time_window']),
@@ -269,7 +270,7 @@ class ShopOrder {
         refunds: [for (final e in (j['refunds'] as List? ?? const [])) CustomerRefund.fromJson(e as Map<String, dynamic>)],
         cancel: j['cancel'] is Map ? OrderCancel.fromJson(Map<String, dynamic>.from(j['cancel'] as Map)) : null,
         hasPix: j['pix'] is Map, pixExpired: (j['pix'] as Map?)?['expired'] == true, pixExpiresIn: _i((j['pix'] as Map?)?['expires_in']) ?? 0,
-        pixCode: _s((j['pix'] as Map?)?['code']), pixQrBase64: _s((j['pix'] as Map?)?['qr_base64']), installments: _i(j['installments']) ?? 1,
+        pixCode: _s((j['pix'] as Map?)?['code']), pixQrBase64: _s((j['pix'] as Map?)?['qr_base64']), installments: _i(j['installments']) ?? 1, cardInReview: j['card_in_review'] == true,
         items: [for (final e in j['items'] as List) ShopOrderItem(id: _s(e['id']), name: _s(e['name']), qty: _i(e['qty']) ?? 0, unitPrice: _d(e['unit_price']))],
       );
 }

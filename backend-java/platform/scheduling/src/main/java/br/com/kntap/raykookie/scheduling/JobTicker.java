@@ -11,7 +11,7 @@ public class JobTicker {
     /** Quem roda as tarefas. */
     private final JobRunner runner;
 
-    /** {@code JOBS_ENABLED}: desligado, o relógio não faz nada. */
+    /** {@code JOBS_ENABLED}: desligado, o relógio só roda as tarefas que não existem no Node. */
     private final boolean enabled;
 
     /**
@@ -26,13 +26,15 @@ public class JobTicker {
     }
 
     /**
-     * Um ciclo: roda as tarefas que estão na hora.
+     * Um ciclo: roda as tarefas que estão na hora. Desligado, roda só as que não existem no Node
+     * ({@link ScheduledJob#runsAlongsideNode()}).
      *
-     * @return verdadeiro se o ciclo rodou (falso com as tarefas desligadas)
+     * @return verdadeiro se o ciclo rodou todas (falso com as tarefas desligadas)
      */
     @Scheduled(cron = "0 */5 * * * *", zone = "America/Sao_Paulo")
     public boolean tick() {
         if (!enabled) {
+            runner.runDue(ScheduledJob::runsAlongsideNode);
             return false;
         }
         runner.runDue();

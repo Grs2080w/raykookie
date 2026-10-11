@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
+import br.com.kntap.raykookie.kernel.events.AppReleased;
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import br.com.kntap.raykookie.notifications.domain.Messages;
@@ -123,21 +124,67 @@ class MessagesTest {
      * Avisos ao cliente, com o canal único.
      */
     @Test
-    @DisplayName("cliente: pago, pronto para entrega, entregue pago, sem aviso para 'novo', devolução parcial")
+    @DisplayName("cliente: pago, cartão recusado depois da análise, pronto para entrega, entregue pago, sem aviso para "
+            + "'novo', devolução parcial")
     void customerMessages() {
         PushMessage paid = Messages.customer("tok", new CustomerNotice.Paid(REF)).orElseThrow();
         assertThat(paid.title()).isEqualTo("Pagamento confirmado · #4321");
         assertThat(paid.body()).isEqualTo("Recebemos o pagamento de R$ 120,00. Seu pedido entra na fila de produção.");
         assertThat(paid.channelId()).isEqualTo("pedidos_cliente");
         assertThat(paid.data()).isEqualTo(Map.of("type", "pagamento", "orderId", "9", "audience", "cliente"));
+        PushMessage refused = Messages.customer("tok", new CustomerNotice.CardRefused(REF, "Saldo ou limite "
+                + "insuficiente.")).orElseThrow();
+        assertThat(refused.title()).isEqualTo("Cartão não aprovado · #4321");
+        assertThat(refused.body()).isEqualTo("Nada foi cobrado. Saldo ou limite insuficiente. Abra o pedido para "
+                + "tentar outro cartão.");
+        assertThat(refused.data()).isEqualTo(Map.of("type", "pagamento", "orderId", "9", "audience", "cliente"));
         assertThat(Messages.customer("tok", new CustomerNotice.Status(REF, "pronto")).orElseThrow().body())
                 .isEqualTo("Ele sai para entrega no período da tarde.");
         assertThat(Messages.customer("tok", new CustomerNotice.Status(REF, "entregue")).orElseThrow().body())
                 .startsWith("Bom apetite! Se algo não estiver certo");
         assertThat(Messages.customer("tok", new CustomerNotice.Status(REF, "novo"))).isEmpty();
         assertThat(Messages.customer("tok", new CustomerNotice.Refund(REF, "aprovada", Money.ofCents(500),
-                Money.ofCents(1000), null)).orElseThrow().body()).isEqualTo("R$ 5,00 de R$ 10,00. Veja a mensagem da loja.");
-        assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000)))
-                .orElseThrow().body()).isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam por Pix.");
+                Money.ofCents(1000), null, false)).orElseThrow().body())
+                .isEqualTo("R$ 5,00 de R$ 10,00. Veja a mensagem da loja.");
+        assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000),
+                false)).orElseThrow().body()).isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam por Pix.");
+    }
+
+    /**
+     * Pago com cartão, a devolução é estorno no cartão (o Mercado Pago devolve na fatura), nunca "Pix".
+     */
+    @Test
+    @DisplayName("devolução de pedido pago com cartão fala em estorno no cartão")
+    void cardRefundIsChargeback() {
+
+        // ── 1. Aprovada e concluída.
+        assertThat(Messages.customer("tok", new CustomerNotice.Refund(REF, "aprovada", Money.ofCents(1000),
+                Money.ofCents(1000), null, true)).orElseThrow().body())
+                .isEqualTo("R$ 10,00 voltam como estorno no cartão.");
+        PushMessage done = Messages.customer("tok", new CustomerNotice.Refund(REF, "concluida", Money.ofCents(1000),
+                null, null, true)).orElseThrow();
+        assertThat(done.title()).startsWith("Estorno no cartão");
+        assertThat(done.body()).doesNotContain("Pix").contains("estornados no cartão");
+
+        // ── 2. Cancelado pela loja.
+        assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000),
+                true)).orElseThrow().body())
+                .isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam como estorno no cartão.");
+    }
+
+    /**
+     * Versão nova.
+     */
+    @Test
+    @DisplayName("versão nova: título, texto com a versão e dados para o app abrir e atualizar")
+    void appUpdateMessage() {
+        PushMessage m = Messages.appUpdate("tok", new AppReleased("client", "1.0.0", 130));
+        assertThat(m.title()).isEqualTo("Nova versão do app");
+        assertThat(m.body()).isEqualTo("Toque para atualizar para a versão 1.0.0 (build 130).");
+        assertThat(m.channelId()).isEqualTo("atualizacoes");
+        assertThat(m.data()).isEqualTo(Map.of("type", "update", "app", "client", "build", "130", "audience",
+                "cliente"));
+        assertThat(Messages.appUpdate("tok", new AppReleased("server", "1.1.0", 9)).data()).containsEntry("audience",
+                "dona");
     }
 }

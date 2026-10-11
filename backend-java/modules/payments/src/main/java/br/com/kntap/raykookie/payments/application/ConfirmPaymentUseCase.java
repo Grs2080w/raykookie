@@ -117,6 +117,20 @@ public class ConfirmPaymentUseCase {
     }
 
     /**
+     * Avisa o cliente que o cartão em análise foi recusado, se o pedido ainda espera pagamento.
+     *
+     * @param orderId id do pedido da loja
+     * @param reason  motivo da recusa, em português
+     */
+    @Transactional
+    public void notifyCardRefused(long orderId, String reason) {
+        orders.lockById(orderId).filter(order -> !order.paid() && !order.cancelled())
+                .ifPresent(order -> events.publishEvent(new CustomerNotice.CardRefused(new CustomerNotice.OrderRef(
+                        order.id(), order.code(), order.customer(), order.total(), order.fulfillment(),
+                        order.timeWindow(), false), reason)));
+    }
+
+    /**
      * Dados do evento "pago" no histórico.
      *
      * @param payment      pagamento

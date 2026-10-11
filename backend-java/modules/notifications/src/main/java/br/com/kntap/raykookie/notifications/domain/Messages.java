@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.notifications.domain;
 
 import br.com.kntap.raykookie.kernel.Money;
+import br.com.kntap.raykookie.kernel.events.AppReleased;
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import java.math.BigDecimal;
@@ -16,6 +17,9 @@ public final class Messages {
 
     /** Canal único do app do cliente ("Seus pedidos"). */
     public static final String CUSTOMER_CHANNEL = "pedidos_cliente";
+
+    /** Canal do aviso de versão nova, nos dois apps ("Atualizações do app"). */
+    public static final String UPDATES_CHANNEL = "atualizacoes";
 
     /** Som do pagamento confirmado (canal que todo app de gestão já tem). */
     private static final String PAID_SOUND = "caixa";
@@ -179,6 +183,21 @@ public final class Messages {
     }
 
     /**
+     * Versão nova do app: tocar abre o app, que baixa e abre o instalador.
+     *
+     * @param token token
+     * @param r     versão publicada
+     * @return a mensagem
+     */
+    public static PushMessage appUpdate(String token, AppReleased r) {
+        String audience = "server".equals(r.app()) ? "dona" : "cliente";
+        return new PushMessage(token, "Nova versão do app",
+                "Toque para atualizar para a versão " + r.version() + " (build " + r.build() + ").",
+                Map.of("type", "update", "app", r.app(), "build", String.valueOf(r.build()), "audience", audience),
+                UPDATES_CHANNEL, "default");
+    }
+
+    /**
      * Aviso para o cliente, se aquele status tiver aviso.
      *
      * @param token token
@@ -191,10 +210,13 @@ public final class Messages {
             case CustomerNotice.Paid p -> Optional.of(customerMessage(token, o, "pagamento",
                     "Pagamento confirmado · #" + o.code(), "Recebemos o pagamento de " + brl(o.total())
                             + ". Seu pedido entra na fila de produção."));
+            case CustomerNotice.CardRefused r -> Optional.of(customerMessage(token, o, "pagamento",
+                    "Cartão não aprovado · #" + o.code(), "Nada foi cobrado. " + r.reason()
+                            + " Abra o pedido para tentar outro cartão."));
             case CustomerNotice.Status s -> status(token, o, s.status());
             case CustomerNotice.StoreCancel c -> Optional.of(customerMessage(token, o, "cancelado",
                     "Pedido cancelado pela loja · #" + o.code(), "Motivo: " + c.reason() + "."
-                            + (c.refunded().isZero() ? "" : " " + brl(c.refunded()) + " voltam por Pix.")));
+                            + (c.refunded().isZero() ? "" : " " + brl(c.refunded()) + goesBack(c.card()))));
             case CustomerNotice.Refund r -> Optional.of(customerRefund(token, o, r));
         };
     }
@@ -235,12 +257,26 @@ public final class Messages {
             case "aprovada" -> customerMessage(token, o, "devolucao", "Devolução aprovada · #" + o.code(),
                     r.amount().isLessThan(r.requested())
                             ? brl(r.amount()) + " de " + brl(r.requested()) + ". Veja a mensagem da loja."
-                            : brl(r.amount()) + " voltam por Pix.");
+                            : brl(r.amount()) + goesBack(r.card()));
             case "negada" -> customerMessage(token, o, "devolucao", "Devolução negada · #" + o.code(),
                     "Motivo: " + r.reason() + ".");
-            default -> customerMessage(token, o, "devolucao", "Pix devolvido · #" + o.code(),
-                    brl(r.amount()) + " voltaram para a conta que pagou.");
+            default -> r.card()
+                    ? customerMessage(token, o, "devolucao", "Estorno no cartão · #" + o.code(),
+                            brl(r.amount()) + " estornados no cartão. Aparece na fatura em até 2 ciclos,"
+                                    + " conforme o banco.")
+                    : customerMessage(token, o, "devolucao", "Pix devolvido · #" + o.code(),
+                            brl(r.amount()) + " voltaram para a conta que pagou.");
         };
+    }
+
+    /**
+     * Para onde volta o dinheiro: estorno no cartão (o Mercado Pago devolve na fatura) ou Pix para a conta que pagou.
+     *
+     * @param card pago com cartão
+     * @return o fim da frase, com espaço inicial e ponto final
+     */
+    private static String goesBack(boolean card) {
+        return card ? " voltam como estorno no cartão." : " voltam por Pix.";
     }
 
     /**

@@ -81,6 +81,26 @@ public class PushService {
     }
 
     /**
+     * Avisa todos os aparelhos de um app (versão nova publicada).
+     *
+     * @param owners verdadeiro para os aparelhos das donas (app de gestão); falso para os dos clientes
+     * @param build  monta a mensagem de cada aparelho, pelo token
+     * @param what   o que é o aviso (para o log)
+     */
+    public void toEveryone(boolean owners, Function<String, PushMessage> build, String what) {
+        try {
+            List<String> tokens = owners ? devices.allOwners().stream().map(OwnerDevice::token).toList()
+                    : devices.allCustomers();
+            if (!tokens.isEmpty()) {
+                sender.send(tokens.stream().map(build).toList()).ifPresent(results -> forget(results,
+                        owners ? devices::forgetOwnerTokens : devices::forgetCustomerTokens));
+            }
+        } catch (RuntimeException failure) {
+            LOG.error("Falha ao avisar todos os aparelhos ({})", what, failure);
+        }
+    }
+
+    /**
      * Apaga os aparelhos mortos.
      *
      * @param results resultados do envio

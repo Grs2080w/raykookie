@@ -24,6 +24,17 @@ public interface ScheduledJob {
     JobFrequency frequency();
 
     /**
+     * Diz se a tarefa roda mesmo com as tarefas desligadas ({@code JOBS_ENABLED=false}, enquanto o Node usa o mesmo
+     * banco): só as que mexem em dados que o Node não conhece (como {@code payment_attempts}) e por isso não rodam em
+     * dobro.
+     *
+     * @return verdadeiro se roda sempre
+     */
+    default boolean runsAlongsideNode() {
+        return false;
+    }
+
+    /**
      * Faz o trabalho. Lançar uma exceção registra a falha e dispara um alerta; as outras tarefas seguem.
      */
     void run();

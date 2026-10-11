@@ -173,8 +173,8 @@ public class ShopOrderUseCases {
         // ── 3. Guarda telefone e endereço para o próximo pedido.
         shopOrders.rememberContact(customer, form);
         String email = customers.byId(customer).map(CustomersApi.CustomerSummary::email).orElse("");
-        return new ChargeStarter.NewOrder(id, code, owner, customer, email, form.contactName(), form.total(),
-                form.items().size());
+        return new ChargeStarter.NewOrder(id, code, owner, customer, email, form.contactName(), form.phone(),
+                form.total(), form.items().size());
     }
 
     /**
@@ -204,8 +204,7 @@ public class ShopOrderUseCases {
             refused.put("reason", CARD_UNAVAILABLE);
             return refused;
         }
-        return starter.startCard(order, new ChargeStarter.Card(card.token(), card.methodId(), card.issuerId(), card
-                .cpf(),
-                card.installments()), clientIp);
+        return starter.startCard(order, new ChargeStarter.Card(card.token(), card.methodId(), card.issuerId(),
+                card.cpf(), card.installments(), card.deviceId()), clientIp);
     }
 }

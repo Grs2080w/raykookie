@@ -18,8 +18,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 /**
- * Pedidos do cliente no formato do Node ({@code getCustomerOrders}): situação geral, estado do pagamento, o que dá
- * para fazer sobre devolução, as solicitações e o Pix ainda válido.
+ * Pedidos do cliente no formato do Node ({@code getCustomerOrders}): situação geral, estado do pagamento, se há
+ * cartão em análise no Mercado Pago, o que dá para fazer sobre devolução, as solicitações e o Pix ainda válido.
  */
 @Component
 public class CustomerOrderViews {
@@ -109,6 +109,7 @@ public class CustomerOrderViews {
         view.put("status", status);
         view.put("paid", paid);
         view.put("payment_state", RefundRules.paymentState(paid, cancelled, expired, total, refunded));
+        view.put("card_in_review", !paid && !cancelled && Boolean.TRUE.equals(row.get("card_in_review")));
         view.put("refund", refund(eligibility));
         view.put("cancel_reason", Objects.requireNonNullElse(row.get("cancel_reason"), ""));
         view.put("cancelled_by", row.get("cancelled_by"));

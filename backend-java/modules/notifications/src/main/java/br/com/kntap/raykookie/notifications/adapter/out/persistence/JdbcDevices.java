@@ -37,6 +37,19 @@ public class JdbcDevices implements Devices {
 
     /** {@inheritDoc} */
     @Override
+    public List<OwnerDevice> allOwners() {
+        return jdbc.sql("SELECT token, sound FROM device_tokens ORDER BY id")
+                .query((rs, row) -> new OwnerDevice(rs.getString(1), rs.getString(2))).list();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<String> allCustomers() {
+        return jdbc.sql("SELECT token FROM customer_devices ORDER BY id").query(String.class).list();
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public List<String> ofCustomer(CustomerId customer) {
         return jdbc.sql("SELECT token FROM customer_devices WHERE customer_id = :customer ORDER BY id")
                 .param("customer", customer.value()).query(String.class).list();

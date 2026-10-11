@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
+import br.com.kntap.raykookie.kernel.events.AppReleased;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import br.com.kntap.raykookie.notifications.application.ports.PushSender;
 import br.com.kntap.raykookie.notifications.domain.PushMessage;
@@ -141,6 +142,48 @@ class NoticeDeliveryIT extends PostgresTestBase {
         });
         Thread.sleep(800);
         assertThat(SENT).isEmpty();
+    }
+
+    /**
+     * Versão nova do app de gestão: todos os aparelhos das donas, no canal de atualizações.
+     *
+     * @throws InterruptedException se interrompido
+     */
+    @Test
+    @DisplayName("versão nova do app de gestão: aviso a todos os aparelhos da dona, no canal de atualizações")
+    void appReleasedReachesOwners() throws InterruptedException {
+        events.publishEvent(new AppReleased("server", "1.1.0", 130));
+        await(2);
+        assertThat(SENT).hasSize(2).allSatisfy(m -> {
+            assertThat(m.channelId()).isEqualTo("atualizacoes");
+            assertThat(m.data()).containsEntry("type", "update").containsEntry("app", "server")
+                    .containsEntry("build", "130");
+        });
+    }
+
+    /**
+     * Versão nova do app do cliente: todos os aparelhos dos clientes, e nenhum da dona.
+     *
+     * @throws InterruptedException se interrompido
+     */
+    @Test
+    @DisplayName("versão nova do app do cliente: aviso a todos os aparelhos dos clientes, nenhum da dona")
+    void appReleasedReachesCustomers() throws InterruptedException {
+
+        // ── 1. Um aparelho de cada cliente de teste.
+        jdbc.sql("DELETE FROM customer_devices").update();
+        jdbc.sql("INSERT INTO customer_devices (customer_id, token) SELECT id, 'cliente-' || id || '-0123456789' "
+                + "FROM customers WHERE email IN ('ana@teste.com', 'bia@teste.com')").update();
+
+        // ── 2. Só os dos clientes recebem (e os aparelhos de teste saem do banco no fim).
+        try {
+            events.publishEvent(new AppReleased("client", "1.0.0", 130));
+            await(2);
+            Thread.sleep(300);
+            assertThat(SENT).hasSize(2).allSatisfy(m -> assertThat(m.token()).startsWith("cliente-"));
+        } finally {
+            jdbc.sql("DELETE FROM customer_devices").update();
+        }
     }
 
     /**

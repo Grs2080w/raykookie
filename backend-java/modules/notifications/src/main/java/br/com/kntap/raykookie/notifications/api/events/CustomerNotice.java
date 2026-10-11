@@ -39,6 +39,15 @@ public sealed interface CustomerNotice {
     }
 
     /**
+     * Cartão que estava em análise no Mercado Pago foi recusado (nada foi cobrado).
+     *
+     * @param order  pedido
+     * @param reason motivo da recusa, em português
+     */
+    record CardRefused(OrderRef order, String reason) implements CustomerNotice {
+    }
+
+    /**
      * Mudança de etapa (em preparo, pronto, entregue).
      *
      * @param order  pedido
@@ -52,9 +61,10 @@ public sealed interface CustomerNotice {
      *
      * @param order    pedido
      * @param reason   motivo
-     * @param refunded valor que volta por Pix (zero = nada)
+     * @param refunded valor que volta ao cliente (zero = nada)
+     * @param card     pago com cartão: o dinheiro volta como estorno no cartão, não por Pix
      */
-    record StoreCancel(OrderRef order, String reason, Money refunded) implements CustomerNotice {
+    record StoreCancel(OrderRef order, String reason, Money refunded, boolean card) implements CustomerNotice {
     }
 
     /**
@@ -65,7 +75,9 @@ public sealed interface CustomerNotice {
      * @param amount    valor aprovado/devolvido
      * @param requested valor pedido (aprovada)
      * @param reason    motivo (negada)
+     * @param card      pago com cartão: o dinheiro volta como estorno no cartão, não por Pix
      */
-    record Refund(OrderRef order, String kind, Money amount, Money requested, String reason) implements CustomerNotice {
+    record Refund(OrderRef order, String kind, Money amount, Money requested, String reason, boolean card)
+            implements CustomerNotice {
     }
 }

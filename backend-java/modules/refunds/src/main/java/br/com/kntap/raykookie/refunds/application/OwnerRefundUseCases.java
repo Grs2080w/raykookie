@@ -209,7 +209,7 @@ public class OwnerRefundUseCases {
         data.put("note", note);
         history.logEvent(r.orderId(), "loja", "devolucao_aprovada", data);
         recorder.closeIfFullyRefunded(r.orderId());
-        return new Decision(true, new CustomerNotice.Refund(o.ref(), "aprovada", value, r.requested(), null));
+        return new Decision(true, new CustomerNotice.Refund(o.ref(), "aprovada", value, r.requested(), null, o.card()));
     }
 
     /**
@@ -239,7 +239,7 @@ public class OwnerRefundUseCases {
         history.logEvent(r.orderId(), "loja", "devolucao_negada", data);
         RefundOrders.OrderState o = orders.load(r.orderId(), false).orElseThrow();
         return new Decision(false, new CustomerNotice.Refund(o.ref(), "negada", null, null,
-                Reasons.label(String.valueOf(code))));
+                Reasons.label(String.valueOf(code)), o.card()));
     }
 
     /**

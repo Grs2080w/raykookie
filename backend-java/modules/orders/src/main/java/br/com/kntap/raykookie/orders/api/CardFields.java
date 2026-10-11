@@ -46,6 +46,6 @@ public final class CardFields {
         }
         String issuer = NodeInput.text(body.get("card_issuer_id"));
         return new ChargeStarter.Card(token, method, issuer.isEmpty() ? null : issuer, Cpf.clean(body.get("cpf")),
-                installments.get().intValue());
+                installments.get().intValue(), ShopOrderForm.Card.deviceId(body.get("device_id")));
     }
 }

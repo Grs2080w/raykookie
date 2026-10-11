@@ -125,30 +125,29 @@ class AbuseIT extends AppItSupport {
     }
 
     /**
-     * Limite de recusas de cartão por cliente (G04).
+     * Limite de recusas de cartão por cliente (G04): 20 por dia.
      */
     @Test
-    @DisplayName("G04: 5 recusas do mesmo cliente em pedidos diferentes: a 6ª tentativa é 429 sem chamar o gateway")
+    @DisplayName("G04: 20 recusas do mesmo cliente em 24 h: a tentativa seguinte é 429 sem chamar o gateway")
     void cardRefusals() {
 
-        // ── 1. Três pedidos recusados.
+        // ── 1. Um pedido recusado; o contador do cliente vai para 19 (como se fossem 19 recusas no dia).
         cardAnswer("FUND", "rejected", "cc_rejected_insufficient_amount", 0);
         cardAnswer("APRO", "approved", "accredited", 0);
         String item = menuItem();
         String token = newCustomer().token();
-        long[] orders = new long[3];
-        for (int i = 0; i < 3; i++) {
-            orders[i] = as(token).body(cardOrder(item, "FUND")).post("/api/cliente/pedidos").jsonPath().getLong("id");
-        }
+        long order = as(token).body(cardOrder(item, "FUND")).post("/api/cliente/pedidos").jsonPath().getLong("id");
+        long customer = jdbc.sql("SELECT customer_id FROM shop_orders WHERE id = :id").param("id", order)
+                .query(Long.class).single();
+        jdbc.sql("UPDATE rate_limits SET hits = 19 WHERE key = :key").param("key", "card-fail-customer|" + customer)
+                .update();
 
-        // ── 2. Mais duas recusas tentando de novo; a sexta tentativa nem chega ao gateway.
-        for (int i = 0; i < 2; i++) {
-            assertThat(as(token).body(card("FUND")).post("/api/cliente/pedidos/" + orders[i] + "/cartao")
-                    .statusCode()).isEqualTo(200);
-        }
-        Response blocked = as(token).body(card("APRO")).post("/api/cliente/pedidos/" + orders[2] + "/cartao");
+        // ── 2. A 20ª recusa ainda chega ao gateway; a tentativa seguinte, não.
+        assertThat(as(token).body(card("FUND")).post("/api/cliente/pedidos/" + order + "/cartao").statusCode())
+                .isEqualTo(200);
+        Response blocked = as(token).body(card("APRO")).post("/api/cliente/pedidos/" + order + "/cartao");
         assertThat(blocked.statusCode()).isEqualTo(429);
         assertThat(blocked.jsonPath().getString("error")).isEqualTo(CARD_LIMIT);
-        MP.verify(5, postRequestedFor(urlEqualTo("/v1/payments")));
+        MP.verify(2, postRequestedFor(urlEqualTo("/v1/payments")));
     }
 }

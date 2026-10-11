@@ -102,6 +102,15 @@ public interface RefundOrders {
         }
 
         /**
+         * Diz se foi pago com cartão (a devolução vira estorno no cartão, feito pelo Mercado Pago).
+         *
+         * @return verdadeiro se cartão
+         */
+        public boolean card() {
+            return "cartao".equals(paymentMethod);
+        }
+
+        /**
          * O pedido nos avisos ao cliente.
          *
          * @return a referência

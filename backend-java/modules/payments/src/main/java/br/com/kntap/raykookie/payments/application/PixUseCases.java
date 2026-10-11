@@ -232,6 +232,18 @@ public class PixUseCases implements PendingChargeCanceller {
     }
 
     /**
+     * Sobrenome: o que vem depois do primeiro nome (vazio se o nome for uma palavra só).
+     *
+     * @param name nome
+     * @return o sobrenome
+     */
+    static String lastName(String name) {
+        String trimmed = name.trim();
+        int space = trimmed.indexOf(' ');
+        return space < 0 ? "" : trimmed.substring(space + 1).trim();
+    }
+
+    /**
      * Nulo vira vazio.
      *
      * @param text texto
