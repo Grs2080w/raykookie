@@ -52,6 +52,24 @@ public interface InsightsQueries {
     Map<Long, BigDecimal> unitsSold(OwnerId owner, LocalDate month);
 
     /**
+     * Combos vendidos no mês (pedidos não cancelados): quantidade e valor de cada combo.
+     *
+     * @param owner dona
+     * @param month primeiro dia do mês
+     * @return combo → vendas
+     */
+    Map<Long, ComboSales> combosSold(OwnerId owner, LocalDate month);
+
+    /**
+     * Vendas de um combo no mês.
+     *
+     * @param qty     quantos combos
+     * @param revenue valor vendido
+     */
+    record ComboSales(BigDecimal qty, BigDecimal revenue) {
+    }
+
+    /**
      * Devoluções da dona: aguardando decisão, valor em andamento e as que falharam.
      *
      * @param owner dona

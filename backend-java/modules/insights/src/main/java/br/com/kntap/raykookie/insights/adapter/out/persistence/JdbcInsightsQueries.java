@@ -99,6 +99,21 @@ public class JdbcInsightsQueries implements InsightsQueries {
 
     /** {@inheritDoc} */
     @Override
+    public Map<Long, ComboSales> combosSold(OwnerId owner, LocalDate month) {
+        Map<Long, ComboSales> sales = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT combo_id, SUM(qty), SUM(qty * unit_price) FROM orders
+                 WHERE user_id = :u AND status <> 'cancelado' AND combo_id IS NOT NULL AND order_date >= :m
+                   AND order_date < (CAST(:m AS date) + interval '1 month')
+                 GROUP BY combo_id""")
+                .param("u", owner.value()).param("m", month)
+                .query((rs, row) -> sales.put(rs.getLong(1), new ComboSales(rs.getBigDecimal(2), rs.getBigDecimal(3))))
+                .list();
+        return sales;
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public RefundSummary refunds(OwnerId owner) {
         return jdbc.sql("""
                 SELECT count(*) FILTER (WHERE status = 'solicitado'),

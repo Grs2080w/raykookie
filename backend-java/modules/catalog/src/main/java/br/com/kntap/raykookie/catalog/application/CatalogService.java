@@ -2,6 +2,7 @@ package br.com.kntap.raykookie.catalog.application;
 
 import br.com.kntap.raykookie.catalog.api.CatalogApi;
 import br.com.kntap.raykookie.catalog.api.IngredientForm;
+import br.com.kntap.raykookie.catalog.api.MenuCombo;
 import br.com.kntap.raykookie.catalog.api.PriceChange;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.ports.Categories;
@@ -34,6 +35,9 @@ public class CatalogService implements CatalogApi {
     /** Fotos das receitas. */
     private final PhotoStore photos;
 
+    /** Combos. */
+    private final ComboUseCases combos;
+
     /**
      * Cria o serviço.
      *
@@ -42,14 +46,16 @@ public class CatalogService implements CatalogApi {
      * @param ingredients ingredientes
      * @param priceImpact histórico e alertas de preço
      * @param photos      fotos das receitas
+     * @param combos      combos
      */
     public CatalogService(RecipePricing pricing, Categories categories, Ingredients ingredients,
-            PriceImpact priceImpact, PhotoStore photos) {
+            PriceImpact priceImpact, PhotoStore photos, ComboUseCases combos) {
         this.pricing = pricing;
         this.categories = categories;
         this.ingredients = ingredients;
         this.priceImpact = priceImpact;
         this.photos = photos;
+        this.combos = combos;
     }
 
     /** {@inheritDoc} */
@@ -86,5 +92,17 @@ public class CatalogService implements CatalogApi {
     @Override
     public int priceChanged(PriceChange change) {
         return priceImpact.priceChanged(change);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<MenuCombo> menuCombos(OwnerId owner) {
+        return combos.menu(owner);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Map<Long, Double> comboCosts(OwnerId owner) {
+        return combos.costs(owner);
     }
 }

@@ -11,6 +11,8 @@ import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
+import 'combos_section.dart';
+
 /// Página do Cardápio: o que aparece na landing page, no app do cliente e no link de compartilhar. Por produto:
 /// a chave da landing page, os selos (alergênicos, dieta...) e se mostra a lista de ingredientes; o preço é o da
 /// receita padrão. Cada mudança salva na hora (PATCH /api/recipes/:id/cardapio) — "Ver cardápio" abre o site, que
@@ -63,6 +65,9 @@ class _CardapioScreenState extends State<CardapioScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _RecipeMenuCard(r, onSaved: () => setState(() => _v++)),
                 ),
+              const SizedBox(height: 8),
+              // recarrega junto: ligar/desligar um produto muda o que os combos podem mostrar
+              CombosSection(key: ValueKey('combos_$_v')),
             ],
           );
         },

@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.storefront.application;
 
 import br.com.kntap.raykookie.catalog.api.CatalogApi;
+import br.com.kntap.raykookie.catalog.api.MenuCombo;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.security.ShopOwner;
@@ -66,10 +67,27 @@ public class StorefrontService implements StorefrontApi {
             ingredients.put(((Number) row.get("id")).longValue(), String.valueOf(row.get("name")));
         }
 
-        // ── 4. Receitas precificadas viram o cardápio.
+        // ── 4. Receitas precificadas e combos vendáveis viram o cardápio.
         List<MenuBuilder.Recipe> recipes = catalog.pricedRecipes(owner).stream()
                 .map(recipe -> recipe(recipe, categories, ingredients)).toList();
-        return MenuBuilder.build(recipes);
+        List<Menu.Item> combos = catalog.menuCombos(owner).stream().map(StorefrontService::combo).toList();
+        return MenuBuilder.build(recipes, combos);
+    }
+
+    /**
+     * O combo como item do cardápio ({@code combo-<id>}).
+     *
+     * @param combo combo vendável
+     * @return o item
+     */
+    private static Menu.Item combo(MenuCombo combo) {
+        String image = combo.photoRecipe() == null ? null
+                : "/api/fotos/" + combo.photoRecipe() + "?v=" + combo.photoVersion();
+        List<Menu.Part> parts = combo.parts().stream().map(p -> new Menu.Part(p.recipeId(), p.name(), p.qty()))
+                .toList();
+        return new Menu.Item(Menu.COMBO_PREFIX + combo.id(), combo.name(), combo.price(), MenuBuilder.COMBOS, 0,
+                image, combo.tags(), List.of(), new Menu.Combo(combo.id(), combo.contents(), combo.fullPrice(),
+                        parts));
     }
 
     /**

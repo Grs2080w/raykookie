@@ -17,6 +17,9 @@ public record Menu(List<Item> items, List<Group> groups) {
     /** Cardápio vazio (loja sem dona ou sem receitas à venda). */
     public static final Menu EMPTY = new Menu(List.of(), List.of());
 
+    /** Prefixo do id dos combos no cardápio ({@code combo-<id>}). */
+    public static final String COMBO_PREFIX = "combo-";
+
     /**
      * O cardápio no formato do Node.
      *

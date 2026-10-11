@@ -109,13 +109,13 @@ public class JdbcShopOrders implements ShopOrders {
     @Override
     public void insertLine(NewLine line) {
         jdbc.sql("""
-                INSERT INTO orders (user_id, number, customer, recipe_id, product, qty, unit_price, delivery_date,
-                    status,
-                                    payment, notes, address, shop_order_id)
-                VALUES (:owner, :number, :customer, :recipe, :product, :qty, :price, :delivery, 'novo', 'pendente',
-                        :notes, :address, :shopOrder)""")
+                INSERT INTO orders (user_id, number, customer, recipe_id, combo_id, product, qty, unit_price,
+                                    delivery_date, status, payment, notes, address, shop_order_id)
+                VALUES (:owner, :number, :customer, :recipe, :combo, :product, :qty, :price, :delivery, 'novo',
+                        'pendente', :notes, :address, :shopOrder)""")
                 .param("owner", line.owner().value()).param("number", line.number()).param("customer", line.customer())
-                .param("recipe", Long.parseLong(line.line().id())).param("product", line.line().name())
+                .param("recipe", line.line().recipeId()).param("combo", line.line().comboId())
+                .param("product", line.line().name())
                 .param("qty", line.line().qty()).param("price", line.line().unitPrice().toDecimal())
                 .param("delivery", line.delivery()).param("notes", line.notes()).param("address", line.address())
                 .param("shopOrder", line.shopOrderId()).update();

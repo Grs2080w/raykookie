@@ -789,4 +789,51 @@ void main() {
       expect((be.bodies['PUT /api/recipes/5/variants/12'] as Map)['name'], 'Chocolate');
     });
   });
+
+  group('combos na página do Cardápio (gestão)', () {
+    testWidgets('+ Novo combo: produtos com quantidade, sugerido ao vivo (soma - 10%) e salvar', (t) async {
+      final page = {
+        'discount_pct': 10, 'min_margin_pct': 30,
+        'products': [
+          {'id': 1, 'name': 'Cookie', 'price': 9, 'cost': 3, 'photo_v': null, 'on_menu': true},
+          {'id': 2, 'name': 'Brownie', 'price': 12, 'cost': 4, 'photo_v': null, 'on_menu': true},
+        ],
+        'combos': [],
+      };
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/recipes/cardapio': (_) => (200, [
+              {'id': 1, 'name': 'Cookie', 'show_on_menu': true, 'tags': [], 'has_photo': false, 'priced': true, 'price': 9, 'photo_v': null, 'show_ingredients': false},
+            ]),
+        'GET /api/combos': (_) => (200, page),
+        'POST /api/combos': (_) => (201, page),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/cardapio', session: s);
+      await t.pumpAndSettle();
+
+      // ── 1. Abre o editor.
+      await t.scrollUntilVisible(find.byKey(const Key('combo_new')), 300, scrollable: find.byType(Scrollable).first);
+      await t.tap(find.byKey(const Key('combo_new')));
+      await t.pumpAndSettle();
+
+      // ── 2. 2 cookies + 1 brownie: avulso R\$ 30, sugerido R\$ 27.
+      await t.tap(find.byKey(const Key('combo_add_1')));
+      await t.tap(find.byKey(const Key('combo_add_1')));
+      await t.tap(find.byKey(const Key('combo_add_2')));
+      await t.pump();
+      expect(find.textContaining('27,00'), findsWidgets);
+
+      // ── 3. Nome e salvar.
+      await t.enterText(find.byKey(const Key('combo_name')), 'Combo Festa');
+      await t.ensureVisible(find.byKey(const Key('combo_save')));
+      await t.tap(find.byKey(const Key('combo_save')));
+      await t.pumpAndSettle();
+      final body = be.bodies['POST /api/combos'] as Map;
+      expect(body['name'], 'Combo Festa');
+      expect(body['price'], isNull);
+      expect(body['items'], [{'recipe_id': 1, 'qty': 2}, {'recipe_id': 2, 'qty': 1}]);
+    });
+  });
 }

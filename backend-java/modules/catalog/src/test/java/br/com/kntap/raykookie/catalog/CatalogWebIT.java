@@ -339,4 +339,58 @@ class CatalogWebIT extends PostgresTestBase {
         assertThat(owner().post("/api/recipes/" + other + "/variants/" + choc + "/default").statusCode())
                 .isEqualTo(404);
     }
+
+    /**
+     * Combos da página do Cardápio.
+     */
+    @Test
+    @DisplayName("combos: preço sugerido, preço escolhido, produto fora do cardápio, desconto e exclusão")
+    void combos() {
+
+        // ── 1. Dois produtos com preço fixo e custo conhecido.
+        long flour = owner(Map.of("name", "Farinha C", "unit", "g", "package_size", 1000, "package_cost", 30))
+                .post("/api/ingredients").jsonPath().getLong("id");
+        long cookie = owner(Map.of("name", "Cookie C", "yield_units", 10, "sale_price", 9,
+                "items", List.of(Map.of("ingredient_id", flour, "qty", 1000)))).post("/api/recipes")
+                .jsonPath().getLong("id");
+        long brownie = owner(Map.of("name", "Brownie C", "yield_units", 10, "sale_price", 12,
+                "items", List.of(Map.of("ingredient_id", flour, "qty", 1000)))).post("/api/recipes")
+                .jsonPath().getLong("id");
+        owner(Map.of("discount_pct", 10)).put("/api/combos/settings").then().statusCode(200);
+
+        // ── 2. Combo com o preço sugerido: soma avulsa R$ 60, menos 10% = R$ 54.
+        JsonPath page = owner(Map.of("name", "Festa C", "items", List.of(Map.of("recipe_id", cookie, "qty", 4),
+                Map.of("recipe_id", brownie, "qty", 2)))).post("/api/combos").then().statusCode(201).extract()
+                .jsonPath();
+        String combo = "combos.find { it.name == 'Festa C' }";
+        assertThat(page.getDouble(combo + ".full_price")).isEqualTo(60.0);
+        assertThat(page.getDouble(combo + ".suggested")).isEqualTo(54.0);
+        assertThat(page.getDouble(combo + ".final_price")).isEqualTo(54.0);
+        assertThat(page.getDouble(combo + ".cost")).isEqualTo(18.0);
+        assertThat(page.getBoolean(combo + ".available")).isTrue();
+        assertThat(page.getList(combo + ".items.name")).containsExactly("Cookie C", "Brownie C");
+        assertThat(page.getDouble("products.find { it.id == " + cookie + " }.cost")).isEqualTo(3.0);
+        long id = page.getLong(combo + ".id");
+
+        // ── 3. Preço escolhido abaixo do custo: vale, com aviso.
+        JsonPath fixed = owner(Map.of("name", "Festa C", "price", 15, "items", List.of(
+                Map.of("recipe_id", cookie, "qty", 4), Map.of("recipe_id", brownie, "qty", 2))))
+                .put("/api/combos/" + id).then().statusCode(200).extract().jsonPath();
+        assertThat(fixed.getDouble(combo + ".final_price")).isEqualTo(15.0);
+        assertThat(fixed.getBoolean(combo + ".below_cost")).isTrue();
+
+        // ── 4. Produto fora do cardápio: o combo também sai, com o motivo.
+        owner(Map.of("show_on_menu", false)).patch("/api/recipes/" + brownie + "/cardapio").then().statusCode(200);
+        JsonPath hidden = owner().get("/api/combos").jsonPath();
+        assertThat(hidden.getBoolean(combo + ".available")).isFalse();
+        assertThat(hidden.getString(combo + ".unavailable_reason")).contains("fora do cardápio");
+
+        // ── 5. Regras: desconto fora da faixa, produto de outra dona, combo inexistente; e exclusão.
+        assertThat(owner(Map.of("discount_pct", 95)).put("/api/combos/settings").statusCode()).isEqualTo(400);
+        assertThat(owner(Map.of("name", "X", "items", List.of(Map.of("recipe_id", 999_999, "qty", 2))))
+                .post("/api/combos").statusCode()).isEqualTo(400);
+        assertThat(owner(Map.of("name", "X", "items", List.of(Map.of("recipe_id", cookie, "qty", 2))))
+                .put("/api/combos/999999").statusCode()).isEqualTo(404);
+        assertThat(owner().delete("/api/combos/" + id).jsonPath().getList("combos.id")).doesNotContain((int) id);
+    }
 }

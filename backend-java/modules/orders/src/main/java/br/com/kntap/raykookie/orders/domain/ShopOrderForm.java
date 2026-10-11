@@ -112,7 +112,8 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
         List<Line> lines = new ArrayList<>();
         merged.forEach((id, qty) -> {
             Menu.Item item = menu.stream().filter(m -> m.id().equals(id)).findFirst().orElseThrow();
-            lines.add(new Line(id, item.name(), Math.min(qty, MAX_QTY), item.money()));
+            String name = item.isCombo() ? item.name() + " (" + item.combo().contents() + ")" : item.name();
+            lines.add(new Line(id, name, Math.min(qty, MAX_QTY), item.money()));
         });
         return lines;
     }
@@ -184,6 +185,24 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
      * @param unitPrice preço do cardápio
      */
     public record Line(String id, String name, long qty, Money unitPrice) {
+
+        /**
+         * Combo do cardápio ({@code combo-<id>}), se a linha for de combo.
+         *
+         * @return o id do combo, ou nulo
+         */
+        public Long comboId() {
+            return id.startsWith(Menu.COMBO_PREFIX) ? Long.valueOf(id.substring(Menu.COMBO_PREFIX.length())) : null;
+        }
+
+        /**
+         * Produto (receita) da linha; nulo se for combo.
+         *
+         * @return o id da receita, ou nulo
+         */
+        public Long recipeId() {
+            return comboId() == null ? Long.valueOf(id) : null;
+        }
     }
 
     /**
