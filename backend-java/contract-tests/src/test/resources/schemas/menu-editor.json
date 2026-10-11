@@ -25,6 +25,18 @@
       },
       "priced": {
         "type": "boolean"
+      },
+      "price": {
+        "type": "number"
+      },
+      "photo_v": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "show_ingredients": {
+        "type": "boolean"
       }
     },
     "required": [

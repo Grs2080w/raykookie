@@ -17,6 +17,9 @@ public record Menu(List<Item> items, List<Group> groups) {
     /** Cardápio vazio (loja sem dona ou sem receitas à venda). */
     public static final Menu EMPTY = new Menu(List.of(), List.of());
 
+    /** Prefixo do id dos combos no cardápio ({@code combo-<id>}). */
+    public static final String COMBO_PREFIX = "combo-";
+
     /**
      * O cardápio no formato do Node.
      *
@@ -38,10 +41,37 @@ public record Menu(List<Item> items, List<Group> groups) {
      * @param category nome da categoria ("Outros" se não houver)
      * @param weightG  gramas de cada unidade (0 = não informado)
      * @param image    caminho da foto com a versão, ou nulo
-     * @param tags     selos
+     * @param tags        selos
+     * @param ingredients ingredientes da receita padrão (vazio = não mostra)
+     * @param combo       o que vem no combo (nulo = produto avulso)
      */
     public record Item(String id, String name, double price, String category, double weightG, String image,
-            List<String> tags) {
+            List<String> tags, List<String> ingredients, Combo combo) {
+
+        /**
+         * Produto avulso, sem lista de ingredientes.
+         *
+         * @param id       id
+         * @param name     nome
+         * @param price    preço
+         * @param category categoria
+         * @param weightG  gramas de cada unidade
+         * @param image    foto
+         * @param tags     selos
+         */
+        public Item(String id, String name, double price, String category, double weightG, String image,
+                List<String> tags) {
+            this(id, name, price, category, weightG, image, tags, List.of(), null);
+        }
+
+        /**
+         * Diz se é um combo.
+         *
+         * @return verdadeiro se for
+         */
+        public boolean isCombo() {
+            return combo != null;
+        }
 
         /**
          * Preço em centavos.
@@ -76,8 +106,53 @@ public record Menu(List<Item> items, List<Group> groups) {
             if (!tags.isEmpty()) {
                 json.put("tags", tags);
             }
+
+            // ── 3. Ingredientes e combo, quando há.
+            if (!ingredients.isEmpty()) {
+                json.put("ingredients", ingredients);
+            }
+            if (combo != null) {
+                json.put("combo", combo.json(price));
+            }
             return json;
         }
+    }
+
+    /**
+     * O que vem num combo.
+     *
+     * @param comboId   id do combo
+     * @param contents  resumo ("4 Cookie + 2 Brownie")
+     * @param fullPrice soma dos preços dos produtos avulsos
+     * @param parts     produtos e quantidades
+     */
+    public record Combo(long comboId, String contents, double fullPrice, List<Part> parts) {
+
+        /**
+         * O combo no JSON do cardápio.
+         *
+         * @param price preço do combo
+         * @return {@code contents}, {@code full_price}, {@code savings} e {@code parts}
+         */
+        public Map<String, Object> json(double price) {
+            Map<String, Object> json = new LinkedHashMap<>();
+            json.put("contents", contents);
+            json.put("full_price", NodeRows.number(fullPrice));
+            json.put("savings", NodeRows.number(Math.max(0, Math.round((fullPrice - price) * 100) / 100.0)));
+            json.put("parts", parts.stream().map(part -> Map.<String, Object>of("id", String.valueOf(part.recipeId()),
+                    "name", part.name(), "qty", part.qty())).toList());
+            return json;
+        }
+    }
+
+    /**
+     * Um produto dentro do combo.
+     *
+     * @param recipeId produto
+     * @param name     nome
+     * @param qty      quantidade
+     */
+    public record Part(long recipeId, String name, int qty) {
     }
 
     /**

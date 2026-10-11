@@ -23,7 +23,7 @@ public class JdbcRecipes implements Recipes {
     private static final String LIST = """
             SELECT r.id, r.name, r.category_id, r.yield_units, r.margin_pct, r.prep_hours, r.notes,
                    r.unit_weight_g::float8 AS unit_weight_g, r.sale_price::float8 AS sale_price,
-                   r.show_on_menu, r.tags,
+                   r.show_on_menu, r.tags, r.show_ingredients, r.default_variant_id,
                    (SELECT (extract(epoch from p.updated_at) * 1000)::bigint::text
                       FROM recipe_photos p WHERE p.recipe_id = r.id) AS photo_v,
                    COALESCE((SELECT json_agg(json_build_object('ingredient_id', ri.ingredient_id,
@@ -105,7 +105,7 @@ public class JdbcRecipes implements Recipes {
     /** {@inheritDoc} */
     @Override
     public Optional<Map<String, Object>> updateMenuFlags(OwnerId owner, long id, Boolean showOnMenu,
-            List<String> tags) {
+            List<String> tags, Boolean showIngredients) {
 
         // ── 1. Os selos vêm da lista fixa (letras e "_"), então o literal de array é seguro.
         String tagsLiteral = tags == null ? null : "{" + String.join(",", tags) + "}";
@@ -113,10 +113,11 @@ public class JdbcRecipes implements Recipes {
         // ── 2. Nulo mantém o valor atual.
         return jdbc.sql("""
                 UPDATE recipes SET show_on_menu = COALESCE(CAST(:show AS boolean), show_on_menu),
-                                   tags = COALESCE(CAST(:tags AS text[]), tags)
-                 WHERE id = :id AND user_id = :owner RETURNING id, show_on_menu, tags""")
-                .param("show", showOnMenu).param("tags", tagsLiteral).param("id", id).param("owner", owner.value())
-                .query(NodeRows.ROW).optional();
+                                   tags = COALESCE(CAST(:tags AS text[]), tags),
+                                   show_ingredients = COALESCE(CAST(:ingredients AS boolean), show_ingredients)
+                 WHERE id = :id AND user_id = :owner RETURNING id, show_on_menu, tags, show_ingredients""")
+                .param("show", showOnMenu).param("tags", tagsLiteral).param("ingredients", showIngredients)
+                .param("id", id).param("owner", owner.value()).query(NodeRows.ROW).optional();
     }
 
     /** {@inheritDoc} */

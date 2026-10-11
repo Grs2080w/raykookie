@@ -1,9 +1,11 @@
 package br.com.kntap.raykookie.catalog.api;
 
 import br.com.kntap.raykookie.persistence.NodeRows;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Receita com o preço calculado: a linha no formato do Node ({@code RecipeRow}) e o cálculo.
@@ -80,6 +82,30 @@ public record PricedRecipe(Map<String, Object> row, PricingEngine.Result pricing
      */
     public String photoVersion() {
         return (String) row.get("photo_v");
+    }
+
+    /**
+     * Diz se o cardápio mostra a lista de ingredientes da receita padrão.
+     *
+     * @return verdadeiro se mostra
+     */
+    public boolean showIngredients() {
+        return Boolean.TRUE.equals(row.get("show_ingredients"));
+    }
+
+    /**
+     * Ingredientes da receita padrão, na ordem em que foram cadastrados.
+     *
+     * @return os ids
+     */
+    public List<Long> ingredientIds() {
+        List<Long> ids = new ArrayList<>();
+        if (row.get("items") instanceof JsonNode items) {
+            for (JsonNode item : items) {
+                ids.add(item.get("ingredient_id").asLong());
+            }
+        }
+        return ids;
     }
 
     /**

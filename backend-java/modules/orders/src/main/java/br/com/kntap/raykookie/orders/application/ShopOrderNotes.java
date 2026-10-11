@@ -57,6 +57,10 @@ final class ShopOrderNotes {
         // ── 2. Partes não vazias, juntas.
         List<String> parts = new ArrayList<>(List.of("Pedido online #" + code, "Tel " + phone(form.phone()),
                 "Pagamento: " + ShopOrderForm.PAYMENTS.get(form.paymentMethod()) + change));
+        if (first && form.coupon() != null) {
+            parts.add("Cupom " + form.coupon().code() + " (-" + form.coupon().percent().stripTrailingZeros()
+                    .toPlainString().replace('.', ',') + "%): -" + form.coupon().discount().toBrl());
+        }
         if (first && !form.notes().isEmpty()) {
             parts.add("Obs: " + form.notes());
         }

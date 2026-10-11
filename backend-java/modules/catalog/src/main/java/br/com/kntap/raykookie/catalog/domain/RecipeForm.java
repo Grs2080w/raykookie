@@ -62,7 +62,7 @@ public record RecipeForm(Long categoryId, String name, double yieldUnits, double
      * @param raw valor de {@code items}
      * @return os itens
      */
-    private static List<Item> items(Object raw) {
+    public static List<Item> items(Object raw) {
         List<Item> items = new ArrayList<>();
         if (!(raw instanceof List<?> list)) {
             return items;

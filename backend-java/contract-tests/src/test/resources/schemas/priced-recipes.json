@@ -119,6 +119,15 @@
           "realMarginPct"
         ],
         "additionalProperties": false
+      },
+      "show_ingredients": {
+        "type": "boolean"
+      },
+      "default_variant_id": {
+        "type": [
+          "integer",
+          "null"
+        ]
       }
     },
     "required": [

@@ -111,8 +111,11 @@ public class JdbcIngredients implements Ingredients {
     @Override
     public int usedInRecipes(OwnerId owner, long id) {
         return jdbc.sql("""
-                SELECT count(*)::int FROM recipe_items ri JOIN recipes r ON r.id = ri.recipe_id
-                 WHERE ri.ingredient_id = :id AND r.user_id = :owner""")
+                SELECT count(DISTINCT r.id)::int FROM recipes r
+                 WHERE r.user_id = :owner
+                   AND (EXISTS (SELECT 1 FROM recipe_items ri WHERE ri.recipe_id = r.id AND ri.ingredient_id = :id)
+                        OR EXISTS (SELECT 1 FROM recipe_variants v JOIN recipe_variant_items vi ON vi.variant_id = v.id
+                                    WHERE v.recipe_id = r.id AND vi.ingredient_id = :id))""")
                 .param("id", id).param("owner", owner.value()).query(Integer.class).single();
     }
 

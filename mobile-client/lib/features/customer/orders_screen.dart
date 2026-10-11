@@ -344,6 +344,14 @@ class _OrderCardState extends State<_OrderCard> {
                 ),
               ),
             Divider(color: c.line),
+            if (o.discountTotal > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(children: [
+                  Expanded(child: Text('Cupom ${o.couponCode}', style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700))),
+                  Text('-${money(o.discountTotal)}', style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700)),
+                ]),
+              ),
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(

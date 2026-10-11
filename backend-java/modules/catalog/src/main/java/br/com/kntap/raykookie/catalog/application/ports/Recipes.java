@@ -55,15 +55,18 @@ public interface Recipes {
     void delete(OwnerId owner, long id);
 
     /**
-     * Liga/desliga a visibilidade e troca os selos ({@code null} = mantém).
+     * Liga/desliga a visibilidade, a lista de ingredientes e troca os selos ({@code null} = mantém).
      *
-     * @param owner      dona
-     * @param id         receita
-     * @param showOnMenu visibilidade nova
-     * @param tags       selos novos
-     * @return {@code id}, {@code show_on_menu} e {@code tags}, ou vazio se não for da dona
+     * @param owner           dona
+     * @param id              receita
+     * @param showOnMenu      visibilidade nova
+     * @param tags            selos novos
+     * @param showIngredients mostrar os ingredientes no cardápio
+     * @return {@code id}, {@code show_on_menu}, {@code tags} e {@code show_ingredients}, ou vazio se não for da
+     *         dona
      */
-    Optional<Map<String, Object>> updateMenuFlags(OwnerId owner, long id, Boolean showOnMenu, List<String> tags);
+    Optional<Map<String, Object>> updateMenuFlags(OwnerId owner, long id, Boolean showOnMenu, List<String> tags,
+            Boolean showIngredients);
 
     /**
      * Diz se a receita é da dona.

@@ -733,4 +733,142 @@ void main() {
       expect(find.text('Nenhuma receita ainda'), findsOneWidget);
     });
   });
+
+  group('várias receitas por produto (gestão)', () {
+    testWidgets('abas Receita 1 ★ e Chocolate; trocar a padrão e salvar grava produto, receitas e a padrão nova', (t) async {
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/ingredients': (_) => (200, [
+              {'id': 1, 'name': 'Farinha', 'unit': 'g', 'package_size': 1000, 'package_cost': 10, 'stock_qty': 0, 'min_stock': 0},
+              {'id': 2, 'name': 'Cacau', 'unit': 'g', 'package_size': 1000, 'package_cost': 50, 'stock_qty': 0, 'min_stock': 0},
+            ]),
+        'GET /api/categories': (_) => (200, []),
+        'GET /api/settings': (_) => (200, {'hourly_rate': 0, 'monthly_units': 100}),
+        'GET /api/fixed-costs': (_) => (200, []),
+        'GET /api/recipes/5': (_) => (200, {
+              'id': 5, 'name': 'Cookie', 'category_id': null, 'yield_units': 10, 'margin_pct': 100, 'prep_hours': 0, 'notes': '',
+              'unit_weight_g': 0, 'sale_price': null, 'photo_v': null, 'items': [{'ingredient_id': 1, 'qty': 1000}],
+              'variants': [
+                {'id': 11, 'name': 'Receita 1', 'yield_units': 10, 'prep_hours': 0, 'items': [{'ingredient_id': 1, 'qty': 1000}], 'is_default': true},
+                {'id': 12, 'name': 'Chocolate', 'yield_units': 20, 'prep_hours': 1, 'items': [{'ingredient_id': 2, 'qty': 300}], 'is_default': false},
+              ],
+            }),
+        'PUT /api/recipes/5': (_) => (200, {'id': 5}),
+        'PUT /api/recipes/5/variants/11': (_) => (200, []),
+        'PUT /api/recipes/5/variants/12': (_) => (200, []),
+        'POST /api/recipes/5/variants/12/default': (_) => (200, []),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/receitas/5', session: s);
+
+      // ── 1. As duas abas, com a padrão marcada.
+      await t.pumpAndSettle();
+      await t.scrollUntilVisible(find.text('Receita 1 ★'), 300, scrollable: find.byType(Scrollable).first);
+      expect(find.text('Receita 1 ★'), findsOneWidget);
+      expect(find.text('Chocolate'), findsOneWidget);
+
+      // ── 2. Abre Chocolate e marca como padrão.
+      await t.ensureVisible(find.text('Chocolate'));
+      await t.tap(find.text('Chocolate'));
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.byKey(const Key('variant_make_default')));
+      await t.tap(find.byKey(const Key('variant_make_default')));
+      await t.pumpAndSettle();
+      expect(find.textContaining('★ Receita padrão'), findsOneWidget);
+
+      // ── 3. Salvar: produto com a padrão antiga, cada receita, e a troca de padrão.
+      await t.ensureVisible(find.text('Salvar receita'));
+      await t.tap(find.text('Salvar receita'));
+      await t.pumpAndSettle();
+      expect(be.calls, containsAllInOrder([
+        'PUT /api/recipes/5', 'PUT /api/recipes/5/variants/11', 'PUT /api/recipes/5/variants/12',
+        'POST /api/recipes/5/variants/12/default',
+      ]));
+      expect((be.bodies['PUT /api/recipes/5'] as Map)['items'], [{'ingredient_id': '1', 'qty': 1000.0}]);
+      expect((be.bodies['PUT /api/recipes/5/variants/12'] as Map)['name'], 'Chocolate');
+    });
+  });
+
+  group('combos na página do Cardápio (gestão)', () {
+    testWidgets('+ Novo combo: produtos com quantidade, sugerido ao vivo (soma - 10%) e salvar', (t) async {
+      final page = {
+        'discount_pct': 10, 'min_margin_pct': 30,
+        'products': [
+          {'id': 1, 'name': 'Cookie', 'price': 9, 'cost': 3, 'photo_v': null, 'on_menu': true},
+          {'id': 2, 'name': 'Brownie', 'price': 12, 'cost': 4, 'photo_v': null, 'on_menu': true},
+        ],
+        'combos': [],
+      };
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/recipes/cardapio': (_) => (200, [
+              {'id': 1, 'name': 'Cookie', 'show_on_menu': true, 'tags': [], 'has_photo': false, 'priced': true, 'price': 9, 'photo_v': null, 'show_ingredients': false},
+            ]),
+        'GET /api/combos': (_) => (200, page),
+        'POST /api/combos': (_) => (201, page),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/cardapio', session: s);
+      await t.pumpAndSettle();
+
+      // ── 1. Abre o editor.
+      await t.scrollUntilVisible(find.byKey(const Key('combo_new')), 300, scrollable: find.byType(Scrollable).first);
+      await t.tap(find.byKey(const Key('combo_new')));
+      await t.pumpAndSettle();
+
+      // ── 2. 2 cookies + 1 brownie: avulso R\$ 30, sugerido R\$ 27.
+      await t.tap(find.byKey(const Key('combo_add_1')));
+      await t.tap(find.byKey(const Key('combo_add_1')));
+      await t.tap(find.byKey(const Key('combo_add_2')));
+      await t.pump();
+      expect(find.textContaining('27,00'), findsWidgets);
+
+      // ── 3. Nome e salvar.
+      await t.enterText(find.byKey(const Key('combo_name')), 'Combo Festa');
+      await t.ensureVisible(find.byKey(const Key('combo_save')));
+      await t.tap(find.byKey(const Key('combo_save')));
+      await t.pumpAndSettle();
+      final body = be.bodies['POST /api/combos'] as Map;
+      expect(body['name'], 'Combo Festa');
+      expect(body['price'], isNull);
+      expect(body['items'], [{'recipe_id': 1, 'qty': 2}, {'recipe_id': 2, 'qty': 1}]);
+    });
+  });
+
+  group('cupons (gestão)', () {
+    testWidgets('Novo cupom: código, desconto e mínimo "acima de"; a lista mostra a regra e o uso', (t) async {
+      final created = [
+        {'id': 1, 'code': 'NATAL20', 'percent': 20, 'min_total': 50, 'min_inclusive': false, 'active': true, 'uses': 0, 'created_at': '2026-10-11T10:00:00Z'},
+      ];
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/coupons': (_) => (200, []),
+        'POST /api/coupons': (_) => (201, created),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/cupons', session: s);
+      await t.pumpAndSettle();
+      expect(find.text('Nenhum cupom ainda.'), findsOneWidget);
+
+      await t.tap(find.byKey(const Key('coupon_new')));
+      await t.pumpAndSettle();
+      await t.enterText(find.descendant(of: find.byKey(const Key('coupon_code')), matching: find.byType(TextField)), 'natal20');
+      await t.enterText(find.descendant(of: find.byKey(const Key('coupon_percent')), matching: find.byType(TextField)), '20');
+      await t.enterText(find.descendant(of: find.byKey(const Key('coupon_min')), matching: find.byType(TextField)), '50');
+      await t.tap(find.text('Acima de'));
+      await t.tap(find.byKey(const Key('coupon_create')));
+      await t.pumpAndSettle();
+
+      final body = be.bodies['POST /api/coupons'] as Map;
+      expect(body['code'], 'natal20');
+      expect(body['percent'], 20.0);
+      expect(body['min_total'], 50.0);
+      expect(body['min_inclusive'], false);
+      expect(find.text('NATAL20'), findsOneWidget);
+      expect(find.textContaining('Pedidos acima de R\$'), findsOneWidget);
+    });
+  });
 }

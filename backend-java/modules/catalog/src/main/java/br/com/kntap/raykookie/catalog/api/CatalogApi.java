@@ -70,4 +70,20 @@ public interface CatalogApi {
      * @return quantos alertas foram criados
      */
     int priceChanged(PriceChange change);
+
+    /**
+     * Combos que podem ser vendidos agora (ligados, com todos os produtos no cardápio e preço).
+     *
+     * @param owner dona
+     * @return os combos
+     */
+    List<MenuCombo> menuCombos(OwnerId owner);
+
+    /**
+     * Custo atual de cada combo da dona (lucro nas métricas).
+     *
+     * @param owner dona
+     * @return combo → custo
+     */
+    Map<Long, Double> comboCosts(OwnerId owner);
 }

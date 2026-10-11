@@ -63,8 +63,24 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
   const lines = Object.entries(qty).filter(([, n]) => n > 0).map(([id, n]) => ({ id, qty: n }));
   const total = cartTotal(lines, menu.items);
   const count = lines.reduce((s, l) => s + l.qty, 0);
+  // cupom: o servidor confere o código com o total do cardápio dele; mudar o carrinho exige conferir de novo
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<{ code: string; percent: number; discount: number; total: number } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const payable = coupon ? coupon.total : total;
+
+  async function applyCoupon() {
+    if (!couponInput.trim()) { toast.error('Digite o código do cupom.'); return; }
+    setCouponBusy(true);
+    try {
+      setCoupon(await api('/api/cliente/cupom', 'POST', { code: couponInput.trim(), items: lines }));
+      toast.ok('Cupom aplicado');
+    } catch (err: any) { setCoupon(null); toast.error(err.message); }
+    finally { setCouponBusy(false); }
+  }
 
   function step(id: string, d: number) {
+    setCoupon(null);
     setQty((q) => {
       const next = (q[id] ?? 0) + d;
       if (next > MAX_QTY) { toast.warn(`Para mais de ${MAX_QTY} unidades do mesmo item, fale com a gente pelo WhatsApp.`); return q; }
@@ -94,7 +110,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    let body: Record<string, unknown> = { ...f, items: lines };
+    let body: Record<string, unknown> = { ...f, items: lines, ...(coupon ? { coupon_code: coupon.code } : {}) };
     if (f.payment_method === 'cartao') {
       const t = await cardRef.current?.tokenize();
       if (!t) return;
@@ -200,7 +216,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
           {paymentMethods.map((o) => <Choice key={o.id} name="payment" value={o.id} checked={f.payment_method === o.id} onChange={() => set({ payment_method: o.id })} title={o.label} hint={o.hint} />)}
         </div>
         {f.payment_method === 'cartao' && cardCfg?.publicKey && (
-          <Card className="mt-3 p-4"><CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={total} /></Card>
+          <Card className="mt-3 p-4"><CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={payable} /></Card>
         )}
         {f.payment_method === 'dinheiro' && (
           <Card className="mt-3 p-4">
@@ -215,6 +231,23 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         <Field label="Observações (opcional)" hint="Sabor, decoração, alergias, recado no bolo, ponto de referência…">
           {(id) => <Textarea id={id} maxLength={300} value={f.notes} onChange={(e) => set({ notes: e.target.value })} />}
         </Field>
+        <div className="mt-4">
+          {coupon ? (
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-pink-tint px-4 py-3 text-pink-strong">
+              <p className="font-bold">Cupom {coupon.code} (-{coupon.percent}%): -{money(coupon.discount)}</p>
+              <button type="button" className="text-sm font-semibold underline" onClick={() => { setCoupon(null); setCouponInput(''); }}>Remover</button>
+            </div>
+          ) : (
+            <Field label="Cupom de desconto (opcional)">
+              {(id) => (
+                <div className="flex gap-2">
+                  <Input id={id} placeholder="Ex.: NATAL20" value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())} />
+                  <Button type="button" busy={couponBusy} onClick={applyCoupon}>Aplicar</Button>
+                </div>
+              )}
+            </Field>
+          )}
+        </div>
       </Section>
 
       <p className="mx-1 text-xs text-muted">
@@ -226,7 +259,8 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         <div className="mx-auto flex max-w-2xl items-center gap-4">
           <div className="min-w-0">
             <p className="text-xs text-muted">{count === 0 ? 'Nenhum item' : `${count} ${count === 1 ? 'item' : 'itens'}`}</p>
-            <p className="font-display text-2xl font-semibold leading-none tnum">{money(total)}</p>
+            {coupon && <p className="text-xs text-muted line-through tnum">{money(total)}</p>}
+            <p className="font-display text-2xl font-semibold leading-none tnum">{money(payable)}</p>
           </div>
           <Button type="submit" busy={busy} className="min-h-12 flex-1 text-base">Finalizar pedido</Button>
         </div>

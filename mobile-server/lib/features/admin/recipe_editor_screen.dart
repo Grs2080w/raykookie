@@ -73,6 +73,46 @@ class _Row {
   final TextEditingController qty;
 }
 
+/// Uma aba de receita do produto (Receita 1, Receita 2…): nome, rendimento, preparo e ingredientes.
+class _Variant {
+  _Variant({this.id, required String name, String yieldText = '', String hoursText = '', List<_Row>? rows, this.isDefault = false})
+    : name = TextEditingController(text: name),
+      yieldCtl = TextEditingController(text: yieldText),
+      hours = TextEditingController(text: hoursText),
+      rows = rows ?? [_Row()];
+  int? id; // nulo = ainda não gravada
+  final TextEditingController name, yieldCtl, hours;
+  final List<_Row> rows;
+  bool isDefault;
+
+  /// Cópia (aba "+", copiando a atual).
+  _Variant copy(String name) => _Variant(
+    name: name,
+    yieldText: yieldCtl.text,
+    hoursText: hours.text,
+    rows: [for (final r in rows) _Row(ingredientId: r.ingredientId, qty: r.qty.text)],
+  );
+
+  Map<String, dynamic> get body => {
+    'name': name.text.trim().isEmpty ? 'Receita' : name.text.trim(),
+    'yield_units': parseNum(yieldCtl.text) > 0 ? parseNum(yieldCtl.text) : 1,
+    'prep_hours': parseNum(hours.text),
+    'items': [
+      for (final r in rows.where((r) => r.ingredientId != null))
+        {'ingredient_id': r.ingredientId.toString(), 'qty': parseNum(r.qty.text)},
+    ],
+  };
+
+  void dispose() {
+    for (final c in [name, yieldCtl, hours]) {
+      c.dispose();
+    }
+    for (final r in rows) {
+      r.qty.dispose();
+    }
+  }
+}
+
 class _Editor extends StatefulWidget {
   const _Editor({required this.data});
   final _EditorData data;
@@ -83,9 +123,6 @@ class _Editor extends StatefulWidget {
 class _EditorState extends State<_Editor> {
   late final RecipeRow? _r = widget.data.recipe;
   late final _name = TextEditingController(text: _r?.name ?? '');
-  late final _yield = TextEditingController(
-    text: _r == null ? '' : fieldNum(_r.yieldUnits),
-  );
   late final _salePrice = TextEditingController(
     text: _r?.salePrice == null ? '' : fieldNum(_r!.salePrice!),
   );
@@ -95,17 +132,48 @@ class _EditorState extends State<_Editor> {
   late final _margin = TextEditingController(
     text: _r == null ? '100' : fieldNum(_r.marginPct),
   );
-  late final _hours = TextEditingController(
-    text: _r == null || _r.prepHours == 0 ? '' : fieldNum(_r.prepHours),
-  );
   late final _notes = TextEditingController(text: _r?.notes ?? '');
   late int? _category = _r?.categoryId;
-  late final List<_Row> _rows = _r == null || _r.items.isEmpty
-      ? [_Row()]
-      : [
-          for (final it in _r.items)
-            _Row(ingredientId: it.ingredientId, qty: fieldNum(it.qty)),
-        ];
+  /// Abas de receita do produto; a padrão é a que vale para o cardápio, os combos e o lucro.
+  late final List<_Variant> _variants = _initVariants();
+  /// A padrão como veio do servidor: o formulário do produto grava nela.
+  late final _Variant _orig = _variants.firstWhere((v) => v.isDefault, orElse: () => _variants.first);
+  late int _tab = _variants.indexOf(_orig);
+  final List<int> _deleted = [];
+  _Variant get _cur => _variants[_tab];
+  _Variant get _def => _variants.firstWhere((v) => v.isDefault, orElse: () => _variants.first);
+  TextEditingController get _yield => _cur.yieldCtl;
+  TextEditingController get _hours => _cur.hours;
+  List<_Row> get _rows => _cur.rows;
+
+  List<_Variant> _initVariants() {
+    final r = _r;
+    List<_Row> rowsOf(List<RecipeItem> items) =>
+        items.isEmpty ? [_Row()] : [for (final it in items) _Row(ingredientId: it.ingredientId, qty: fieldNum(it.qty))];
+    if (r == null) return [_Variant(name: 'Receita 1', isDefault: true)];
+    if (r.variants.isEmpty) {
+      return [
+        _Variant(
+          name: 'Receita 1',
+          yieldText: fieldNum(r.yieldUnits),
+          hoursText: r.prepHours == 0 ? '' : fieldNum(r.prepHours),
+          rows: rowsOf(r.items),
+          isDefault: true,
+        ),
+      ];
+    }
+    return [
+      for (final v in r.variants)
+        _Variant(
+          id: v.id,
+          name: v.name,
+          yieldText: fieldNum(v.yieldUnits),
+          hoursText: v.prepHours == 0 ? '' : fieldNum(v.prepHours),
+          rows: rowsOf(v.items),
+          isDefault: v.isDefault,
+        ),
+    ];
+  }
   bool _busy = false, _photoBusy = false;
   String? _photoV;
   Uint8List? _pending; // foto de receita nova: enviada depois de salvar
@@ -119,11 +187,11 @@ class _EditorState extends State<_Editor> {
 
   @override
   void dispose() {
-    for (final c in [_name, _yield, _salePrice, _unitWeight, _margin, _hours, _notes]) {
+    for (final c in [_name, _salePrice, _unitWeight, _margin, _notes]) {
       c.dispose();
     }
-    for (final r in _rows) {
-      r.qty.dispose();
+    for (final v in _variants) {
+      v.dispose();
     }
     super.dispose();
   }
@@ -131,17 +199,23 @@ class _EditorState extends State<_Editor> {
   Ingredient? _ing(int? id) =>
       widget.data.ingredients.where((i) => i.id == id).firstOrNull;
 
-  PricingResult get _calc => calcRecipe(
+  /// Estimativa da aba aberta.
+  PricingResult get _calc => _calcOf(_cur);
+
+  /// Estimativa da receita padrão (o preço do cardápio vem dela).
+  PricingResult get _defCalc => _calcOf(_def);
+
+  PricingResult _calcOf(_Variant v) => calcRecipe(
     items: [
-      for (final r in _rows)
+      for (final r in v.rows)
         PricingItem(
           parseNum(r.qty.text),
           _ing(r.ingredientId)?.unitCostValue ?? 0,
         ),
     ],
-    yieldUnits: parseNum(_yield.text) > 0 ? parseNum(_yield.text) : 1,
+    yieldUnits: parseNum(v.yieldCtl.text) > 0 ? parseNum(v.yieldCtl.text) : 1,
     marginPct: parseNum(_margin.text),
-    prepHours: parseNum(_hours.text),
+    prepHours: parseNum(v.hours.text),
     hourlyRate: widget.data.settings.hourlyRate,
     fixedMonthly: widget.data.fixedTotal,
     monthlyUnits: widget.data.settings.monthlyUnits,
@@ -153,19 +227,13 @@ class _EditorState extends State<_Editor> {
   Map<String, dynamic> get _body => {
     'name': _name.text,
     'category_id': _category?.toString() ?? '',
-    'yield_units': parseNum(_yield.text) > 0 ? parseNum(_yield.text) : 1,
+    'yield_units': _orig.body['yield_units'],
     'margin_pct': parseNum(_margin.text),
-    'prep_hours': parseNum(_hours.text),
+    'prep_hours': _orig.body['prep_hours'],
     'unit_weight_g': parseNum(_unitWeight.text),
     'sale_price': parseNum(_salePrice.text) > 0 ? parseNum(_salePrice.text) : null,
     'notes': _notes.text,
-    'items': [
-      for (final r in _rows.where((r) => r.ingredientId != null))
-        {
-          'ingredient_id': r.ingredientId.toString(),
-          'qty': parseNum(r.qty.text),
-        },
-    ],
+    'items': _orig.body['items'],
   };
 
   String _mime(Uint8List b) => b.length > 3 && b[0] == 0x89 && b[1] == 0x50
@@ -237,10 +305,12 @@ class _EditorState extends State<_Editor> {
     try {
       if (_r != null) {
         await api.put('/api/recipes/${_r.id}', _body);
+        await _saveVariants(api, _r.id);
         Toast.ok('Receita salva');
       } else {
         final created =
             await api.post('/api/recipes', _body) as Map<String, dynamic>;
+        await _saveVariants(api, (created['id'] as num).toInt());
         if (_pending != null) {
           try {
             await api.putBytes(
@@ -256,12 +326,82 @@ class _EditorState extends State<_Editor> {
         }
         Toast.ok('Receita criada');
       }
-      if (mounted) context.pop();
+      if (mounted) context.canPop() ? context.pop() : context.go('/painel/receitas');
     } on ApiException catch (e) {
       Toast.error(e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Grava as abas: a padrão original já foi pelo formulário do produto (aqui só o nome dela); as outras são
+  /// criadas ou salvas; depois a troca de padrão e as exclusões.
+  Future<void> _saveVariants(ApiClient api, int recipeId) async {
+    final base = '/api/recipes/$recipeId/variants';
+    if (_orig.id == null) {
+      final rec = await api.get('/api/recipes/$recipeId') as Map<String, dynamic>;
+      final list = rec['variants'] as List? ?? const [];
+      final standard = list.cast<Map>().where((v) => v['is_default'] == true).firstOrNull;
+      _orig.id = standard == null ? null : (standard['id'] as num).toInt();
+    }
+    for (final v in _variants) {
+      if (v.id == null) {
+        final list = await api.post(base, {'name': v.name.text.trim()}) as List;
+        v.id = ((list.last as Map)['id'] as num).toInt();
+      }
+      await api.put('$base/${v.id}', v.body);
+    }
+    if (!identical(_def, _orig) && _def.id != null) await api.post('$base/${_def.id}/default', const {});
+    for (final id in _deleted) {
+      await api.delete('$base/$id');
+    }
+  }
+
+  /// Aba "+": receita nova, vazia ou copiando a aba aberta.
+  Future<void> _addVariant() async {
+    if (_variants.length >= 10) return Toast.warn('Cada produto pode ter até 10 receitas.');
+    final name = 'Receita ${_variants.length + 1}';
+    final copy = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nova receita'),
+        content: Text('Começar do zero ou copiar os ingredientes de “${_cur.name.text}”?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Começar vazia')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Copiar esta')),
+        ],
+      ),
+    );
+    if (copy == null) return;
+    setState(() {
+      _variants.add(copy ? _cur.copy(name) : _Variant(name: name));
+      _tab = _variants.length - 1;
+    });
+  }
+
+  /// Marca a aba aberta como padrão (vale ao salvar).
+  void _makeDefault() => setState(() {
+    for (final v in _variants) {
+      v.isDefault = identical(v, _cur);
+    }
+  });
+
+  /// Exclui a aba aberta (a padrão não pode; vale ao salvar).
+  Future<void> _deleteVariant() async {
+    if (_cur.isDefault) return;
+    if (!await confirmDialog(
+      context,
+      title: 'Excluir “${_cur.name.text}”?',
+      message: 'Os ingredientes desta receita serão apagados quando você salvar. As outras receitas continuam.',
+    )) {
+      return;
+    }
+    setState(() {
+      final gone = _variants.removeAt(_tab);
+      if (gone.id != null) _deleted.add(gone.id!);
+      gone.dispose();
+      _tab = _variants.indexOf(_def);
+    });
   }
 
   Future<void> _delete() async {
@@ -275,7 +415,7 @@ class _EditorState extends State<_Editor> {
     try {
       await api.delete('/api/recipes/${_r.id}');
       Toast.ok('Receita excluída');
-      if (mounted) context.pop();
+      if (mounted) context.canPop() ? context.pop() : context.go('/painel/receitas');
     } on ApiException catch (e) {
       Toast.error(e.message);
     }
@@ -365,35 +505,20 @@ class _EditorState extends State<_Editor> {
                       onChanged: (v) => setState(() => _category = v),
                     ),
                     const SizedBox(height: 14),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: NumberField(
-                            label: 'Rende (unidades)',
-                            controller: _yield,
-                            hint: 'Ex.: 20',
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: NumberField(
-                            label: 'Margem de lucro (%)',
-                            controller: _margin,
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                      ],
+                    NumberField(
+                      label: 'Margem de lucro (%)',
+                      controller: _margin,
+                      helper: 'Vale para todas as receitas deste produto.',
+                      onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 14),
                     NumberField(
                       label: 'Preço do cardápio (R\$, opcional)',
                       controller: _salePrice,
-                      hint: _calc.rounded > 0 ? fieldNum(_calc.rounded) : '',
+                      hint: _defCalc.rounded > 0 ? fieldNum(_defCalc.rounded) : '',
                       helper: parseNum(_salePrice.text) > 0
-                          ? 'Fixado por você. O cálculo sugere ${money(_calc.rounded)}; a margem real é ${p.realMarginPct.toStringAsFixed(1).replaceAll('.', ',')}%.'
-                          : 'Em branco usa o preço calculado (${money(_calc.rounded)}). Fixe um valor para ser avisada se a margem cair quando um ingrediente subir.',
+                          ? 'Fixado por você. A receita padrão (${_def.name.text}) sugere ${money(_defCalc.rounded)}; a margem real é ${withSalePrice(_defCalc, parseNum(_salePrice.text)).realMarginPct.toStringAsFixed(1).replaceAll('.', ',')}%.'
+                          : 'Em branco usa o preço calculado da receita padrão, ${_def.name.text} (${money(_defCalc.rounded)}). Fixe um valor para ser avisada se a margem cair quando um ingrediente subir.',
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 14),
@@ -404,15 +529,6 @@ class _EditorState extends State<_Editor> {
                       helper: parseNum(_unitWeight.text) > 0
                           ? 'Receita inteira: ${number(parseNum(_unitWeight.text) * yieldN)} g (${number(yieldN)} un × ${number(parseNum(_unitWeight.text))} g)'
                           : 'Quanto pesa cada unidade pronta',
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 14),
-                    NumberField(
-                      label: 'Tempo de produção (horas)',
-                      controller: _hours,
-                      hint: 'Ex.: 1,5',
-                      helper:
-                          'Valor da hora: ${money(d.settings.hourlyRate)} (em Custos e ajustes)',
                       onChanged: (_) => setState(() {}),
                     ),
                   ],
@@ -598,6 +714,97 @@ class _EditorState extends State<_Editor> {
                   ],
                 ),
               ),
+              const SectionTitle('Receitas deste produto'),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final (i, v) in _variants.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          key: Key('variant_tab_$i'),
+                          label: Text('${v.name.text.trim().isEmpty ? 'Receita ${i + 1}' : v.name.text.trim()}${v.isDefault ? ' ★' : ''}'),
+                          selected: i == _tab,
+                          onSelected: (_) => setState(() => _tab = i),
+                        ),
+                      ),
+                    IconButton.filledTonal(
+                      key: const Key('variant_add'),
+                      tooltip: 'Nova receita para este produto',
+                      onPressed: _addVariant,
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppTextField(
+                      key: ValueKey('variant_name_$_tab'),
+                      label: 'Nome desta receita',
+                      controller: _cur.name,
+                      maxLength: 40,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: NumberField(
+                            key: ValueKey('variant_yield_$_tab'),
+                            label: 'Rende (unidades)',
+                            controller: _yield,
+                            hint: 'Ex.: 20',
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: NumberField(
+                            key: ValueKey('variant_hours_$_tab'),
+                            label: 'Tempo de produção (h)',
+                            controller: _hours,
+                            hint: 'Ex.: 1,5',
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Valor da hora: ${money(d.settings.hourlyRate)} (em Custos e ajustes)',
+                      style: TextStyle(color: c.muted, fontSize: 12.5),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_cur.isDefault)
+                      Text(
+                        '★ Receita padrão: é dela o preço do cardápio, dos combos, do lucro e das metas.',
+                        style: TextStyle(color: c.muted, fontSize: 13),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          TextButton.icon(
+                            key: const Key('variant_make_default'),
+                            onPressed: _makeDefault,
+                            icon: const Icon(Icons.star_outline_rounded),
+                            label: const Text('Definir como padrão'),
+                          ),
+                          TextButton.icon(
+                            onPressed: _deleteVariant,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: const Text('Excluir esta receita'),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
               const SectionTitle('Ingredientes'),
               if (d.ingredients.isEmpty) ...[
                 const InfoBanner(
@@ -747,7 +954,7 @@ class _EditorState extends State<_Editor> {
                 maxLength: 500,
                 maxLines: 5,
               ),
-              const SectionTitle('Cálculo de preço'),
+              SectionTitle('Cálculo de preço · ${_cur.name.text.trim().isEmpty ? 'Receita ${_tab + 1}' : _cur.name.text.trim()}'),
               AppCard(
                 padding: const EdgeInsets.all(20),
                 child: Column(

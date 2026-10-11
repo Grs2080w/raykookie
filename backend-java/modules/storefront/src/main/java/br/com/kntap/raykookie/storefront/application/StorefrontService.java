@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.storefront.application;
 
 import br.com.kntap.raykookie.catalog.api.CatalogApi;
+import br.com.kntap.raykookie.catalog.api.MenuCombo;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.security.ShopOwner;
@@ -12,6 +13,7 @@ import br.com.kntap.raykookie.storefront.domain.MenuBuilder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -59,23 +61,50 @@ public class StorefrontService implements StorefrontApi {
             categories.put(((Number) row.get("id")).longValue(), (String) row.get("name"));
         }
 
-        // ── 3. Receitas precificadas viram o cardápio.
+        // ── 3. Nome dos ingredientes (para os produtos que mostram a lista).
+        Map<Long, String> ingredients = new HashMap<>();
+        for (Map<String, Object> row : catalog.ingredients(owner)) {
+            ingredients.put(((Number) row.get("id")).longValue(), String.valueOf(row.get("name")));
+        }
+
+        // ── 4. Receitas precificadas e combos vendáveis viram o cardápio.
         List<MenuBuilder.Recipe> recipes = catalog.pricedRecipes(owner).stream()
-                .map(recipe -> recipe(recipe, categories)).toList();
-        return MenuBuilder.build(recipes);
+                .map(recipe -> recipe(recipe, categories, ingredients)).toList();
+        List<Menu.Item> combos = catalog.menuCombos(owner).stream().map(StorefrontService::combo).toList();
+        return MenuBuilder.build(recipes, combos);
+    }
+
+    /**
+     * O combo como item do cardápio ({@code combo-<id>}).
+     *
+     * @param combo combo vendável
+     * @return o item
+     */
+    private static Menu.Item combo(MenuCombo combo) {
+        String image = combo.photoRecipe() == null ? null
+                : "/api/fotos/" + combo.photoRecipe() + "?v=" + combo.photoVersion();
+        List<Menu.Part> parts = combo.parts().stream().map(p -> new Menu.Part(p.recipeId(), p.name(), p.qty()))
+                .toList();
+        return new Menu.Item(Menu.COMBO_PREFIX + combo.id(), combo.name(), combo.price(), MenuBuilder.COMBOS, 0,
+                image, combo.tags(), List.of(), new Menu.Combo(combo.id(), combo.contents(), combo.fullPrice(),
+                        parts));
     }
 
     /**
      * A receita vista pelo cardápio.
      *
-     * @param recipe     receita precificada
-     * @param categories nome das categorias
+     * @param recipe      receita precificada
+     * @param categories  nome das categorias
+     * @param ingredients nome dos ingredientes
      * @return a receita
      */
-    private static MenuBuilder.Recipe recipe(PricedRecipe recipe, Map<Long, String> categories) {
+    private static MenuBuilder.Recipe recipe(PricedRecipe recipe, Map<Long, String> categories,
+            Map<Long, String> ingredients) {
         String category = recipe.categoryId() == null ? null : categories.get(recipe.categoryId());
+        List<String> names = recipe.showIngredients() ? recipe.ingredientIds().stream().distinct()
+                .map(ingredients::get).filter(Objects::nonNull).toList() : List.of();
         return new MenuBuilder.Recipe(recipe.id(), recipe.name(), recipe.pricing().rounded(), category,
-                recipe.unitWeightG(), recipe.photoVersion(), recipe.tags(), recipe.showOnMenu());
+                recipe.unitWeightG(), recipe.photoVersion(), recipe.tags(), recipe.showOnMenu(), names);
     }
 
     /** {@inheritDoc} */
