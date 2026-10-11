@@ -28,19 +28,24 @@ public class RecipeUseCases {
     /** Ingredientes (para conferir os itens). */
     private final Ingredients ingredients;
 
+    /** Versões de receita (a padrão acompanha o formulário do produto). */
+    private final RecipeVariantUseCases variants;
+
     /**
      * Cria os casos de uso.
      *
      * @param recipes     receitas
      * @param ingredients ingredientes
+     * @param variants    versões de receita
      */
-    public RecipeUseCases(Recipes recipes, Ingredients ingredients) {
+    public RecipeUseCases(Recipes recipes, Ingredients ingredients, RecipeVariantUseCases variants) {
         this.recipes = recipes;
         this.ingredients = ingredients;
+        this.variants = variants;
     }
 
     /**
-     * Uma receita com os itens.
+     * Uma receita com os itens (os da versão padrão) e as versões ({@code variants}, com {@code is_default}).
      *
      * @param owner dona
      * @param id    receita
@@ -48,8 +53,11 @@ public class RecipeUseCases {
      * @throws NotFoundException se não for da dona
      */
     public Map<String, Object> get(OwnerId owner, long id) {
-        return recipes.list(owner).stream().filter(row -> ((Number) row.get("id")).longValue() == id).findFirst()
-                .orElseThrow(() -> new NotFoundException(NOT_FOUND));
+        Map<String, Object> row = new LinkedHashMap<>(recipes.list(owner).stream()
+                .filter(r -> ((Number) r.get("id")).longValue() == id).findFirst()
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND)));
+        row.put("variants", variants.withDefault(id));
+        return row;
     }
 
     /**
@@ -76,7 +84,11 @@ public class RecipeUseCases {
         Map<String, Object> row = id == null
                 ? recipes.create(owner, form)
                 : recipes.update(owner, id, form).orElseThrow(() -> new NotFoundException(NOT_FOUND));
-        recipes.replaceItems(((Number) row.get("id")).longValue(), form.items());
+        long recipeId = ((Number) row.get("id")).longValue();
+        recipes.replaceItems(recipeId, form.items());
+
+        // ── 3. A versão padrão acompanha o que foi salvo (sem versão ainda, nasce a "Receita 1").
+        variants.syncDefault(recipeId, form);
         return row;
     }
 

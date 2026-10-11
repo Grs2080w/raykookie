@@ -733,4 +733,60 @@ void main() {
       expect(find.text('Nenhuma receita ainda'), findsOneWidget);
     });
   });
+
+  group('várias receitas por produto (gestão)', () {
+    testWidgets('abas Receita 1 ★ e Chocolate; trocar a padrão e salvar grava produto, receitas e a padrão nova', (t) async {
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/ingredients': (_) => (200, [
+              {'id': 1, 'name': 'Farinha', 'unit': 'g', 'package_size': 1000, 'package_cost': 10, 'stock_qty': 0, 'min_stock': 0},
+              {'id': 2, 'name': 'Cacau', 'unit': 'g', 'package_size': 1000, 'package_cost': 50, 'stock_qty': 0, 'min_stock': 0},
+            ]),
+        'GET /api/categories': (_) => (200, []),
+        'GET /api/settings': (_) => (200, {'hourly_rate': 0, 'monthly_units': 100}),
+        'GET /api/fixed-costs': (_) => (200, []),
+        'GET /api/recipes/5': (_) => (200, {
+              'id': 5, 'name': 'Cookie', 'category_id': null, 'yield_units': 10, 'margin_pct': 100, 'prep_hours': 0, 'notes': '',
+              'unit_weight_g': 0, 'sale_price': null, 'photo_v': null, 'items': [{'ingredient_id': 1, 'qty': 1000}],
+              'variants': [
+                {'id': 11, 'name': 'Receita 1', 'yield_units': 10, 'prep_hours': 0, 'items': [{'ingredient_id': 1, 'qty': 1000}], 'is_default': true},
+                {'id': 12, 'name': 'Chocolate', 'yield_units': 20, 'prep_hours': 1, 'items': [{'ingredient_id': 2, 'qty': 300}], 'is_default': false},
+              ],
+            }),
+        'PUT /api/recipes/5': (_) => (200, {'id': 5}),
+        'PUT /api/recipes/5/variants/11': (_) => (200, []),
+        'PUT /api/recipes/5/variants/12': (_) => (200, []),
+        'POST /api/recipes/5/variants/12/default': (_) => (200, []),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/receitas/5', session: s);
+
+      // ── 1. As duas abas, com a padrão marcada.
+      await t.pumpAndSettle();
+      await t.scrollUntilVisible(find.text('Receita 1 ★'), 300, scrollable: find.byType(Scrollable).first);
+      expect(find.text('Receita 1 ★'), findsOneWidget);
+      expect(find.text('Chocolate'), findsOneWidget);
+
+      // ── 2. Abre Chocolate e marca como padrão.
+      await t.ensureVisible(find.text('Chocolate'));
+      await t.tap(find.text('Chocolate'));
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.byKey(const Key('variant_make_default')));
+      await t.tap(find.byKey(const Key('variant_make_default')));
+      await t.pumpAndSettle();
+      expect(find.textContaining('★ Receita padrão'), findsOneWidget);
+
+      // ── 3. Salvar: produto com a padrão antiga, cada receita, e a troca de padrão.
+      await t.ensureVisible(find.text('Salvar receita'));
+      await t.tap(find.text('Salvar receita'));
+      await t.pumpAndSettle();
+      expect(be.calls, containsAllInOrder([
+        'PUT /api/recipes/5', 'PUT /api/recipes/5/variants/11', 'PUT /api/recipes/5/variants/12',
+        'POST /api/recipes/5/variants/12/default',
+      ]));
+      expect((be.bodies['PUT /api/recipes/5'] as Map)['items'], [{'ingredient_id': '1', 'qty': 1000.0}]);
+      expect((be.bodies['PUT /api/recipes/5/variants/12'] as Map)['name'], 'Chocolate');
+    });
+  });
 }

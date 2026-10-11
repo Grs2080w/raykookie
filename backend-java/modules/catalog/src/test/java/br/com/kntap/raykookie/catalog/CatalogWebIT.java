@@ -275,4 +275,68 @@ class CatalogWebIT extends PostgresTestBase {
         assertThat(RestAssured.given().port(port).get("/api/recipes").statusCode()).isEqualTo(401);
         assertThat(RestAssured.given().port(port).get("/api/settings").statusCode()).isEqualTo(401);
     }
+
+    /**
+     * Várias receitas por produto.
+     */
+    @Test
+    @DisplayName("versões de receita: Receita 1 nasce padrão; cópia, edição, troca da padrão, exclusão e estoque")
+    void recipeVariants() {
+
+        // ── 1. Produto novo nasce com a "Receita 1" padrão, com os ingredientes do formulário.
+        long flour = owner(Map.of("name", "Farinha V", "unit", "g", "package_size", 1000, "package_cost", 10))
+                .post("/api/ingredients").jsonPath().getLong("id");
+        long cocoa = owner(Map.of("name", "Cacau V", "unit", "g", "package_size", 1000, "package_cost", 50))
+                .post("/api/ingredients").jsonPath().getLong("id");
+        long recipe = owner(Map.of("name", "Cookie V", "yield_units", 10,
+                "items", List.of(Map.of("ingredient_id", flour, "qty", 1000)))).post("/api/recipes")
+                .jsonPath().getLong("id");
+        JsonPath first = owner().get("/api/recipes/" + recipe).jsonPath();
+        assertThat(first.getList("variants.name")).containsExactly("Receita 1");
+        assertThat(first.getBoolean("variants[0].is_default")).isTrue();
+        long one = first.getLong("variants[0].id");
+
+        // ── 2. "+" copiando a Receita 1; editar a cópia não mexe no produto.
+        JsonPath two = owner(Map.of("copy_from", one)).post("/api/recipes/" + recipe + "/variants").then()
+                .statusCode(201).extract().jsonPath();
+        assertThat(two.getList("name")).containsExactly("Receita 1", "Receita 2");
+        long choc = two.getLong("[1].id");
+        assertThat(two.getList("[1].items.ingredient_id")).containsExactly((int) flour);
+        owner(Map.of("name", "Chocolate", "yield_units", 20, "prep_hours", 1,
+                "items", List.of(Map.of("ingredient_id", cocoa, "qty", 300))))
+                .put("/api/recipes/" + recipe + "/variants/" + choc).then().statusCode(200);
+        JsonPath unchanged = owner().get("/api/recipes/" + recipe).jsonPath();
+        assertThat(unchanged.getList("items.ingredient_id")).containsExactly((int) flour);
+        assertThat(unchanged.getDouble("yield_units")).isEqualTo(10.0);
+
+        // ── 3. Chocolate vira a padrão: o produto passa a usar rendimento e ingredientes dela.
+        owner().post("/api/recipes/" + recipe + "/variants/" + choc + "/default").then().statusCode(200);
+        JsonPath now = owner().get("/api/recipes/" + recipe).jsonPath();
+        assertThat(now.getList("items.ingredient_id")).containsExactly((int) cocoa);
+        assertThat(now.getDouble("yield_units")).isEqualTo(20.0);
+        assertThat(now.getBoolean("variants.find { it.id == " + choc + " }.is_default")).isTrue();
+
+        // ── 4. A padrão não sai; a outra sai; ingrediente usado só na versão segue protegido.
+        assertThat(owner().delete("/api/recipes/" + recipe + "/variants/" + choc).statusCode()).isEqualTo(400);
+        owner(Map.of()).post("/api/recipes/" + recipe + "/variants").then().statusCode(201);
+        long spare = owner().get("/api/recipes/" + recipe).jsonPath().getLong("variants.find { it.name == "
+                + "'Receita 3' }.id");
+        owner(Map.of("name", "Reserva", "items", List.of(Map.of("ingredient_id", flour, "qty", 5))))
+                .put("/api/recipes/" + recipe + "/variants/" + spare).then().statusCode(200);
+        owner().delete("/api/recipes/" + recipe + "/variants/" + one).then().statusCode(200);
+        assertThat(owner().delete("/api/ingredients/" + flour).statusCode()).isEqualTo(409);
+
+        // ── 5. O formulário do produto (apps antigos) atualiza a padrão, mantendo o nome dela.
+        owner(Map.of("name", "Cookie V", "yield_units", 12,
+                "items", List.of(Map.of("ingredient_id", cocoa, "qty", 100)))).put("/api/recipes/" + recipe)
+                .then().statusCode(200);
+        JsonPath synced = owner().get("/api/recipes/" + recipe).jsonPath();
+        assertThat(synced.getString("variants.find { it.is_default }.name")).isEqualTo("Chocolate");
+        assertThat(synced.getDouble("variants.find { it.is_default }.yield_units")).isEqualTo(12.0);
+
+        // ── 6. Versão de outro produto é 404.
+        long other = owner(Map.of("name", "Outro V")).post("/api/recipes").jsonPath().getLong("id");
+        assertThat(owner().post("/api/recipes/" + other + "/variants/" + choc + "/default").statusCode())
+                .isEqualTo(404);
+    }
 }

@@ -89,10 +89,12 @@ class RecipeItem {
 class RecipeRow {
   RecipeRow({
     required this.id, required this.name, this.categoryId, required this.yieldUnits, required this.marginPct, required this.prepHours,
-    required this.notes, this.unitWeightG = 0, this.salePrice, this.photoV, required this.items, this.pricing,
+    required this.notes, this.unitWeightG = 0, this.salePrice, this.photoV, required this.items, this.pricing, this.variants = const [],
   });
   final int id;
   final String name, notes;
+  /// Versões de receita do produto (Receita 1, Receita 2…); a padrão é a que vale para o cardápio e o lucro.
+  final List<RecipeVariant> variants;
   final int? categoryId;
   final double yieldUnits, marginPct, prepHours, unitWeightG; // gramatura de cada unidade (g); 0 = não informada
   final double? salePrice; // preço do cardápio fixado; nulo = o calculado
@@ -104,6 +106,22 @@ class RecipeRow {
         prepHours: _d(j['prep_hours']), notes: _s(j['notes']), unitWeightG: _d(j['unit_weight_g']), salePrice: j['sale_price'] == null ? null : _d(j['sale_price']), photoV: j['photo_v'] as String?,
         items: [for (final it in (j['items'] as List? ?? [])) RecipeItem(_i(it['ingredient_id'])!, _d(it['qty']))],
         pricing: j['pricing'] is Map<String, dynamic> ? PricingResult.fromJson(j['pricing'] as Map<String, dynamic>) : null,
+        variants: [for (final v in (j['variants'] as List? ?? [])) RecipeVariant.fromJson(Map<String, dynamic>.from(v as Map))],
+      );
+}
+
+/// Uma versão de receita do produto: nome, rendimento, preparo e ingredientes.
+class RecipeVariant {
+  RecipeVariant({required this.id, required this.name, required this.yieldUnits, required this.prepHours, required this.items, this.isDefault = false});
+  final int id;
+  final String name;
+  final double yieldUnits, prepHours;
+  final List<RecipeItem> items;
+  final bool isDefault;
+  factory RecipeVariant.fromJson(Map<String, dynamic> j) => RecipeVariant(
+        id: _i(j['id'])!, name: _s(j['name']), yieldUnits: _d(j['yield_units']), prepHours: _d(j['prep_hours']),
+        items: [for (final it in (j['items'] as List? ?? [])) RecipeItem(_i(it['ingredient_id'])!, _d(it['qty']))],
+        isDefault: j['is_default'] == true,
       );
 }
 
