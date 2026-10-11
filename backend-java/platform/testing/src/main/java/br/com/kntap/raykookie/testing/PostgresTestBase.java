@@ -14,9 +14,23 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * <p>Testes {@code @SpringBootTest} que estendem esta classe recebem {@code rayka.db.url},
  * {@code rayka.db.username} e {@code rayka.db.password} do container; o Flyway da aplicação cria o
  * esquema no banco principal (modo "banco novo"). Testes de migration usam {@link #newDatabase(String)}
- * para ganhar um banco vazio no mesmo servidor. O container não é anotado com {@code @Container}
- * (que o pararia ao fim de cada classe) nem reaproveitado entre execuções ({@code withReuse}): cada
- * execução da suíte começa num servidor limpo, e o Ryuk o remove quando a JVM termina.
+ * para ganhar um banco vazio no mesmo servidor; nada além do esquema da aplicação deve ser criado no
+ * banco principal, senão o Flyway dos testes seguintes recusa o esquema "public" não vazio.
+ *
+ * <p>O container não é anotado com {@code @Container} (que o pararia ao fim de cada classe) nem
+ * reaproveitado entre execuções ({@code withReuse}): cada execução da suíte (cada JVM do surefire ou do
+ * failsafe, uma por módulo) começa num servidor limpo. Quem o remove no fim:
+ *
+ * <ul>
+ *   <li>o shutdown hook de {@link ContainerCleanup}, quando a JVM termina normalmente ou é encerrada por
+ *       sinal ou pelo surefire/failsafe (Ctrl+C no Maven, Maven morto, fork acima do tempo limite);</li>
+ *   <li>o vigia de {@link ContainerCleanup}, alguns segundos depois de a JVM morrer por SIGKILL;</li>
+ *   <li>o Ryuk do Testcontainers, que continua ligado, mas sozinho não basta: ele só apaga depois de
+ *       10 s sem clientes, e um monitor de portas no host que conecte na porta dele a cada poucos
+ *       segundos o mantém de pé indefinidamente, junto com o Postgres.</li>
+ * </ul>
+ *
+ * <p>Containers que sobrarem de execuções antigas: {@code backend-java/scripts/clean-testcontainers.sh}.
  */
 public abstract class PostgresTestBase {
 
@@ -33,11 +47,16 @@ public abstract class PostgresTestBase {
     private static final AtomicInteger DATABASES = new AtomicInteger();
 
     /**
-     * Cria e inicia o container no fuso da loja.
+     * Arma a limpeza de {@link ContainerCleanup} e cria e inicia o container no fuso da loja.
      *
      * @return o container já rodando
      */
     private static PostgreSQLContainer start() {
+
+        // ── 1. A limpeza vem antes, para valer mesmo se a JVM morrer no meio do start.
+        ContainerCleanup.arm();
+
+        // ── 2. Postgres igual ao de produção.
         PostgreSQLContainer container = new PostgreSQLContainer(IMAGE)
                 .withEnv("TZ", ZONE)
                 .withEnv("PGTZ", ZONE)

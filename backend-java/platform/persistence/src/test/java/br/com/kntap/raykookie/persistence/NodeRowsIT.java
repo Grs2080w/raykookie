@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -40,14 +41,21 @@ class NodeRowsIT extends PostgresTestBase {
     }
 
     /**
-     * Colunas SERIAL (o driver informa o tipo "serial") e BIGSERIAL, como o node-postgres.
+     * Colunas SERIAL (o driver informa o tipo "serial") e BIGSERIAL, como o node-postgres. A tabela fica
+     * num banco próprio: no banco principal ela deixaria o esquema "public" não vazio e o Flyway dos
+     * testes {@code @SpringBootTest} que rodassem depois recusaria subir.
      */
     @Test
     @DisplayName("SERIAL vira número; BIGSERIAL vira texto")
     void serialColumns() {
-        jdbc().sql("CREATE TABLE IF NOT EXISTS node_rows_serial (a SERIAL, b BIGSERIAL)").update();
-        jdbc().sql("INSERT INTO node_rows_serial DEFAULT VALUES").update();
-        Map<String, Object> row = jdbc().sql("SELECT a, b FROM node_rows_serial LIMIT 1").query(NodeRows.ROW).single();
+
+        // ── 1. Uma linha numa tabela SERIAL/BIGSERIAL, fora do banco principal.
+        JdbcClient jdbc = newDatabase("node_rows").jdbc();
+        jdbc.sql("CREATE TABLE node_rows_serial (a SERIAL, b BIGSERIAL)").update();
+        jdbc.sql("INSERT INTO node_rows_serial DEFAULT VALUES").update();
+
+        // ── 2. Os tipos lidos são os do node-postgres.
+        Map<String, Object> row = jdbc.sql("SELECT a, b FROM node_rows_serial LIMIT 1").query(NodeRows.ROW).single();
         assertThat(row.get("a")).isInstanceOf(Integer.class);
         assertThat(row.get("b")).isInstanceOf(String.class);
     }
