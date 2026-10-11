@@ -163,4 +163,36 @@ class StorefrontWebIT extends PostgresTestBase {
         assertThat(storefront.activePickupAddress(dona)).isPresent();
         assertThat(owner(Map.of("active", true)).patch("/api/pickup-addresses/999999").statusCode()).isEqualTo(404);
     }
+
+    /**
+     * Página do Cardápio: lista de ingredientes e visibilidade refletem no cardápio público.
+     *
+     * @throws IOException se a foto não for gerada
+     */
+    @Test
+    @DisplayName("página do Cardápio: preço e foto no editor; ingredientes ligados aparecem; produto desligado some")
+    void menuPageFlags() throws IOException {
+
+        // ── 1. O editor traz preço, foto e a chave dos ingredientes (desligada).
+        long id = recipeOnMenu("Cookie da página IT");
+        Response editor = owner(Map.of()).get("/api/recipes/cardapio");
+        String item = "find { it.id == " + id + " }";
+        assertThat(editor.jsonPath().getDouble(item + ".price")).isEqualTo(15.0);
+        assertThat(editor.jsonPath().getString(item + ".photo_v")).isNotBlank();
+        assertThat(editor.jsonPath().getBoolean(item + ".show_ingredients")).isFalse();
+        String menuItem = "items.find { it.id == '" + id + "' }";
+        assertThat(RestAssured.given().port(port).get("/api/menu").jsonPath().getList(menuItem + ".ingredients"))
+                .isNull();
+
+        // ── 2. Ligada, o cardápio mostra os ingredientes da receita padrão.
+        owner(Map.of("show_ingredients", true)).patch("/api/recipes/" + id + "/cardapio").then().statusCode(200);
+        assertThat(RestAssured.given().port(port).get("/api/menu").jsonPath().getList(menuItem + ".ingredients"))
+                .containsExactly("Farinha Cookie da página IT");
+
+        // ── 3. Desligado do cardápio: some de /api/menu e do story do produto.
+        owner(Map.of("show_on_menu", false)).patch("/api/recipes/" + id + "/cardapio").then().statusCode(200);
+        assertThat(RestAssured.given().port(port).get("/api/menu").jsonPath().getList("items.id"))
+                .doesNotContain(String.valueOf(id));
+        assertThat(RestAssured.given().port(port).get("/api/story/produto/" + id).statusCode()).isEqualTo(404);
+    }
 }

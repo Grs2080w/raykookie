@@ -12,6 +12,7 @@ import br.com.kntap.raykookie.storefront.domain.MenuBuilder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -59,23 +60,33 @@ public class StorefrontService implements StorefrontApi {
             categories.put(((Number) row.get("id")).longValue(), (String) row.get("name"));
         }
 
-        // ── 3. Receitas precificadas viram o cardápio.
+        // ── 3. Nome dos ingredientes (para os produtos que mostram a lista).
+        Map<Long, String> ingredients = new HashMap<>();
+        for (Map<String, Object> row : catalog.ingredients(owner)) {
+            ingredients.put(((Number) row.get("id")).longValue(), String.valueOf(row.get("name")));
+        }
+
+        // ── 4. Receitas precificadas viram o cardápio.
         List<MenuBuilder.Recipe> recipes = catalog.pricedRecipes(owner).stream()
-                .map(recipe -> recipe(recipe, categories)).toList();
+                .map(recipe -> recipe(recipe, categories, ingredients)).toList();
         return MenuBuilder.build(recipes);
     }
 
     /**
      * A receita vista pelo cardápio.
      *
-     * @param recipe     receita precificada
-     * @param categories nome das categorias
+     * @param recipe      receita precificada
+     * @param categories  nome das categorias
+     * @param ingredients nome dos ingredientes
      * @return a receita
      */
-    private static MenuBuilder.Recipe recipe(PricedRecipe recipe, Map<Long, String> categories) {
+    private static MenuBuilder.Recipe recipe(PricedRecipe recipe, Map<Long, String> categories,
+            Map<Long, String> ingredients) {
         String category = recipe.categoryId() == null ? null : categories.get(recipe.categoryId());
+        List<String> names = recipe.showIngredients() ? recipe.ingredientIds().stream().distinct()
+                .map(ingredients::get).filter(Objects::nonNull).toList() : List.of();
         return new MenuBuilder.Recipe(recipe.id(), recipe.name(), recipe.pricing().rounded(), category,
-                recipe.unitWeightG(), recipe.photoVersion(), recipe.tags(), recipe.showOnMenu());
+                recipe.unitWeightG(), recipe.photoVersion(), recipe.tags(), recipe.showOnMenu(), names);
     }
 
     /** {@inheritDoc} */

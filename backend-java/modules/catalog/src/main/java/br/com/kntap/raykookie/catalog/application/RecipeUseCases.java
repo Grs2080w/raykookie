@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.catalog.application;
 
 import br.com.kntap.raykookie.catalog.api.MenuTags;
+import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.ports.Ingredients;
 import br.com.kntap.raykookie.catalog.application.ports.Recipes;
 import br.com.kntap.raykookie.catalog.domain.RecipeForm;
@@ -103,13 +104,17 @@ public class RecipeUseCases {
     }
 
     /**
-     * Lista enxuta para o editor de cardápio: o que aparece e se dá para aparecer (tem preço).
+     * Lista da página do Cardápio: o que aparece, se dá para aparecer (tem preço), o preço (o da receita padrão,
+     * ou o fixado), a foto e se mostra os ingredientes.
      *
-     * @param owner dona
-     * @return id, nome, visibilidade, selos, foto e se está precificada
+     * @param priced receitas da dona já precificadas
+     * @return id, nome, visibilidade, selos, foto, preço e se mostra os ingredientes
      */
-    public List<Map<String, Object>> menuEditor(OwnerId owner) {
-        return recipes.list(owner).stream().map(row -> {
+    public List<Map<String, Object>> menuEditor(List<PricedRecipe> priced) {
+        return priced.stream().map(recipe -> {
+            Map<String, Object> row = recipe.row();
+
+            // ── 1. Campos do editor de cardápio (os de sempre).
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", row.get("id"));
             item.put("name", row.get("name"));
@@ -117,6 +122,11 @@ public class RecipeUseCases {
             item.put("tags", row.get("tags"));
             item.put("has_photo", row.get("photo_v") != null);
             item.put("priced", row.get("sale_price") != null || !RecipePricing.ingredientIds(row).isEmpty());
+
+            // ── 2. Preço, foto e lista de ingredientes (página do Cardápio).
+            item.put("price", recipe.pricing().rounded());
+            item.put("photo_v", row.get("photo_v"));
+            item.put("show_ingredients", Boolean.TRUE.equals(row.get("show_ingredients")));
             return item;
         }).toList();
     }
@@ -126,18 +136,19 @@ public class RecipeUseCases {
      *
      * @param owner dona
      * @param id    receita
-     * @param body  {@code show_on_menu} (booleano) e/ou {@code tags} (lista)
+     * @param body  {@code show_on_menu} (booleano), {@code show_ingredients} (booleano) e/ou {@code tags} (lista)
      * @return {@code id}, {@code show_on_menu} e {@code tags}
      * @throws InvalidInputException sem nada para mudar
      * @throws NotFoundException     se a receita não for da dona
      */
     public Map<String, Object> updateMenuFlags(OwnerId owner, long id, Map<String, Object> body) {
         Boolean showOnMenu = body.get("show_on_menu") instanceof Boolean flag ? flag : null;
+        Boolean showIngredients = body.get("show_ingredients") instanceof Boolean flag ? flag : null;
         List<String> tags = body.containsKey("tags") ? MenuTags.clean(body.get("tags")) : null;
-        if (showOnMenu == null && tags == null) {
+        if (showOnMenu == null && tags == null && showIngredients == null) {
             throw new InvalidInputException("Nada para atualizar.");
         }
-        return recipes.updateMenuFlags(owner, id, showOnMenu, tags)
+        return recipes.updateMenuFlags(owner, id, showOnMenu, tags, showIngredients)
                 .orElseThrow(() -> new NotFoundException(NOT_FOUND));
     }
 }

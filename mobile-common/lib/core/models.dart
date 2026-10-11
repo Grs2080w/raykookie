@@ -169,15 +169,31 @@ class Dashboard {
 // ---- loja -----------------------------------------------------------------------------------------
 
 class MenuItem {
-  MenuItem({required this.id, required this.name, required this.price, required this.category, this.image, this.weightG = 0, this.tags = const []});
+  MenuItem({required this.id, required this.name, required this.price, required this.category, this.image, this.weightG = 0, this.tags = const [], this.ingredients = const [], this.combo});
   final String id, name, category;
   final double price, weightG;
   final String? image;
   final List<String> tags;
+  /// Ingredientes da receita padrão (só quando a confeiteira escolhe mostrar).
+  final List<String> ingredients;
+  /// O que vem no combo (nulo = produto avulso).
+  final MenuCombo? combo;
+  bool get isCombo => combo != null;
   factory MenuItem.fromJson(Map<String, dynamic> j) => MenuItem(
     id: _s(j['id']), name: _s(j['name']), price: _d(j['price']), category: _s(j['category']), image: j['image'] as String?, weightG: _d(j['weight_g']),
     tags: j['tags'] is List ? [for (final t in j['tags'] as List) _s(t)] : const [],
+    ingredients: j['ingredients'] is List ? [for (final t in j['ingredients'] as List) _s(t)] : const [],
+    combo: j['combo'] is Map ? MenuCombo.fromJson(Map<String, dynamic>.from(j['combo'] as Map)) : null,
   );
+}
+
+/// Conteúdo de um combo do cardápio: o resumo ("4 Cookie + 2 Brownie"), o preço avulso e quanto economiza.
+class MenuCombo {
+  MenuCombo({required this.contents, required this.fullPrice, required this.savings});
+  final String contents;
+  final double fullPrice, savings;
+  factory MenuCombo.fromJson(Map<String, dynamic> j) =>
+      MenuCombo(contents: _s(j['contents']), fullPrice: _d(j['full_price']), savings: _d(j['savings']));
 }
 
 class MenuGroup {

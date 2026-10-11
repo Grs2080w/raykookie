@@ -13,6 +13,7 @@ import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/toast.dart';
+import 'package:raykookie_common/ui/menu_extras.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
 import 'card_fields.dart';
@@ -484,6 +485,7 @@ class _OrderFormState extends State<_OrderForm> {
                   ),
               ]),
             ),
+          MenuItemExtras(m),
         ])),
         if (n > 0) ...[
           IconButton.outlined(onPressed: () => _step(m.id, -1), icon: const Icon(Icons.remove_rounded), tooltip: 'Diminuir ${m.name}', style: IconButton.styleFrom(minimumSize: const Size(44, 44))),

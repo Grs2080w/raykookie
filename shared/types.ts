@@ -44,7 +44,9 @@ export type Dashboard = {
   refundsWaiting: number; refundsPending: number; refundsFailed: number; // devoluções: aguardando decisão, valor em processamento, as que falharam
 };
 
-export type MenuItem = { id: string; name: string; price: number; category: string; image?: string; weight_g?: number; tags?: string[] };
+export type MenuCombo = { contents: string; full_price: number; savings: number; parts: { id: string; name: string; qty: number }[] };
+// ingredients: da receita padrão, só quando a confeiteira escolhe mostrar; combo: o que vem no combo (só nos combos)
+export type MenuItem = { id: string; name: string; price: number; category: string; image?: string; weight_g?: number; tags?: string[]; ingredients?: string[]; combo?: MenuCombo };
 export type MenuGroup = { id: string; name: string; items: MenuItem[] };
 export type Menu = { items: MenuItem[]; groups: MenuGroup[] };
 

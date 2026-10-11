@@ -71,7 +71,7 @@ public final class MenuBuilder {
                 ? null
                 : "/api/fotos/" + recipe.id() + "?v=" + recipe.photoVersion();
         return new Menu.Item(String.valueOf(recipe.id()), recipe.name(), recipe.price(), category, recipe.weightG(),
-                image, recipe.tags());
+                image, recipe.tags(), recipe.ingredients(), null);
     }
 
     /**
@@ -111,8 +111,26 @@ public final class MenuBuilder {
      * @param photoVersion versão da foto (nula = sem foto)
      * @param tags         selos
      * @param showOnMenu   se está visível
+     * @param ingredients  nomes dos ingredientes da receita padrão (vazio = não mostra)
      */
     public record Recipe(long id, String name, double price, String category, double weightG, String photoVersion,
-            List<String> tags, boolean showOnMenu) {
+            List<String> tags, boolean showOnMenu, List<String> ingredients) {
+
+        /**
+         * Receita sem lista de ingredientes.
+         *
+         * @param id           id
+         * @param name         nome
+         * @param price        preço
+         * @param category     categoria
+         * @param weightG      gramas
+         * @param photoVersion versão da foto
+         * @param tags         selos
+         * @param showOnMenu   se aparece no cardápio
+         */
+        public Recipe(long id, String name, double price, String category, double weightG, String photoVersion,
+                List<String> tags, boolean showOnMenu) {
+            this(id, name, price, category, weightG, photoVersion, tags, showOnMenu, List.of());
+        }
     }
 }

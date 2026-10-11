@@ -186,7 +186,7 @@ public class RecipesController {
     @Access(AccessLevel.OWNER)
     @GetMapping("/api/recipes/cardapio")
     public List<Map<String, Object>> menuEditor() {
-        return recipes.menuEditor(actor.requireOwner());
+        return recipes.menuEditor(pricing.priced(actor.requireOwner()));
     }
 
     /**
