@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.notifications.domain;
 
 import br.com.kntap.raykookie.kernel.Money;
+import br.com.kntap.raykookie.kernel.events.AppReleased;
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import java.math.BigDecimal;
@@ -16,6 +17,9 @@ public final class Messages {
 
     /** Canal único do app do cliente ("Seus pedidos"). */
     public static final String CUSTOMER_CHANNEL = "pedidos_cliente";
+
+    /** Canal do aviso de versão nova, nos dois apps ("Atualizações do app"). */
+    public static final String UPDATES_CHANNEL = "atualizacoes";
 
     /** Som do pagamento confirmado (canal que todo app de gestão já tem). */
     private static final String PAID_SOUND = "caixa";
@@ -176,6 +180,21 @@ public final class Messages {
                         + ". " + o.cause();
         return owner(token, margin ? "Margem caiu" : "Preço do cardápio vai subir", body,
                 Map.of("type", "preco", "recipeId", String.valueOf(o.recipeId())), ALERT_SOUND);
+    }
+
+    /**
+     * Versão nova do app: tocar abre o app, que baixa e abre o instalador.
+     *
+     * @param token token
+     * @param r     versão publicada
+     * @return a mensagem
+     */
+    public static PushMessage appUpdate(String token, AppReleased r) {
+        String audience = "server".equals(r.app()) ? "dona" : "cliente";
+        return new PushMessage(token, "Nova versão do app",
+                "Toque para atualizar para a versão " + r.version() + " (build " + r.build() + ").",
+                Map.of("type", "update", "app", r.app(), "build", String.valueOf(r.build()), "audience", audience),
+                UPDATES_CHANNEL, "default");
     }
 
     /**

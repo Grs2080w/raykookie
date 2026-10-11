@@ -27,6 +27,20 @@ public interface Devices {
     List<String> ofCustomer(CustomerId customer);
 
     /**
+     * Todos os aparelhos das donas (aviso de versão nova do app de gestão).
+     *
+     * @return os aparelhos
+     */
+    List<OwnerDevice> allOwners();
+
+    /**
+     * Todos os aparelhos dos clientes (aviso de versão nova do app do cliente).
+     *
+     * @return os tokens
+     */
+    List<String> allCustomers();
+
+    /**
      * Apaga aparelhos da dona que o Firebase disse que não existem mais.
      *
      * @param tokens tokens mortos

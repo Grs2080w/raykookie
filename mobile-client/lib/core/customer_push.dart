@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:raykookie_common/core/app_updates.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,6 +51,7 @@ class CustomerPush extends ChangeNotifier {
 
   /// Rota de Meus pedidos para um aviso (os dados vêm do backend: type e orderId).
   static String routeFor(Map<String, dynamic> data) {
+    if (data['type'] == 'update') return '/'; // versão nova: a faixa de atualizar fica no início
     final id = data['orderId']?.toString();
     return id == null || id.isEmpty ? '/cliente/pedidos' : '/cliente/pedidos?pedido=$id';
   }
@@ -80,7 +82,11 @@ class FirebaseCustomerPush extends CustomerPush {
     available = true;
     await _local.initialize(
       settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
-      onDidReceiveNotificationResponse: (r) => onOpen?.call(CustomerPush.routeFor(_decode(r.payload))),
+      onDidReceiveNotificationResponse: (r) {
+        final data = _decode(r.payload);
+        onUpdatePush(data);
+        onOpen?.call(CustomerPush.routeFor(data));
+      },
     );
     await _local
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -90,14 +96,25 @@ class FirebaseCustomerPush extends CustomerPush {
           description: 'Pagamento confirmado, pedido pronto, cancelamentos e devoluções.',
           importance: Importance.high,
         ));
+    await _local
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          updatesChannelId,
+          updatesChannelName,
+          description: 'Aviso quando sai uma versão nova do app.',
+        ));
     FirebaseMessaging.onMessage.listen(_showForeground);
     FirebaseMessaging.onMessageOpenedApp.listen((m) {
       bump(); // o app estava em segundo plano: a lista pode estar velha
+      onUpdatePush(m.data);
       onOpen?.call(CustomerPush.routeFor(m.data));
     });
     FirebaseMessaging.instance.onTokenRefresh.listen((_) => unawaited(_register()));
     final launch = await FirebaseMessaging.instance.getInitialMessage(); // o app estava fechado e abriu pelo aviso
-    if (launch != null) onOpen?.call(CustomerPush.routeFor(launch.data));
+    if (launch != null) {
+      onUpdatePush(launch.data);
+      onOpen?.call(CustomerPush.routeFor(launch.data));
+    }
     final s = await FirebaseMessaging.instance.getNotificationSettings();
     granted = s.authorizationStatus == AuthorizationStatus.authorized || s.authorizationStatus == AuthorizationStatus.provisional;
     _wasCustomer = session.isCustomer;
@@ -121,6 +138,8 @@ class FirebaseCustomerPush extends CustomerPush {
 
   Future<void> _showForeground(RemoteMessage m) async {
     bump(); // a lista de pedidos se atualiza na hora
+    onUpdatePush(m.data); // versão nova com o app aberto: a faixa aparece na hora, sem notificação
+    if (m.data['type'] == 'update') return;
     final n = m.notification;
     if (n == null) return;
     await _local.show(

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
+import br.com.kntap.raykookie.kernel.events.AppReleased;
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import br.com.kntap.raykookie.notifications.domain.Messages;
@@ -169,5 +170,21 @@ class MessagesTest {
         assertThat(Messages.customer("tok", new CustomerNotice.StoreCancel(REF, "Sem ingrediente", Money.ofCents(12000),
                 true)).orElseThrow().body())
                 .isEqualTo("Motivo: Sem ingrediente. R$ 120,00 voltam como estorno no cartão.");
+    }
+
+    /**
+     * Versão nova.
+     */
+    @Test
+    @DisplayName("versão nova: título, texto com a versão e dados para o app abrir e atualizar")
+    void appUpdateMessage() {
+        PushMessage m = Messages.appUpdate("tok", new AppReleased("client", "1.0.0", 130));
+        assertThat(m.title()).isEqualTo("Nova versão do app");
+        assertThat(m.body()).isEqualTo("Toque para atualizar para a versão 1.0.0 (build 130).");
+        assertThat(m.channelId()).isEqualTo("atualizacoes");
+        assertThat(m.data()).isEqualTo(Map.of("type", "update", "app", "client", "build", "130", "audience",
+                "cliente"));
+        assertThat(Messages.appUpdate("tok", new AppReleased("server", "1.1.0", 9)).data()).containsEntry("audience",
+                "dona");
     }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:raykookie_common/core/app_updates.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -37,7 +38,7 @@ class PushService extends ChangeNotifier {
     final refund = data['refundId']?.toString();
     if (type == 'devolucao' && refund != null && refund.isNotEmpty) return '/painel/devolucoes/$refund';
     if (type == 'privacidade') return '/painel/privacidade';
-    if (type == 'preco') return '/painel/inicio';
+    if (type == 'preco' || type == 'update') return '/painel/inicio'; // versão nova: a faixa fica no início
     return ordersRoute;
   }
 
@@ -75,7 +76,11 @@ class PushService extends ChangeNotifier {
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
-      onDidReceiveNotificationResponse: (r) => onOpen?.call(routeFor(_decode(r.payload))),
+      onDidReceiveNotificationResponse: (r) {
+        final data = _decode(r.payload);
+        onUpdatePush(data);
+        onOpen?.call(routeFor(data));
+      },
     );
     final android = _local
         .resolvePlatformSpecificImplementation<
@@ -94,16 +99,27 @@ class PushService extends ChangeNotifier {
         ),
       );
     }
+    await android?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        updatesChannelId,
+        updatesChannelName,
+        description: 'Aviso quando sai uma versão nova do app.',
+      ),
+    );
     FirebaseMessaging.onMessage.listen(_showForeground);
     FirebaseMessaging.onMessageOpenedApp.listen((m) {
       received++; // o app estava em segundo plano: Pedidos pode estar velho
       notifyListeners();
+      onUpdatePush(m.data);
       onOpen?.call(routeFor(m.data));
     });
     FirebaseMessaging.instance.onTokenRefresh.listen((_) => _sync());
     final launch = await FirebaseMessaging.instance
         .getInitialMessage(); // app estava fechado e abriu pela notificação
-    if (launch != null) onOpen?.call(routeFor(launch.data));
+    if (launch != null) {
+      onUpdatePush(launch.data);
+      onOpen?.call(routeFor(launch.data));
+    }
     _wasOwner = session.isOwner;
     if (_wasOwner) unawaited(_sync());
   }
@@ -117,6 +133,8 @@ class PushService extends ChangeNotifier {
   Future<void> _showForeground(RemoteMessage m) async {
     received++;
     notifyListeners();
+    onUpdatePush(m.data); // versão nova com o app aberto: a faixa aparece na hora, sem notificação
+    if (m.data['type'] == 'update') return;
     final n = m.notification;
     if (n == null) return;
     final s = orderSoundById(

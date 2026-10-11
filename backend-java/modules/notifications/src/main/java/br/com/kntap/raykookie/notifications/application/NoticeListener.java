@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.notifications.application;
 
 import br.com.kntap.raykookie.customers.api.events.PrivacyRequestCreated;
+import br.com.kntap.raykookie.kernel.events.AppReleased;
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import br.com.kntap.raykookie.notifications.domain.Messages;
@@ -61,6 +62,18 @@ public class NoticeListener {
     public void onCustomerNotice(CustomerNotice notice) {
         push.toCustomer(notice.order().customer(), token -> Messages.customer(token, notice),
                 notice.getClass().getSimpleName() + " " + notice.order().id());
+    }
+
+    /**
+     * Versão nova de um app: avisa todos os aparelhos dele.
+     *
+     * @param release a versão publicada
+     */
+    @Async
+    @TransactionalEventListener(fallbackExecution = true)
+    public void onAppReleased(AppReleased release) {
+        push.toEveryone("server".equals(release.app()), token -> Messages.appUpdate(token, release),
+                "versão " + release.app() + " " + release.build());
     }
 
     /**
