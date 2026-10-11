@@ -3,6 +3,7 @@
 #   bash infra/ci/changes.sh <base> <head>
 # <base> vazio ou 000…0 (primeiro push / branch nova) = tudo mudou. Dependências entre as pastas:
 #   - web  : backend/, frontend/, shared/ e os arquivos de serviço (infra/ci, infra/rayka.service)
+#   - api  : backend-java/ (a API de produção, implantada pelo CD)
 #   - client: mobile-client/ + mobile-common/      - server: mobile-server/ + mobile-common/
 #   - workflows/scripts do pipeline mudaram => tudo roda (o pipeline é parte do produto)
 set -euo pipefail
@@ -23,14 +24,16 @@ flag() { if "$@"; then echo true; else echo false; fi; }
 
 pipeline=false; hit '^(\.github/|infra/ci/)' && pipeline=true
 web=$(flag hit '^(backend|frontend|shared)/|^infra/(rayka\.service|ci/)')
+api=$(flag hit '^backend-java/')
 client=$(flag hit '^(mobile-client|mobile-common)/')
 server=$(flag hit '^(mobile-server|mobile-common)/')
-[[ "$pipeline" == true ]] && { client=true; server=true; web=true; }
+[[ "$pipeline" == true ]] && { client=true; server=true; web=true; api=true; }
 docs_only=false
 if [[ "$files" != "__all__" && -n "$files" ]] && ! grep -Evq '^(docs/|README|.*\.md$)' <<<"$files"; then docs_only=true; fi
 
 {
   echo "web=$web"
+  echo "api=$api"
   echo "client=$client"
   echo "server=$server"
   echo "pipeline=$pipeline"

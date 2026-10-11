@@ -107,9 +107,7 @@ jobs:
 
   backend-java:
     name: Backend Java (verify + cobertura)
-    # Independente: fora do "ci-ok" e fora da main. O CD chama este workflow no push da main e espera o resultado
-    # dele inteiro; pular o job aqui impede que o Java (ainda em construção) bloqueie o deploy do Node.
-    if: ${{ github.ref != 'refs/heads/main' }}
+    # É a API de produção: roda também na main e entra no "ci-ok" (falhou, o CD não implanta).
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -275,7 +273,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [plan, lint, backend, web, flutter, android-check]
+    needs: [plan, lint, backend, backend-java, web, flutter, android-check]
     runs-on: ubuntu-latest
     steps:
       - name: Tudo precisa ter passado (ou sido corretamente pulado)
