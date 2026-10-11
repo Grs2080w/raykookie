@@ -80,12 +80,14 @@ public interface InsightsQueries {
     /**
      * Números do mês.
      *
-     * @param revenue      faturamento bruto
+     * @param revenue      faturamento (soma dos itens menos os descontos de cupom)
      * @param refunded     devolvido (o que passa dos itens cancelados)
      * @param orders       pedidos
      * @param newCustomers clientes novos
+     * @param discounts    descontos de cupom dos pedidos do mês (já tirados do faturamento)
      */
-    record MonthNumbers(BigDecimal revenue, BigDecimal refunded, long orders, long newCustomers) {
+    record MonthNumbers(BigDecimal revenue, BigDecimal refunded, long orders, long newCustomers,
+            BigDecimal discounts) {
     }
 
     /**

@@ -836,4 +836,39 @@ void main() {
       expect(body['items'], [{'recipe_id': 1, 'qty': 2}, {'recipe_id': 2, 'qty': 1}]);
     });
   });
+
+  group('cupons (gestão)', () {
+    testWidgets('Novo cupom: código, desconto e mínimo "acima de"; a lista mostra a regra e o uso', (t) async {
+      final created = [
+        {'id': 1, 'code': 'NATAL20', 'percent': 20, 'min_total': 50, 'min_inclusive': false, 'active': true, 'uses': 0, 'created_at': '2026-10-11T10:00:00Z'},
+      ];
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/coupons': (_) => (200, []),
+        'POST /api/coupons': (_) => (201, created),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/cupons', session: s);
+      await t.pumpAndSettle();
+      expect(find.text('Nenhum cupom ainda.'), findsOneWidget);
+
+      await t.tap(find.byKey(const Key('coupon_new')));
+      await t.pumpAndSettle();
+      await t.enterText(find.descendant(of: find.byKey(const Key('coupon_code')), matching: find.byType(TextField)), 'natal20');
+      await t.enterText(find.descendant(of: find.byKey(const Key('coupon_percent')), matching: find.byType(TextField)), '20');
+      await t.enterText(find.descendant(of: find.byKey(const Key('coupon_min')), matching: find.byType(TextField)), '50');
+      await t.tap(find.text('Acima de'));
+      await t.tap(find.byKey(const Key('coupon_create')));
+      await t.pumpAndSettle();
+
+      final body = be.bodies['POST /api/coupons'] as Map;
+      expect(body['code'], 'natal20');
+      expect(body['percent'], 20.0);
+      expect(body['min_total'], 50.0);
+      expect(body['min_inclusive'], false);
+      expect(find.text('NATAL20'), findsOneWidget);
+      expect(find.textContaining('Pedidos acima de R\$'), findsOneWidget);
+    });
+  });
 }

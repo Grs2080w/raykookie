@@ -280,6 +280,30 @@
           "expired"
         ],
         "additionalProperties": false
+      },
+      "card_in_review": {
+        "type": "boolean"
+      },
+      "subtotal": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "coupon_code": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "discount_pct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "discount_total": {
+        "type": "number"
       }
     },
     "required": [

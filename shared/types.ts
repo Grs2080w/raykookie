@@ -64,6 +64,7 @@ export type ShopOrder = {
   street: string; number: string; complement: string; district: string; city: string; payment_method: string;
   installments?: number; // só relevante para payment_method 'cartao' (1 = à vista)
   notes: string; total: number; items: { id: string; name: string; qty: number; unit_price: number }[]; status: string;
+  coupon_code?: string | null; discount_total?: number; // cupom usado (o total já vem com o desconto)
   paid: boolean; // o webhook do Mercado Pago confirmou o pagamento
   manual: boolean; // pedido registrado à mão pago pelo link (sem horário nem endereço)
   can_cancel: boolean; // o cliente ainda pode cancelar por conta própria: a produção não começou (se já pagou, o Pix volta na hora: ver refund.mode)

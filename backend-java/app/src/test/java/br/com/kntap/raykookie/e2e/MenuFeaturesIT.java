@@ -72,4 +72,66 @@ class MenuFeaturesIT extends AppItSupport {
         // ── 4. Lucro do mês sobe o vendido menos o custo dos produtos.
         assertThat(profit(owner) - before).isCloseTo(2 * (26.0 - cost), offset(0.01));
     }
+
+    /**
+     * Cupom do começo ao fim.
+     */
+    @Test
+    @DisplayName("cupom: mínimo 'a partir de', conferência, pedido com desconto, uso, exclusão barrada e desativado")
+    void couponEndToEnd() {
+
+        // ── 1. A dona cria NATAL20 (20%, a partir de R$ 15) e um gerado pelo sistema.
+        String owner = panelSession(OWNER);
+        String code = "NATAL" + (System.nanoTime() % 100_000);
+        as(owner).body(Map.of("code", code.toLowerCase(), "percent", 20, "min_total", 15, "min_inclusive", true))
+                .post("/api/coupons").then().statusCode(201);
+        JsonPath list = as(owner).body(Map.of("percent", 10)).post("/api/coupons").then().statusCode(201).extract()
+                .jsonPath();
+        assertThat(list.getList("code", String.class)).contains(code).anyMatch(c -> c.matches("RAY-[A-Z2-9]{5}"));
+        assertThat(as(owner).body(Map.of("code", code, "percent", 5)).post("/api/coupons").statusCode())
+                .isEqualTo(409);
+        long id = list.getLong("find { it.code == '" + code + "' }.id");
+
+        // ── 2. Conferência: 1 item (R$ 9,50) falta R$ 5,50; 2 itens (R$ 19) dão R$ 3,80 de desconto.
+        String item = menuItem();
+        Customer customer = newCustomer();
+        Response low = as(customer.token()).body(Map.of("code", code, "items", List.of(Map.of("id", item, "qty", 1))))
+                .post("/api/cliente/cupom");
+        assertThat(low.statusCode()).isEqualTo(400);
+        assertThat(low.jsonPath().getString("error")).isEqualTo(
+                "Este cupom vale para pedidos a partir de R$ 15,00 — faltam R$ 5,50.");
+        JsonPath ok = as(customer.token()).body(Map.of("code", " " + code.toLowerCase() + " ",
+                "items", List.of(Map.of("id", item, "qty", 2)))).post("/api/cliente/cupom").then().statusCode(200)
+                .extract().jsonPath();
+        assertThat(ok.getDouble("discount")).isEqualTo(3.8);
+        assertThat(ok.getDouble("total")).isEqualTo(15.2);
+
+        // ── 3. Pedido com o cupom: total já com desconto, o cupom gravado e na nota da tela Pedidos.
+        double revenueBefore = as(owner).get("/api/goals").jsonPath().getDouble("stats.revenue");
+        pixAnswers();
+        Map<String, Object> body = order(item, "pix");
+        body.put("coupon_code", code);
+        long orderId = as(customer.token()).body(body).post("/api/cliente/pedidos").then().statusCode(201)
+                .extract().jsonPath().getLong("id");
+        Map<String, Object> row = jdbc.sql("SELECT total::float8 AS total, subtotal::float8 AS subtotal, coupon_code, "
+                + "discount_total::float8 AS discount FROM shop_orders WHERE id = :id").param("id", orderId).query()
+                .singleRow();
+        assertThat(row).containsEntry("total", 15.2).containsEntry("subtotal", 19.0).containsEntry("discount", 3.8)
+                .containsEntry("coupon_code", code);
+        assertThat(jdbc.sql("SELECT notes FROM orders WHERE shop_order_id = :id").param("id", orderId)
+                .query(String.class).single()).contains("Cupom " + code + " (-20%): -R$ 3,80");
+        assertThat(as(owner).get("/api/goals").jsonPath().getDouble("stats.revenue") - revenueBefore)
+                .isCloseTo(15.2, offset(0.01));
+        assertThat(as(customer.token()).get("/api/cliente/pedidos").jsonPath()
+                .getDouble("find { it.id == " + orderId + " }.discount_total")).isEqualTo(3.8);
+
+        // ── 4. Usado: não exclui; desativado: vira inválido.
+        assertThat(as(owner).get("/api/coupons").jsonPath().getInt("find { it.id == " + id + " }.uses")).isEqualTo(1);
+        assertThat(as(owner).delete("/api/coupons/" + id).statusCode()).isEqualTo(409);
+        as(owner).body(Map.of("percent", 20, "min_total", 15, "active", false)).put("/api/coupons/" + id).then()
+                .statusCode(200);
+        Response off = as(customer.token()).body(Map.of("code", code, "items", List.of(Map.of("id", item, "qty", 2))))
+                .post("/api/cliente/cupom");
+        assertThat(off.jsonPath().getString("error")).isEqualTo("Cupom inválido.");
+    }
 }

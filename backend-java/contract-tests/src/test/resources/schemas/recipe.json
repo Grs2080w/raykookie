@@ -69,6 +69,45 @@
         ],
         "additionalProperties": false
       }
+    },
+    "show_ingredients": {
+      "type": "boolean"
+    },
+    "default_variant_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "yield_units": {
+            "type": "number"
+          },
+          "prep_hours": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array"
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "required": [

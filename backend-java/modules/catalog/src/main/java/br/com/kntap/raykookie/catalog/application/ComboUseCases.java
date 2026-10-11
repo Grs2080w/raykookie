@@ -289,10 +289,14 @@ public class ComboUseCases {
      * @return {@code id}, {@code name}, {@code price}, {@code cost}, {@code photo_v} e {@code on_menu}
      */
     private static Map<String, Object> productJson(PricedRecipe p) {
+
+        // ── 1. Quem é o produto e o preço avulso.
         Map<String, Object> json = new LinkedHashMap<>();
         json.put("id", p.id());
         json.put("name", p.name());
         json.put("price", p.pricing().rounded());
+
+        // ── 2. Custo por unidade (da receita padrão), foto e se está no cardápio.
         json.put("cost", Math.round(p.pricing().perUnit() * 100) / 100.0);
         json.put("photo_v", p.photoVersion());
         json.put("on_menu", p.showOnMenu() && p.pricing().rounded() > 0);
@@ -308,6 +312,8 @@ public class ComboUseCases {
      * @return o combo
      */
     private static MenuCombo menuCombo(Combos.Combo combo, Map<Long, PricedRecipe> products, ComboPricing.Result r) {
+
+        // ── 1. Produtos, selos somados e a foto do primeiro produto que tiver foto.
         List<MenuCombo.Part> parts = new ArrayList<>();
         Set<String> tags = new LinkedHashSet<>();
         Long photoRecipe = null;
@@ -321,6 +327,8 @@ public class ComboUseCases {
                 photoVersion = p.photoVersion();
             }
         }
+
+        // ── 2. O resumo ("4 Cookie + 2 Brownie") e o combo pronto para o cardápio.
         String contents = parts.stream().map(part -> part.qty() + " " + part.name())
                 .collect(Collectors.joining(" + "));
         return new MenuCombo(combo.id(), combo.name(), r.price(), r.fullPrice(), contents, parts, photoRecipe,

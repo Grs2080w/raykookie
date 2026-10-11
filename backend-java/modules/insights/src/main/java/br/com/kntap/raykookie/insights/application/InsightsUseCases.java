@@ -140,7 +140,7 @@ public class InsightsUseCases {
         // ── 4. Os números.
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("revenue", NodeRows.number(revenue));
-        stats.put("profit", NodeRows.number(profit - n.refunded().doubleValue()));
+        stats.put("profit", NodeRows.number(profit - n.refunded().doubleValue() - n.discounts().doubleValue()));
         stats.put("orders", n.orders());
         stats.put("avg_ticket", NodeRows.number(n.orders() > 0 ? revenue.doubleValue() / n.orders() : 0));
         stats.put("new_customers", n.newCustomers());

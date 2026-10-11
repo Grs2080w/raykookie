@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Pedido da loja como o cliente o enviou, conferido ({@code parseShopOrder} de {@code backend/shared/shop.ts}): os
@@ -27,13 +28,38 @@ import java.util.Optional;
  * @param changeFor     troco para (nulo = nenhum)
  * @param notes         observações (até 300)
  * @param items         itens, com o preço do cardápio
- * @param total         total
+ * @param total         total a pagar (já com o desconto do cupom)
  * @param card          dados do cartão (nulo se não for cartão; nunca guardados)
+ * @param subtotal      soma dos itens, antes do cupom
+ * @param coupon        cupom aplicado (nulo = nenhum)
  */
 public record ShopOrderForm(String contactName, String phone, String fulfillment, Address address,
         LocalDate scheduledFor,
         String timeWindow, String paymentMethod, Money changeFor, String notes, List<Line> items, Money total,
-        Card card) {
+        Card card, Money subtotal, CouponRules.Applied coupon) {
+
+    /**
+     * Pedido sem cupom (subtotal = total).
+     *
+     * @param contactName   nome
+     * @param phone         telefone
+     * @param fulfillment   retirada ou entrega
+     * @param address       endereço
+     * @param scheduledFor  data
+     * @param timeWindow    período
+     * @param paymentMethod pagamento
+     * @param changeFor     troco
+     * @param notes         observações
+     * @param items         itens
+     * @param total         total
+     * @param card          cartão
+     */
+    public ShopOrderForm(String contactName, String phone, String fulfillment, Address address,
+            LocalDate scheduledFor, String timeWindow, String paymentMethod, Money changeFor, String notes,
+            List<Line> items, Money total, Card card) {
+        this(contactName, phone, fulfillment, address, scheduledFor, timeWindow, paymentMethod, changeFor, notes,
+                items, total, card, total, null);
+    }
 
     /** Quantidade máxima de cada item. */
     public static final int MAX_QTY = 50;
@@ -57,10 +83,29 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
      * @throws InvalidInputException com a mensagem do primeiro problema
      */
     public static ShopOrderForm from(Map<String, Object> body, LocalDate today, List<Menu.Item> menu) {
+        return from(body, today, menu, code -> Optional.empty());
+    }
 
-        // ── 1. Itens e total pelo cardápio.
+    /**
+     * Confere o formulário, com o cupom ({@code coupon_code}) aplicado ao subtotal.
+     *
+     * @param body    corpo JSON
+     * @param today   hoje no fuso da loja
+     * @param menu    itens do cardápio
+     * @param coupons busca o cupom da loja pelo código normalizado
+     * @return o pedido
+     * @throws InvalidInputException com a mensagem do primeiro problema (inclusive a do cupom)
+     */
+    public static ShopOrderForm from(Map<String, Object> body, LocalDate today, List<Menu.Item> menu,
+            Function<String, Optional<CouponRules.Coupon>> coupons) {
+
+        // ── 1. Itens e total pelo cardápio; o cupom desconta do subtotal.
         List<Line> items = items(body.get("items"), menu);
-        Money total = items.stream().map(line -> line.unitPrice().times(line.qty())).reduce(Money.ZERO, Money::plus);
+        Money subtotal = subtotal(items);
+        String code = CouponRules.normalize(NodeInput.text(body.get("coupon_code")));
+        CouponRules.Applied coupon = code.isEmpty() ? null
+                : CouponRules.apply(coupons.apply(code).orElse(null), subtotal);
+        Money total = coupon == null ? subtotal : subtotal.minus(coupon.discount());
 
         // ── 2. Contato e forma de receber.
         String contact = NodeInput.cut(NodeInput.text(body.get("contact_name")), 80);
@@ -82,7 +127,29 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
         Money change = "dinheiro".equals(payment) ? changeFor(body.get("change_for"), total) : null;
         Card card = "cartao".equals(payment) ? Card.from(body, total) : null;
         return new ShopOrderForm(contact, phone, fulfillment, address, scheduled, window, payment, change,
-                NodeInput.cut(NodeInput.text(body.get("notes")), 300), items, total, card);
+                NodeInput.cut(NodeInput.text(body.get("notes")), 300), items, total, card, subtotal, coupon);
+    }
+
+    /**
+     * Soma dos itens pelo preço do cardápio.
+     *
+     * @param items itens
+     * @return o subtotal
+     */
+    public static Money subtotal(List<Line> items) {
+        return items.stream().map(line -> line.unitPrice().times(line.qty())).reduce(Money.ZERO, Money::plus);
+    }
+
+    /**
+     * Itens do carrinho conferidos com o cardápio (para validar um cupom antes do pedido).
+     *
+     * @param raw  valor de {@code items}
+     * @param menu cardápio
+     * @return os itens com o preço do cardápio
+     * @throws InvalidInputException com item fora do cardápio ou quantidade inválida
+     */
+    public static List<Line> cart(Object raw, List<Menu.Item> menu) {
+        return items(raw, menu);
     }
 
     /**
