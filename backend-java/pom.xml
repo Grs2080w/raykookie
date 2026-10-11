@@ -79,6 +79,20 @@
         -->
         <argLine></argLine>
         <mockito.javaagent></mockito.javaagent>
+
+        <!--
+            Ciclo de vida das JVMs dos testes (surefire e failsafe), para nenhuma ficar órfã segurando
+            containers do Testcontainers:
+            - shutdown=exit: no Ctrl+C do Maven cada fork faz System.exit, e os shutdown hooks rodam
+              (é o padrão; fica explícito porque a limpeza do PostgresTestBase depende dele);
+            - enableProcessChecker=native: o fork confere o PID do Maven e sai sozinho se ele morrer
+              (desligado por padrão desde o surefire 3.0.0-M4);
+            - forkedProcessTimeoutInSeconds: um fork travado é encerrado depois desse tempo;
+            - forkedProcessExitTimeoutInSeconds: tempo que o fork tem para sair depois do fim dos testes.
+            Sobrescreva com -Dtests.fork.timeout=... se um módulo precisar de mais tempo.
+        -->
+        <tests.fork.timeout>900</tests.fork.timeout>
+        <tests.fork.exitTimeout>30</tests.fork.exitTimeout>
     </properties>
 
     <dependencyManagement>
@@ -247,6 +261,10 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <argLine>@{argLine} ${mockito.javaagent}</argLine>
+                        <shutdown>exit</shutdown>
+                        <enableProcessChecker>native</enableProcessChecker>
+                        <forkedProcessTimeoutInSeconds>${tests.fork.timeout}</forkedProcessTimeoutInSeconds>
+                        <forkedProcessExitTimeoutInSeconds>${tests.fork.exitTimeout}</forkedProcessExitTimeoutInSeconds>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -255,6 +273,10 @@
                     <version>${maven-failsafe-plugin.version}</version>
                     <configuration>
                         <argLine>@{argLine} ${mockito.javaagent}</argLine>
+                        <shutdown>exit</shutdown>
+                        <enableProcessChecker>native</enableProcessChecker>
+                        <forkedProcessTimeoutInSeconds>${tests.fork.timeout}</forkedProcessTimeoutInSeconds>
+                        <forkedProcessExitTimeoutInSeconds>${tests.fork.exitTimeout}</forkedProcessExitTimeoutInSeconds>
                     </configuration>
                     <executions>
                         <execution>
