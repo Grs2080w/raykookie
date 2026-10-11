@@ -6,7 +6,7 @@ import { menuTagLabel } from '@shared/menu-tags';
 import type { Menu } from '@shared/types';
 
 /**
- * Cardápio (vem das receitas do painel: só foto, nome e preço). "Pedir" leva ao novo pedido com o item na URL
+ * Cardápio (vem da página Cardápio do painel: foto, nome, preço, selos, ingredientes e combos). "Pedir" leva ao novo pedido com o item na URL
  * (`item`) e a origem (`from`): sem sessão, o login devolve a pessoa para exatamente essa página.
  */
 export function MenuList({ menu, from }: { menu: Menu; from: 'cardapio' | 'home' }) {
@@ -37,6 +37,13 @@ export function MenuList({ menu, from }: { menu: Menu; from: 'cardapio' | 'home'
                       ))}
                     </ul>
                   )}
+                  {m.combo && (
+                    <div className="-mt-1 text-sm">
+                      <p className="font-semibold">{m.combo.contents}</p>
+                      {m.combo.savings > 0 && <p className="font-bold text-pink-strong">Economize {money(m.combo.savings)} (avulso sai {money(m.combo.full_price)})</p>}
+                    </div>
+                  )}
+                  {!!m.ingredients?.length && <p className="-mt-1 text-sm text-muted">Ingredientes: {m.ingredients.join(', ')}</p>}
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-display text-2xl font-semibold tnum">{money(m.price)}</p>
                     <Link href={`/cliente/pedidos/novo?item=${encodeURIComponent(m.id)}&from=${from}`} className="inline-flex min-h-11 items-center rounded-xl bg-pink-tint px-4 text-sm font-bold text-pink-strong hover:brightness-95" aria-label={`Pedir ${m.name}`}>Pedir</Link>

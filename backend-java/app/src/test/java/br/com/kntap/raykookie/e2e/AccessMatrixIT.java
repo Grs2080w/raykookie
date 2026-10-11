@@ -54,7 +54,7 @@ class AccessMatrixIT extends AppItSupport {
 
         // ── 1. Ids que não existem: o acesso decide antes do recurso.
         Map<String, String> ids = Map.of("id", "999999", "rid", "999999", "n", "1", "app", "server", "token",
-                "link-que-nao-existe", "doc", "privacidade");
+                "link-que-nao-existe", "doc", "privacidade", "variant", "999999");
 
         // ── 2. Cada rota com sessões novas (logout e exclusão de conta não atrapalham as outras).
         List<String> wrong = new ArrayList<>();
@@ -221,7 +221,7 @@ class AccessMatrixIT extends AppItSupport {
         jdbc.sql("INSERT INTO feedback_photos (feedback_id, idx, content_type, data, size) "
                 + "VALUES (:f, 1, 'image/png', '\\x89504e47', 4)").param("f", feedback).update();
         return Map.of("id", String.valueOf(order), "rid", String.valueOf(refund), "n", "1", "order",
-                String.valueOf(order), "feedback", String.valueOf(feedback));
+                String.valueOf(order), "feedback", String.valueOf(feedback), "variant", "999999");
     }
 
     /**

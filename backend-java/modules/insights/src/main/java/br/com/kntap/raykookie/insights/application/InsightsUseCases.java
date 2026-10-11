@@ -109,7 +109,8 @@ public class InsightsUseCases {
     }
 
     /**
-     * Realizado do mês ({@code getMonthStats}): faturamento sem o devolvido, lucro pelas receitas, ticket médio.
+     * Realizado do mês ({@code getMonthStats}): faturamento sem o devolvido, lucro pelas receitas e pelos combos,
+     * ticket médio.
      *
      * @param owner   dona
      * @param month   mês
@@ -128,10 +129,18 @@ public class InsightsUseCases {
         double profit = queries.unitsSold(owner, month).entrySet().stream()
                 .mapToDouble(e -> e.getValue().doubleValue() * profitPerUnit.getOrDefault(e.getKey(), 0.0)).sum();
 
-        // ── 3. Os números.
+        // ── 3. Combos: o valor vendido menos o custo atual dos produtos de cada combo.
+        Map<Long, InsightsQueries.ComboSales> combos = queries.combosSold(owner, month);
+        if (!combos.isEmpty()) {
+            Map<Long, Double> costs = catalog.comboCosts(owner);
+            profit += combos.entrySet().stream().mapToDouble(e -> e.getValue().revenue().doubleValue()
+                    - e.getValue().qty().doubleValue() * costs.getOrDefault(e.getKey(), 0.0)).sum();
+        }
+
+        // ── 4. Os números.
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("revenue", NodeRows.number(revenue));
-        stats.put("profit", NodeRows.number(profit - n.refunded().doubleValue()));
+        stats.put("profit", NodeRows.number(profit - n.refunded().doubleValue() - n.discounts().doubleValue()));
         stats.put("orders", n.orders());
         stats.put("avg_ticket", NodeRows.number(n.orders() > 0 ? revenue.doubleValue() / n.orders() : 0));
         stats.put("new_customers", n.newCustomers());

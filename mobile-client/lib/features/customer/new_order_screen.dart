@@ -13,6 +13,7 @@ import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/toast.dart';
+import 'package:raykookie_common/ui/menu_extras.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
 import 'card_fields.dart';
@@ -60,6 +61,10 @@ class _OrderForm extends StatefulWidget {
 
 class _OrderFormState extends State<_OrderForm> {
   late final Map<String, int> _cart;
+  /// Cupom do último passo: o código digitado e a resposta do servidor (desconto e total), nulo = sem cupom.
+  final _couponCtl = TextEditingController();
+  Map<String, dynamic>? _coupon;
+  bool _couponBusy = false;
   final _form = OrderForm();
   final _ctl = <String, TextEditingController>{};
   bool _busy = false;
@@ -105,6 +110,7 @@ class _OrderFormState extends State<_OrderForm> {
   @override
   void dispose() {
     _scroll.dispose();
+    _couponCtl.dispose();
     for (final c in _ctl.values) {
       c.dispose();
     }
@@ -114,8 +120,45 @@ class _OrderFormState extends State<_OrderForm> {
   void _step(String id, int d) {
     final next = (_cart[id] ?? 0) + d;
     if (next > maxQty) return Toast.warn('Para mais de $maxQty unidades do mesmo item, fale com a gente pelo WhatsApp.');
-    setState(() => _cart[id] = next < 0 ? 0 : next);
+    setState(() {
+      _cart[id] = next < 0 ? 0 : next;
+      // o total mudou: o cupom precisa ser conferido de novo
+      _coupon = null;
+      _form.couponCode = '';
+    });
   }
+
+  /// "Aplicar": o servidor confere o código com o total do cardápio dele e devolve o desconto (ou o motivo).
+  Future<void> _applyCoupon() async {
+    final code = _couponCtl.text.trim();
+    if (code.isEmpty) return Toast.error('Digite o código do cupom.');
+    setState(() => _couponBusy = true);
+    try {
+      final r = await context.read<Session>().customerApi.post('/api/cliente/cupom', {'code': code, 'items': _form.toJson(_cart)['items']});
+      setState(() {
+        _coupon = Map<String, dynamic>.from(r as Map);
+        _form.couponCode = '${_coupon!['code']}';
+      });
+      Toast.ok('Cupom aplicado');
+    } on ApiException catch (e) {
+      setState(() {
+        _coupon = null;
+        _form.couponCode = '';
+      });
+      Toast.error(e.message);
+    } finally {
+      if (mounted) setState(() => _couponBusy = false);
+    }
+  }
+
+  void _removeCoupon() => setState(() {
+        _coupon = null;
+        _form.couponCode = '';
+        _couponCtl.clear();
+      });
+
+  /// Total a pagar: com o desconto do cupom, quando há.
+  double _payable(double total) => _coupon == null ? total : ((_coupon!['total'] as num?) ?? total).toDouble();
 
   Future<void> _lookupCep(String masked) async {
     final d = onlyDigits(masked, 8);
@@ -297,10 +340,41 @@ class _OrderFormState extends State<_OrderForm> {
           Text([how, if (when.isNotEmpty) when].join(' · '), style: TextStyle(color: c.muted, fontSize: 13.5)),
           if (_form.fulfillment == 'retirada' && !widget.pickup.isEmpty)
             Padding(padding: const EdgeInsets.only(top: 2), child: Text(widget.pickup.address, style: TextStyle(color: c.muted, fontSize: 13.5))),
+          const SizedBox(height: 12),
+          if (_coupon == null)
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Expanded(
+                child: AppTextField(
+                  key: const Key('coupon_field'),
+                  label: 'Cupom de desconto',
+                  controller: _couponCtl,
+                  hint: 'Ex.: NATAL20',
+                  capitalization: TextCapitalization.characters,
+                ),
+              ),
+              const SizedBox(width: 8),
+              BusyButton(key: const Key('coupon_apply'), label: 'Aplicar', expand: false, busy: _couponBusy, onPressed: _applyCoupon),
+            ])
+          else ...[
+            Row(children: [
+              Expanded(child: Text('Subtotal', style: TextStyle(color: c.muted))),
+              Text(money(total), style: TextStyle(color: c.muted)),
+            ]),
+            Row(children: [
+              Expanded(
+                child: Text(
+                  'Cupom ${_coupon!['code']} (-${fieldNum((_coupon!['percent'] as num).toDouble())}%)',
+                  style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text('-${money(((_coupon!['discount'] as num?) ?? 0).toDouble())}', style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700)),
+              IconButton(tooltip: 'Remover cupom', onPressed: _removeCoupon, icon: const Icon(Icons.close_rounded, size: 18)),
+            ]),
+          ],
           const SizedBox(height: 6),
           Row(children: [
             const Expanded(child: Text('Total', style: TextStyle(fontWeight: FontWeight.w800))),
-            Text(money(total), style: display(context, size: 24)),
+            Text(money(_payable(total)), key: const Key('order_total'), style: display(context, size: 24)),
           ]),
         ]),
       ),
@@ -423,7 +497,7 @@ class _OrderFormState extends State<_OrderForm> {
               // O cartão fica montado (só escondido fora da etapa de pagamento): assim o que foi digitado não se
               // perde ao voltar/avançar, e o "Finalizar pedido" consegue gerar outro token depois de uma falha.
               if (_form.paymentMethod == 'cartao' && _cardPublicKey != null)
-                Offstage(offstage: _stepIdx != _paymentStep, child: AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, amount: total))),
+                Offstage(offstage: _stepIdx != _paymentStep, child: AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, amount: _payable(total)))),
               _section(5, 'Algo mais?', children: [
                 AppTextField(label: 'Observações (opcional)', helper: 'Sabor, decoração, alergias, recado no bolo, ponto de referência…', controller: _c('notes'), maxLength: 300, maxLines: 4, onChanged: (v) => _form.notes = v, capitalization: TextCapitalization.sentences),
               ]),
@@ -484,6 +558,7 @@ class _OrderFormState extends State<_OrderForm> {
                   ),
               ]),
             ),
+          MenuItemExtras(m),
         ])),
         if (n > 0) ...[
           IconButton.outlined(onPressed: () => _step(m.id, -1), icon: const Icon(Icons.remove_rounded), tooltip: 'Diminuir ${m.name}', style: IconButton.styleFrom(minimumSize: const Size(44, 44))),

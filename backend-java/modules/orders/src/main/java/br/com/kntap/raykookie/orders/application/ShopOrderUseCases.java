@@ -9,6 +9,7 @@ import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import br.com.kntap.raykookie.orders.api.ports.ChargeStarter;
 import br.com.kntap.raykookie.orders.application.ports.OrderNumbers;
+import br.com.kntap.raykookie.orders.application.ports.Coupons;
 import br.com.kntap.raykookie.orders.application.ports.ShopOrders;
 import br.com.kntap.raykookie.orders.domain.PublicCodes;
 import br.com.kntap.raykookie.orders.domain.ShopOrderForm;
@@ -21,6 +22,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -75,6 +77,9 @@ public class ShopOrderUseCases {
     /** Relógio. */
     private final Clock clock;
 
+    /** Cupons da loja. */
+    private final Coupons coupons;
+
     /**
      * Cria os casos de uso.
      *
@@ -88,10 +93,11 @@ public class ShopOrderUseCases {
      * @param transactions transações
      * @param charges      cobrança
      * @param clock        relógio
+     * @param coupons      cupons da loja
      */
     public ShopOrderUseCases(ShopOrders shopOrders, OrderNumbers numbers, StorefrontApi storefront,
             CustomersApi customers, ShopOwner shopOwner, RateLimiter limiter, ApplicationEventPublisher events,
-            TransactionTemplate transactions, ObjectProvider<ChargeStarter> charges, Clock clock) {
+            TransactionTemplate transactions, ObjectProvider<ChargeStarter> charges, Clock clock, Coupons coupons) {
 
         // ── 1. Pedidos, cardápio e clientes.
         this.shopOrders = shopOrders;
@@ -106,6 +112,7 @@ public class ShopOrderUseCases {
         this.transactions = transactions;
         this.charges = charges;
         this.clock = clock;
+        this.coupons = coupons;
     }
 
     /**
@@ -120,7 +127,8 @@ public class ShopOrderUseCases {
 
         // ── 1. Confere o pedido com os preços do cardápio do servidor.
         ShopOrderForm form = ShopOrderForm.from(body, LocalDate.now(clock.withZone(StoreClock.ZONE)),
-                storefront.currentMenu().items());
+                storefront.currentMenu().items(),
+                code -> shopOwner.isPending() ? Optional.empty() : coupons.find(shopOwner.id(), code));
         if (shopOwner.isPending()) {
             throw new DomainException(SHOP_CLOSED, 503);
         }

@@ -11,6 +11,7 @@ import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/app_update.dart';
+import 'package:raykookie_common/ui/menu_extras.dart';
 import 'package:raykookie_common/ui/legal.dart';
 import 'package:raykookie_common/ui/share_menu.dart';
 import 'package:raykookie_common/ui/widgets.dart';
@@ -637,6 +638,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+                MenuItemExtras(m, fontSize: 13),
                 const SizedBox(height: 4),
                 Text(money(m.price), style: display(context, size: 19)),
               ],

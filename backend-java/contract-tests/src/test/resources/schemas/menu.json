@@ -31,6 +31,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "combo": {
+            "type": "object"
           }
         },
         "required": [
@@ -81,6 +90,15 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "combo": {
+                  "type": "object"
                 }
               },
               "required": [

@@ -122,4 +122,11 @@ void main() {
     expect(weightLabel(1500), '1,5 kg');
     expect(weightLabel(0), '');
   });
+
+  test('pedido: coupon_code só vai quando há cupom aplicado', () {
+    final f = OrderForm()..paymentMethod = 'pix';
+    expect(f.toJson({'1': 2}).containsKey('coupon_code'), isFalse);
+    f.couponCode = 'NATAL20';
+    expect(f.toJson({'1': 2})['coupon_code'], 'NATAL20');
+  });
 }

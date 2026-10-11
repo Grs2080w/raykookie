@@ -89,10 +89,12 @@ class RecipeItem {
 class RecipeRow {
   RecipeRow({
     required this.id, required this.name, this.categoryId, required this.yieldUnits, required this.marginPct, required this.prepHours,
-    required this.notes, this.unitWeightG = 0, this.salePrice, this.photoV, required this.items, this.pricing,
+    required this.notes, this.unitWeightG = 0, this.salePrice, this.photoV, required this.items, this.pricing, this.variants = const [],
   });
   final int id;
   final String name, notes;
+  /// Versões de receita do produto (Receita 1, Receita 2…); a padrão é a que vale para o cardápio e o lucro.
+  final List<RecipeVariant> variants;
   final int? categoryId;
   final double yieldUnits, marginPct, prepHours, unitWeightG; // gramatura de cada unidade (g); 0 = não informada
   final double? salePrice; // preço do cardápio fixado; nulo = o calculado
@@ -104,6 +106,22 @@ class RecipeRow {
         prepHours: _d(j['prep_hours']), notes: _s(j['notes']), unitWeightG: _d(j['unit_weight_g']), salePrice: j['sale_price'] == null ? null : _d(j['sale_price']), photoV: j['photo_v'] as String?,
         items: [for (final it in (j['items'] as List? ?? [])) RecipeItem(_i(it['ingredient_id'])!, _d(it['qty']))],
         pricing: j['pricing'] is Map<String, dynamic> ? PricingResult.fromJson(j['pricing'] as Map<String, dynamic>) : null,
+        variants: [for (final v in (j['variants'] as List? ?? [])) RecipeVariant.fromJson(Map<String, dynamic>.from(v as Map))],
+      );
+}
+
+/// Uma versão de receita do produto: nome, rendimento, preparo e ingredientes.
+class RecipeVariant {
+  RecipeVariant({required this.id, required this.name, required this.yieldUnits, required this.prepHours, required this.items, this.isDefault = false});
+  final int id;
+  final String name;
+  final double yieldUnits, prepHours;
+  final List<RecipeItem> items;
+  final bool isDefault;
+  factory RecipeVariant.fromJson(Map<String, dynamic> j) => RecipeVariant(
+        id: _i(j['id'])!, name: _s(j['name']), yieldUnits: _d(j['yield_units']), prepHours: _d(j['prep_hours']),
+        items: [for (final it in (j['items'] as List? ?? [])) RecipeItem(_i(it['ingredient_id'])!, _d(it['qty']))],
+        isDefault: j['is_default'] == true,
       );
 }
 
@@ -151,15 +169,31 @@ class Dashboard {
 // ---- loja -----------------------------------------------------------------------------------------
 
 class MenuItem {
-  MenuItem({required this.id, required this.name, required this.price, required this.category, this.image, this.weightG = 0, this.tags = const []});
+  MenuItem({required this.id, required this.name, required this.price, required this.category, this.image, this.weightG = 0, this.tags = const [], this.ingredients = const [], this.combo});
   final String id, name, category;
   final double price, weightG;
   final String? image;
   final List<String> tags;
+  /// Ingredientes da receita padrão (só quando a confeiteira escolhe mostrar).
+  final List<String> ingredients;
+  /// O que vem no combo (nulo = produto avulso).
+  final MenuCombo? combo;
+  bool get isCombo => combo != null;
   factory MenuItem.fromJson(Map<String, dynamic> j) => MenuItem(
     id: _s(j['id']), name: _s(j['name']), price: _d(j['price']), category: _s(j['category']), image: j['image'] as String?, weightG: _d(j['weight_g']),
     tags: j['tags'] is List ? [for (final t in j['tags'] as List) _s(t)] : const [],
+    ingredients: j['ingredients'] is List ? [for (final t in j['ingredients'] as List) _s(t)] : const [],
+    combo: j['combo'] is Map ? MenuCombo.fromJson(Map<String, dynamic>.from(j['combo'] as Map)) : null,
   );
+}
+
+/// Conteúdo de um combo do cardápio: o resumo ("4 Cookie + 2 Brownie"), o preço avulso e quanto economiza.
+class MenuCombo {
+  MenuCombo({required this.contents, required this.fullPrice, required this.savings});
+  final String contents;
+  final double fullPrice, savings;
+  factory MenuCombo.fromJson(Map<String, dynamic> j) =>
+      MenuCombo(contents: _s(j['contents']), fullPrice: _d(j['full_price']), savings: _d(j['savings']));
 }
 
 class MenuGroup {
@@ -234,7 +268,7 @@ class ShopOrder {
     required this.street, required this.number, required this.complement, required this.district, required this.city,
     required this.paymentMethod, required this.notes, required this.total, required this.items, required this.status,
     this.paid = false, this.canCancel = false, this.paymentState = '', this.refundedTotal = 0, this.cancelledBy = '', this.cancelReason = '',
-    this.refundMode = 'nenhum', this.refundMax = 0, this.refundPhotosRequired = false, this.refundDeadline, this.refundWhyNot = '', this.refunds = const [], this.cancel, this.hasPix = false, this.pixExpired = false, this.pixExpiresIn = 0, this.pixCode = '', this.pixQrBase64 = '', this.installments = 1, this.cardInReview = false,
+    this.refundMode = 'nenhum', this.refundMax = 0, this.refundPhotosRequired = false, this.refundDeadline, this.refundWhyNot = '', this.refunds = const [], this.cancel, this.hasPix = false, this.pixExpired = false, this.pixExpiresIn = 0, this.pixCode = '', this.pixQrBase64 = '', this.installments = 1, this.cardInReview = false, this.couponCode = '', this.discountTotal = 0,
   });
   final int id; // interno: usado nas rotas
   final int code; // o número que o cliente vê (4 ou 5 dígitos, aleatório)
@@ -258,6 +292,8 @@ class ShopOrder {
   final int pixExpiresIn; // segundos restantes de validade, no momento em que a lista foi carregada
   final int installments; // só relevante para paymentMethod 'cartao' (1 = à vista)
   final bool cardInReview; // cartão em análise no Mercado Pago: nada cobrado ainda, e outra tentativa fica bloqueada
+  final String couponCode; // cupom usado no pedido (vazio = nenhum)
+  final double discountTotal; // desconto do cupom (o total já vem com ele)
   final List<ShopOrderItem> items;
   factory ShopOrder.fromJson(Map<String, dynamic> j) => ShopOrder(
         id: _i(j['id'])!, code: _i(j['code']) ?? _i(j['id'])!, pickupAddress: _s(j['pickup_address']), createdAt: _s(j['created_at']), scheduledFor: _s(j['scheduled_for']), timeWindow: _s(j['time_window']),
@@ -271,6 +307,7 @@ class ShopOrder {
         cancel: j['cancel'] is Map ? OrderCancel.fromJson(Map<String, dynamic>.from(j['cancel'] as Map)) : null,
         hasPix: j['pix'] is Map, pixExpired: (j['pix'] as Map?)?['expired'] == true, pixExpiresIn: _i((j['pix'] as Map?)?['expires_in']) ?? 0,
         pixCode: _s((j['pix'] as Map?)?['code']), pixQrBase64: _s((j['pix'] as Map?)?['qr_base64']), installments: _i(j['installments']) ?? 1, cardInReview: j['card_in_review'] == true,
+        couponCode: _s(j['coupon_code']), discountTotal: _d(j['discount_total']),
         items: [for (final e in j['items'] as List) ShopOrderItem(id: _s(e['id']), name: _s(e['name']), qty: _i(e['qty']) ?? 0, unitPrice: _d(e['unit_price']))],
       );
 }

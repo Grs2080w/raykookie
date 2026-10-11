@@ -108,6 +108,12 @@ class MoreScreen extends StatelessWidget {
           () => context.push('/painel/metas'),
         ),
         tile(
+          Icons.local_offer_outlined,
+          'Cupons',
+          'Códigos de desconto para os clientes',
+          () => context.push('/painel/cupons'),
+        ),
+        tile(
           Icons.sell_outlined,
           'Categorias',
           'Ingredientes, receitas e gastos',
@@ -115,8 +121,8 @@ class MoreScreen extends StatelessWidget {
         ),
         tile(
           Icons.restaurant_menu_outlined,
-          'Editor de cardápio',
-          'O que aparece na loja e as características de cada item',
+          'Cardápio',
+          'O que aparece na landing page, ingredientes e combos',
           () => context.push('/painel/cardapio'),
         ),
         tile(

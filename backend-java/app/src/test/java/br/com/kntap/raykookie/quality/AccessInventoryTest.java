@@ -37,6 +37,9 @@ class AccessInventoryTest extends PostgresTestBase {
     /** Quantas rotas o Node tem (Apêndice A do plano). */
     private static final int NODE_ROUTES = 111;
 
+    /** Rotas que só existem no Java (versões de receita, combos e cupons). */
+    private static final int JAVA_ONLY_ROUTES = 14;
+
     /** Todas as rotas de controller da aplicação. */
     @Autowired
     @Qualifier("requestMappingHandlerMapping")
@@ -79,8 +82,9 @@ class AccessInventoryTest extends PostgresTestBase {
         Set<String> actual = new TreeSet<>();
         apiHandlers().forEach((info, handler) -> actual.addAll(describe(info, handler)));
 
-        // ── 3. A lista tem as 111 rotas do Node, e o Java tem exatamente as migradas.
-        assertThat(lines).as("linhas de expected-routes.txt").hasSize(NODE_ROUTES).doesNotHaveDuplicates();
+        // ── 3. A lista tem as 111 rotas do Node mais as só do Java, e o Java tem exatamente as migradas.
+        assertThat(lines).as("linhas de expected-routes.txt").hasSize(NODE_ROUTES + JAVA_ONLY_ROUTES)
+                .doesNotHaveDuplicates();
         assertThat(actual).as("rotas do Java (MÉTODO caminho ACESSO)").containsExactlyElementsOf(migrated);
     }
 

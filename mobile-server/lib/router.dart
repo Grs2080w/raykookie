@@ -7,6 +7,7 @@ import 'features/admin/admin_shell.dart';
 import 'features/admin/categories_screen.dart';
 import 'features/admin/costs_screen.dart';
 import 'features/admin/cardapio_screen.dart';
+import 'features/admin/coupons_screen.dart';
 import 'features/admin/dashboard_screen.dart';
 import 'features/admin/feedback_screen.dart';
 import 'features/admin/goals_screen.dart';
@@ -147,6 +148,11 @@ GoRouter buildRouter(
       parentNavigatorKey: _rootKey,
       path: '/painel/cardapio',
       builder: (_, _) => const CardapioScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/painel/cupons',
+      builder: (_, _) => const CouponsScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,

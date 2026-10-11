@@ -44,7 +44,9 @@ export type Dashboard = {
   refundsWaiting: number; refundsPending: number; refundsFailed: number; // devoluções: aguardando decisão, valor em processamento, as que falharam
 };
 
-export type MenuItem = { id: string; name: string; price: number; category: string; image?: string; weight_g?: number; tags?: string[] };
+export type MenuCombo = { contents: string; full_price: number; savings: number; parts: { id: string; name: string; qty: number }[] };
+// ingredients: da receita padrão, só quando a confeiteira escolhe mostrar; combo: o que vem no combo (só nos combos)
+export type MenuItem = { id: string; name: string; price: number; category: string; image?: string; weight_g?: number; tags?: string[]; ingredients?: string[]; combo?: MenuCombo };
 export type MenuGroup = { id: string; name: string; items: MenuItem[] };
 export type Menu = { items: MenuItem[]; groups: MenuGroup[] };
 
@@ -62,6 +64,7 @@ export type ShopOrder = {
   street: string; number: string; complement: string; district: string; city: string; payment_method: string;
   installments?: number; // só relevante para payment_method 'cartao' (1 = à vista)
   notes: string; total: number; items: { id: string; name: string; qty: number; unit_price: number }[]; status: string;
+  coupon_code?: string | null; discount_total?: number; // cupom usado (o total já vem com o desconto)
   paid: boolean; // o webhook do Mercado Pago confirmou o pagamento
   manual: boolean; // pedido registrado à mão pago pelo link (sem horário nem endereço)
   can_cancel: boolean; // o cliente ainda pode cancelar por conta própria: a produção não começou (se já pagou, o Pix volta na hora: ver refund.mode)

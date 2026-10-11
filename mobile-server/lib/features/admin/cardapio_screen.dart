@@ -4,15 +4,19 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:raykookie_common/core/api_client.dart';
 import 'package:raykookie_common/core/config.dart';
+import 'package:raykookie_common/core/format.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
-/// Editor de cardápio: escolhe quais receitas aparecem na loja e quais características (tags fixas)
-/// cada uma mostra. Cada mudança salva na hora (PATCH /api/recipes/:id/cardapio) — "Ver cardápio" abre
-/// o site, que já reflete o que acabou de ser salvo (não existe rascunho/publicação separados).
+import 'combos_section.dart';
+
+/// Página do Cardápio: o que aparece na landing page, no app do cliente e no link de compartilhar. Por produto:
+/// a chave da landing page, os selos (alergênicos, dieta...) e se mostra a lista de ingredientes; o preço é o da
+/// receita padrão. Cada mudança salva na hora (PATCH /api/recipes/:id/cardapio) — "Ver cardápio" abre o site, que
+/// já reflete o que acabou de ser salvo.
 class CardapioScreen extends StatefulWidget {
   const CardapioScreen({super.key});
   @override
@@ -28,7 +32,7 @@ class _CardapioScreenState extends State<CardapioScreen> {
     final c = context.c;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Editor de cardápio'),
+        title: const Text('Cardápio'),
         actions: [
           TextButton.icon(
             onPressed: () => launchUrl(Uri.parse('${AppConfig.siteBase}/cardapio'), mode: LaunchMode.externalApplication),
@@ -50,8 +54,9 @@ class _CardapioScreenState extends State<CardapioScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SectionTitle('Produtos no cardápio'),
               Text(
-                'Escolha o que aparece no cardápio da loja e, para cada item, quais características mostrar (alergênicos, dieta...).',
+                'Escolha o que aparece na landing page e no app do cliente. Para cada produto: os selos (alergênicos, dieta...) e se mostra os ingredientes. O preço é o da receita padrão do produto.',
                 style: TextStyle(color: c.muted),
               ),
               const SizedBox(height: 14),
@@ -60,6 +65,9 @@ class _CardapioScreenState extends State<CardapioScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _RecipeMenuCard(r, onSaved: () => setState(() => _v++)),
                 ),
+              const SizedBox(height: 8),
+              // recarrega junto: ligar/desligar um produto muda o que os combos podem mostrar
+              CombosSection(key: ValueKey('combos_$_v')),
             ],
           );
         },
@@ -78,6 +86,7 @@ class _RecipeMenuCard extends StatefulWidget {
 
 class _RecipeMenuCardState extends State<_RecipeMenuCard> {
   late bool _show = widget.r['show_on_menu'] == true;
+  late bool _ingredients = widget.r['show_ingredients'] == true;
   late Set<String> _tags = {for (final t in widget.r['tags'] as List) '$t'};
   bool _busy = false;
 
@@ -90,6 +99,7 @@ class _RecipeMenuCardState extends State<_RecipeMenuCard> {
       Toast.error(e.message);
       setState(() {
         _show = widget.r['show_on_menu'] == true;
+        _ingredients = widget.r['show_ingredients'] == true;
         _tags = {for (final t in widget.r['tags'] as List) '$t'};
       });
     } finally {
@@ -107,7 +117,21 @@ class _RecipeMenuCardState extends State<_RecipeMenuCard> {
         children: [
           Row(
             children: [
-              Expanded(child: Text('${widget.r['name']}', style: const TextStyle(fontWeight: FontWeight.w800))),
+              PhotoTile(
+                kind: photoKind('${widget.r['name']}', ''),
+                url: widget.r['photo_v'] == null
+                    ? null
+                    : context.read<Session>().ownerApi.absolute('/api/fotos/${widget.r['id']}?v=${widget.r['photo_v']}'),
+                size: 52,
+                radius: 12,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${widget.r['name']}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  if (priced) Text(money((widget.r['price'] as num?)?.toDouble() ?? 0), style: TextStyle(color: c.muted)),
+                ]),
+              ),
               if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
               Switch(
                 value: _show,
@@ -127,7 +151,19 @@ class _RecipeMenuCardState extends State<_RecipeMenuCard> {
               child: Text('Sem preço ainda: não aparece no cardápio mesmo ligado. Adicione os ingredientes em Receitas.', style: TextStyle(color: c.warn, fontSize: 12)),
             ),
           if (_show) ...[
-            const SizedBox(height: 10),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Mostrar os ingredientes'),
+              subtitle: Text('Da receita padrão, para quem tem alergia.', style: TextStyle(color: c.muted, fontSize: 12)),
+              value: _ingredients,
+              onChanged: _busy
+                  ? null
+                  : (v) {
+                      setState(() => _ingredients = v);
+                      _patch({'show_ingredients': v});
+                    },
+            ),
             Text('Características', style: TextStyle(color: c.muted, fontSize: 12, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Wrap(

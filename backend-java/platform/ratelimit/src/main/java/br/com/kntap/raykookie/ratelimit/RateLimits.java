@@ -26,6 +26,9 @@ public final class RateLimits {
     /** Cartões recusados, por IP (G04). */
     public static final RateLimit CARD_FAIL_IP = new RateLimit("card-fail-ip", 20, Duration.ofHours(24));
 
+    /** Códigos de cupom conferidos, por cliente (contra chutar códigos). */
+    public static final RateLimit COUPON_CHECK = new RateLimit("coupon-check", 30, Duration.ofMinutes(10));
+
     /** Pix gerados, por cliente (G11). */
     public static final RateLimit PIX_CREATE = new RateLimit("pix-create", 20, Duration.ofHours(1));
 

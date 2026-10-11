@@ -9,6 +9,7 @@ import br.com.kntap.raykookie.orders.application.ports.ShopOrders;
 import br.com.kntap.raykookie.orders.domain.ShopOrderForm;
 import br.com.kntap.raykookie.persistence.Jdbc;
 import br.com.kntap.raykookie.persistence.NodeRows;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,8 @@ public class JdbcShopOrders implements ShopOrders {
                    so.installments, so.notes, so.total::float8 AS total, so.items, so.paid_at,
                    so.refunded_total::float8 AS refunded_total, so.delivered_at, so.cancelled_at, so.cancelled_by,
                    so.cancel_reason, so.cancel_reason_code, so.cancel_note, so.pix_qr_code, so.pix_qr_base64,
-                   so.pix_expires_at, so.manual,
+                   so.pix_expires_at, so.manual, so.subtotal::float8 AS subtotal, so.coupon_code,
+                   so.discount_pct::float8 AS discount_pct, so.discount_total::float8 AS discount_total,
                    GREATEST(0, floor(extract(epoch from (so.pix_expires_at - now()))))::int AS pix_left,
                    (SELECT array_agg(o.status) FROM orders o WHERE o.shop_order_id = so.id) AS statuses,
                    EXISTS (SELECT 1 FROM payment_attempts pa WHERE pa.shop_order_id = so.id
@@ -70,10 +72,11 @@ public class JdbcShopOrders implements ShopOrders {
         return jdbc.sql("""
                 INSERT INTO shop_orders (customer_id, owner_id, contact_name, phone, fulfillment, cep, street, number,
                        complement, district, city, scheduled_for, time_window, payment_method, change_for, notes, items,
-                       total, public_code, pickup_address)
+                       total, public_code, pickup_address, subtotal, coupon_id, coupon_code, discount_pct,
+                       discount_total)
                 VALUES (:customer, :owner, :name, :phone, :fulfillment, :cep, :street, :number, :complement, :district,
                         :city, :scheduled, :window, :payment, :change, :notes, CAST(:items AS jsonb), :total, :code,
-                        :pickup)
+                        :pickup, :subtotal, :coupon, :couponCode, :discountPct, :discount)
                 RETURNING id""")
                 .param("customer", order.customer().value()).param("owner", order.owner().value())
                 .param("name", form.contactName()).param("phone", form.phone()).param("fulfillment", form.fulfillment())
@@ -85,6 +88,12 @@ public class JdbcShopOrders implements ShopOrders {
                 .param("change", form.changeFor() == null ? null : form.changeFor().toDecimal())
                 .param("notes", form.notes()).param("items", itemsJson(form.items()))
                 .param("total", form.total().toDecimal()).param("code", order.code()).param("pickup", order.pickup())
+                .param("subtotal", form.subtotal().toDecimal())
+                .param("coupon", form.coupon() == null ? null : form.coupon().couponId())
+                .param("couponCode", form.coupon() == null ? null : form.coupon().code())
+                .param("discountPct", form.coupon() == null ? null : form.coupon().percent())
+                .param("discount", form.coupon() == null ? BigDecimal.ZERO
+                        : form.coupon().discount().toDecimal())
                 .query(Long.class).single();
     }
 
@@ -109,13 +118,13 @@ public class JdbcShopOrders implements ShopOrders {
     @Override
     public void insertLine(NewLine line) {
         jdbc.sql("""
-                INSERT INTO orders (user_id, number, customer, recipe_id, product, qty, unit_price, delivery_date,
-                    status,
-                                    payment, notes, address, shop_order_id)
-                VALUES (:owner, :number, :customer, :recipe, :product, :qty, :price, :delivery, 'novo', 'pendente',
-                        :notes, :address, :shopOrder)""")
+                INSERT INTO orders (user_id, number, customer, recipe_id, combo_id, product, qty, unit_price,
+                                    delivery_date, status, payment, notes, address, shop_order_id)
+                VALUES (:owner, :number, :customer, :recipe, :combo, :product, :qty, :price, :delivery, 'novo',
+                        'pendente', :notes, :address, :shopOrder)""")
                 .param("owner", line.owner().value()).param("number", line.number()).param("customer", line.customer())
-                .param("recipe", Long.parseLong(line.line().id())).param("product", line.line().name())
+                .param("recipe", line.line().recipeId()).param("combo", line.line().comboId())
+                .param("product", line.line().name())
                 .param("qty", line.line().qty()).param("price", line.line().unitPrice().toDecimal())
                 .param("delivery", line.delivery()).param("notes", line.notes()).param("address", line.address())
                 .param("shopOrder", line.shopOrderId()).update();

@@ -16,6 +16,12 @@ import java.util.Map;
  */
 public final class MenuBuilder {
 
+    /** Nome e id do grupo dos combos. */
+    public static final String COMBOS = "Combos";
+
+    /** Id do grupo dos combos. */
+    static final String COMBOS_ID = "combos";
+
     /** Categoria de quem não tem categoria. */
     public static final String OTHERS = "Outros";
 
@@ -35,6 +41,17 @@ public final class MenuBuilder {
      * @return itens e grupos
      */
     public static Menu build(List<Recipe> recipes) {
+        return build(recipes, List.of());
+    }
+
+    /**
+     * Monta o cardápio com os combos, que vêm num grupo "Combos" antes das categorias.
+     *
+     * @param recipes receitas já precificadas da dona
+     * @param combos  combos que podem ser vendidos, já como itens
+     * @return itens e grupos
+     */
+    public static Menu build(List<Recipe> recipes, List<Menu.Item> combos) {
 
         // ── 1. Só o que pode ser vendido: preço maior que zero e visível no cardápio.
         List<Menu.Item> items = new ArrayList<>();
@@ -56,7 +73,18 @@ public final class MenuBuilder {
                 .map(entry -> new Menu.Group(slug(entry.getKey()), entry.getKey(), entry.getValue().stream()
                         .sorted((x, y) -> PT_BR.compare(x.name(), y.name())).toList()))
                 .toList();
-        return new Menu(items, groups);
+
+        // ── 4. Combos primeiro, num grupo só deles.
+        if (combos.isEmpty()) {
+            return new Menu(items, groups);
+        }
+        List<Menu.Item> sortedCombos = combos.stream().sorted((x, y) -> PT_BR.compare(x.name(), y.name())).toList();
+        List<Menu.Item> allItems = new ArrayList<>(sortedCombos);
+        allItems.addAll(items);
+        List<Menu.Group> allGroups = new ArrayList<>();
+        allGroups.add(new Menu.Group(COMBOS_ID, COMBOS, sortedCombos));
+        allGroups.addAll(groups);
+        return new Menu(allItems, allGroups);
     }
 
     /**
@@ -71,7 +99,7 @@ public final class MenuBuilder {
                 ? null
                 : "/api/fotos/" + recipe.id() + "?v=" + recipe.photoVersion();
         return new Menu.Item(String.valueOf(recipe.id()), recipe.name(), recipe.price(), category, recipe.weightG(),
-                image, recipe.tags());
+                image, recipe.tags(), recipe.ingredients(), null);
     }
 
     /**
@@ -111,8 +139,26 @@ public final class MenuBuilder {
      * @param photoVersion versão da foto (nula = sem foto)
      * @param tags         selos
      * @param showOnMenu   se está visível
+     * @param ingredients  nomes dos ingredientes da receita padrão (vazio = não mostra)
      */
     public record Recipe(long id, String name, double price, String category, double weightG, String photoVersion,
-            List<String> tags, boolean showOnMenu) {
+            List<String> tags, boolean showOnMenu, List<String> ingredients) {
+
+        /**
+         * Receita sem lista de ingredientes.
+         *
+         * @param id           id
+         * @param name         nome
+         * @param price        preço
+         * @param category     categoria
+         * @param weightG      gramas
+         * @param photoVersion versão da foto
+         * @param tags         selos
+         * @param showOnMenu   se aparece no cardápio
+         */
+        public Recipe(long id, String name, double price, String category, double weightG, String photoVersion,
+                List<String> tags, boolean showOnMenu) {
+            this(id, name, price, category, weightG, photoVersion, tags, showOnMenu, List.of());
+        }
     }
 }

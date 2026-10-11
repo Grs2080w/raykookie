@@ -98,6 +98,8 @@ class OrderForm {
   String cardToken = '', cardPaymentMethodId = '', cpf = '';
   /// Emissor do cartão (vazio = não reconhecido) e device ID do antifraude do Mercado Pago (vazio = não obtido).
   String cardIssuerId = '', deviceId = '';
+  /// Cupom aplicado no último passo (vazio = nenhum); o servidor confere de novo ao criar o pedido.
+  String couponCode = '';
   int installments = 1;
 
   Map<String, dynamic> toJson(Map<String, int> cart) => {
@@ -105,6 +107,7 @@ class OrderForm {
         'contact_name': contactName, 'phone': phone, 'fulfillment': fulfillment, 'cep': cep, 'street': street, 'number': number,
         'complement': complement, 'district': district, 'city': city, 'scheduled_for': scheduledFor, 'time_window': timeWindow,
         'payment_method': paymentMethod, 'change_for': changeFor, 'notes': notes,
+        if (couponCode.isNotEmpty) 'coupon_code': couponCode,
         if (paymentMethod == 'cartao') ...{
           'card_token': cardToken, 'card_payment_method_id': cardPaymentMethodId, 'cpf': cpf, 'installments': installments,
           if (cardIssuerId.isNotEmpty) 'card_issuer_id': cardIssuerId,

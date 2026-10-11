@@ -60,6 +60,7 @@ export function OrderCard({ o, links }: { o: ShopOrder; links: OrderLinks }) {
           </li>
         ))}
       </ul>
+      {!!o.discount_total && <div className="mt-2 flex items-baseline justify-between font-semibold text-pink-strong"><span>Cupom {o.coupon_code}</span><span className="tnum">-{money(o.discount_total)}</span></div>}
       <div className="mt-3 flex items-baseline justify-between"><span className="font-semibold">Total</span><span className="font-display text-2xl font-semibold tnum">{money(o.total)}</span></div>
       <div className="mt-3 grid gap-1.5 text-sm text-muted">
         {o.manual ? (

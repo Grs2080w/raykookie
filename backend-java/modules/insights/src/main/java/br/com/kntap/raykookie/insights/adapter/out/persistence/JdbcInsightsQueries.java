@@ -71,15 +71,19 @@ public class JdbcInsightsQueries implements InsightsQueries {
                                     WHERE o.shop_order_id = so.id AND o.status = 'cancelado'), 0)) AS v
                          FROM shop_orders so
                         WHERE so.refunded_total > 0
-                          AND so.id IN (SELECT shop_order_id FROM m WHERE shop_order_id IS NOT NULL))
-                SELECT COALESCE((SELECT SUM(qty * unit_price) FROM m), 0) AS revenue,
+                          AND so.id IN (SELECT shop_order_id FROM m WHERE shop_order_id IS NOT NULL)),
+                     discounts AS (
+                       SELECT COALESCE(SUM(so.discount_total), 0) AS v FROM shop_orders so
+                        WHERE so.id IN (SELECT shop_order_id FROM m WHERE shop_order_id IS NOT NULL))
+                SELECT COALESCE((SELECT SUM(qty * unit_price) FROM m), 0) - (SELECT v FROM discounts) AS revenue,
                        COALESCE((SELECT SUM(v) FROM refunded), 0) AS refunded,
                        (SELECT count(*) FROM m) AS orders,
                        (SELECT count(*) FROM first_seen
-                         WHERE d >= :m AND d < (CAST(:m AS date) + interval '1 month')) AS new_customers""")
+                         WHERE d >= :m AND d < (CAST(:m AS date) + interval '1 month')) AS new_customers,
+                       (SELECT v FROM discounts) AS discounts""")
                 .param("u", owner.value()).param("m", month)
                 .query((rs, row) -> new MonthNumbers(rs.getBigDecimal(1), rs.getBigDecimal(2), rs.getLong(3),
-                        rs.getLong(4)))
+                        rs.getLong(4), rs.getBigDecimal(5)))
                 .single();
     }
 
@@ -95,6 +99,21 @@ public class JdbcInsightsQueries implements InsightsQueries {
                 .param("u", owner.value()).param("m", month)
                 .query((rs, row) -> units.put(rs.getLong(1), rs.getBigDecimal(2))).list();
         return units;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Map<Long, ComboSales> combosSold(OwnerId owner, LocalDate month) {
+        Map<Long, ComboSales> sales = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT combo_id, SUM(qty), SUM(qty * unit_price) FROM orders
+                 WHERE user_id = :u AND status <> 'cancelado' AND combo_id IS NOT NULL AND order_date >= :m
+                   AND order_date < (CAST(:m AS date) + interval '1 month')
+                 GROUP BY combo_id""")
+                .param("u", owner.value()).param("m", month)
+                .query((rs, row) -> sales.put(rs.getLong(1), new ComboSales(rs.getBigDecimal(2), rs.getBigDecimal(3))))
+                .list();
+        return sales;
     }
 
     /** {@inheritDoc} */

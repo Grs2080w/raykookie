@@ -4,6 +4,7 @@ import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.PhotoUseCases;
 import br.com.kntap.raykookie.catalog.application.RecipePricing;
 import br.com.kntap.raykookie.catalog.application.RecipeUseCases;
+import br.com.kntap.raykookie.catalog.application.RecipeVariantUseCases;
 import br.com.kntap.raykookie.security.Access;
 import br.com.kntap.raykookie.security.AccessLevel;
 import br.com.kntap.raykookie.security.CurrentActor;
@@ -38,20 +39,25 @@ public class RecipesController {
     /** Quem está chamando. */
     private final CurrentActor actor;
 
+    /** Versões de receita. */
+    private final RecipeVariantUseCases variants;
+
     /**
      * Cria o controller.
      *
-     * @param recipes casos de uso das receitas
-     * @param pricing preço das receitas
-     * @param photos  fotos
-     * @param actor   quem está chamando
+     * @param recipes  casos de uso das receitas
+     * @param pricing  preço das receitas
+     * @param photos   fotos
+     * @param actor    quem está chamando
+     * @param variants versões de receita
      */
     public RecipesController(RecipeUseCases recipes, RecipePricing pricing, PhotoUseCases photos,
-            CurrentActor actor) {
+            CurrentActor actor, RecipeVariantUseCases variants) {
         this.recipes = recipes;
         this.pricing = pricing;
         this.photos = photos;
         this.actor = actor;
+        this.variants = variants;
     }
 
     /**
@@ -117,6 +123,62 @@ public class RecipesController {
     }
 
     /**
+     * Nova versão de receita do produto (aba "+").
+     *
+     * @param id   produto
+     * @param body {@code name} e {@code copy_from} (opcionais)
+     * @return as versões do produto
+     */
+    @Access(AccessLevel.OWNER)
+    @PostMapping("/api/recipes/{id}/variants")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<Map<String, Object>> createVariant(@PathVariable long id,
+            @RequestBody(required = false) Map<String, Object> body) {
+        return variants.create(actor.requireOwner(), id, body == null ? Map.of() : body);
+    }
+
+    /**
+     * Salva uma versão de receita.
+     *
+     * @param id      produto
+     * @param variant versão
+     * @param body    {@code name}, {@code yield_units}, {@code prep_hours} e {@code items}
+     * @return as versões do produto
+     */
+    @Access(AccessLevel.OWNER)
+    @PutMapping("/api/recipes/{id}/variants/{variant}")
+    public List<Map<String, Object>> saveVariant(@PathVariable long id, @PathVariable long variant,
+            @RequestBody Map<String, Object> body) {
+        return variants.save(actor.requireOwner(), id, variant, body);
+    }
+
+    /**
+     * Exclui uma versão de receita (não a padrão).
+     *
+     * @param id      produto
+     * @param variant versão
+     * @return as versões do produto
+     */
+    @Access(AccessLevel.OWNER)
+    @DeleteMapping("/api/recipes/{id}/variants/{variant}")
+    public List<Map<String, Object>> deleteVariant(@PathVariable long id, @PathVariable long variant) {
+        return variants.delete(actor.requireOwner(), id, variant);
+    }
+
+    /**
+     * Escolhe a versão padrão do produto.
+     *
+     * @param id      produto
+     * @param variant versão
+     * @return as versões do produto
+     */
+    @Access(AccessLevel.OWNER)
+    @PostMapping("/api/recipes/{id}/variants/{variant}/default")
+    public List<Map<String, Object>> makeDefault(@PathVariable long id, @PathVariable long variant) {
+        return variants.makeDefault(actor.requireOwner(), id, variant);
+    }
+
+    /**
      * Lista enxuta para o editor de cardápio.
      *
      * @return as receitas
@@ -124,7 +186,7 @@ public class RecipesController {
     @Access(AccessLevel.OWNER)
     @GetMapping("/api/recipes/cardapio")
     public List<Map<String, Object>> menuEditor() {
-        return recipes.menuEditor(actor.requireOwner());
+        return recipes.menuEditor(pricing.priced(actor.requireOwner()));
     }
 
     /**
