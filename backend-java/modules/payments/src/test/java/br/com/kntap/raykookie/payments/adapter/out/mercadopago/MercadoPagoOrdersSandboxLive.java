@@ -30,17 +30,18 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * O adaptador da API Orders contra o <b>sandbox real</b> do Mercado Pago: crédito, pré-pago, débito, Pix, 3DS,
- * recusa, cancelamento, devolução e busca. Só roda com {@code RUN_MP_SANDBOX=1} (nenhuma execução normal do
- * {@code verify} toca na rede), com o par de teste do vendedor em {@code MP_SANDBOX_ACCESS_TOKEN} e
- * {@code MP_SANDBOX_PUBLIC_KEY}. Os ids dos pedidos criados vão para {@code target/mp-sandbox-orders.txt}.
+ * recusa, cancelamento, devolução e busca. O nome não termina em {@code IT} de propósito: o {@code verify} (e o CI,
+ * que não aceita teste pulado) nunca o inclui; ele só roda quando chamado pelo nome, com {@code RUN_MP_SANDBOX=1} e o
+ * par de teste do vendedor em {@code MP_SANDBOX_ACCESS_TOKEN} e {@code MP_SANDBOX_PUBLIC_KEY}. Os ids dos pedidos
+ * criados vão para {@code target/mp-sandbox-orders.txt}.
  *
  * <pre>
  * RUN_MP_SANDBOX=1 MP_SANDBOX_ACCESS_TOKEN=… MP_SANDBOX_PUBLIC_KEY=… \
- *   ./mvnw -pl modules/payments -am verify -Dit.test=MercadoPagoOrdersSandboxIT
+ *   ./mvnw -pl modules/payments -am verify -Dit.test=MercadoPagoOrdersSandboxLive
  * </pre>
  */
 @EnabledIfEnvironmentVariable(named = "RUN_MP_SANDBOX", matches = "1")
-class MercadoPagoOrdersSandboxIT {
+class MercadoPagoOrdersSandboxLive {
 
     /** API do Mercado Pago. */
     private static final String API = "https://api.mercadopago.com";
@@ -132,8 +133,10 @@ class MercadoPagoOrdersSandboxIT {
 
     /**
      * Devolução com nova tentativa: o Mercado Pago termina de processar o pedido de forma assíncrona, e uma devolução
-     * logo depois da compra pode voltar {@code 422 Post processing rejected the operation}. Na vida real a devolução
-     * vem dias depois (e o módulo de devoluções já tenta de novo); no teste, esperamos o pedido assentar.
+     * logo depois da compra pode voltar {@code 422 Post processing rejected the operation} ou
+     * {@code 409 post_processing_operation_pending}. Repetir é seguro: a tentativa que deu 422 deixa só um registro
+     * {@code failed} (sem devolver dinheiro) e a seguinte cria a {@code processed}. Na vida real a devolução vem dias
+     * depois; no teste, esperamos o pedido assentar.
      *
      * @param id     pedido
      * @param amount valor (nulo = devolução total)
@@ -145,7 +148,7 @@ class MercadoPagoOrdersSandboxIT {
             try {
                 return plain.refund(id, amount, "sandbox-refund-" + id + "-" + (amount == null ? "all" : amount.cents()));
             } catch (GatewayException e) {
-                if (e.status() != 422) {
+                if (e.status() != 422 && e.status() != 409) {
                     throw e;
                 }
                 last = e;
@@ -178,7 +181,8 @@ class MercadoPagoOrdersSandboxIT {
         GatewayPayment after = plain.getPayment(pay.id());
         assertThat(after.refundedAmount()).isEqualTo(Money.ofCents(300));
         assertThat(after.refundedOrChargedBack()).isTrue();
-        assertThat(plain.listRefunds(pay.id())).hasSize(1);
+        // a tentativa que deu 422 (se houve) deixa um registro "failed"; só uma devolução foi processada
+        assertThat(plain.listRefunds(pay.id())).filteredOn(r -> "approved".equals(r.status())).hasSize(1);
     }
 
     /**

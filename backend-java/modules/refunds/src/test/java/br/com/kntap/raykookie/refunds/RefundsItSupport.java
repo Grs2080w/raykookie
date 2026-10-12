@@ -140,7 +140,9 @@ abstract class RefundsItSupport extends PostgresTestBase {
                        delivered_at)
                 VALUES (:customer, :owner, 'Maria', '11999999999', 'retirada', '2026-10-20', 'tarde', 'pix',
                         '[{"id":"1","name":"Brownie","qty":2,"unit_price":30},{"id":"2","name":"Torta","qty":1,"unit_price":40}]',
-                        100, 10000 + :n % 80000, CASE WHEN :paid THEN now() END, CASE WHEN :paid THEN :mp END,
+                        100, (SELECT c FROM generate_series(10000 + :n % 80000, 99999) c
+                               WHERE NOT EXISTS (SELECT 1 FROM shop_orders WHERE public_code = c) ORDER BY c LIMIT 1),
+                        CASE WHEN :paid THEN now() END, CASE WHEN :paid THEN :mp END,
                         CASE WHEN :paid THEN ARRAY[CAST(:mp AS text)] ELSE '{}' END, :delivered)
                 RETURNING id""")
                 .param("customer", customer.value()).param("owner", owner.value()).param("n", NUMBER.get())

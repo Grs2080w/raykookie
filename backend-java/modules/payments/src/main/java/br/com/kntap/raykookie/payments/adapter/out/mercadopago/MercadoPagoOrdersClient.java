@@ -171,13 +171,20 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
                     .toPlainString())));
         }
 
-        // ── 2. A devolução nova é a última da lista.
+        // ── 2. A devolução nova é a última processada da lista (uma tentativa que deu 422 deixa um registro
+        //       "failed" para trás, sem devolver dinheiro; a lista pode ter os dois).
         JsonNode refunds = http.call(HttpMethod.POST, "/v1/orders/{id}/refund", body, idempotencyKey, Map.of(),
                 paymentId).path("transactions").path("refunds");
         if (!refunds.isArray() || refunds.isEmpty()) {
             throw new GatewayException(200, "Mercado Pago não devolveu a devolução", null);
         }
-        return refund(refunds.get(refunds.size() - 1));
+        JsonNode created = refunds.get(refunds.size() - 1);
+        for (JsonNode candidate : refunds) {
+            if ("processed".equals(candidate.path("status").asString(""))) {
+                created = candidate;
+            }
+        }
+        return refund(created);
     }
 
     /** {@inheritDoc} */

@@ -312,6 +312,26 @@ class MercadoPagoOrdersClientTest {
     }
 
     /**
+     * Uma tentativa que deu 422 deixa um registro "failed" na lista; a devolução devolvida é a processada.
+     */
+    @Test
+    @DisplayName("devolução: com um registro 'failed' de tentativa anterior, devolve a processada")
+    void refundPicksTheProcessedOne() {
+        MP.stubFor(get(urlEqualTo("/v1/orders/ORDTST01R30")).willReturn(json(200, """
+                {"id":"ORDTST01R30","total_amount":"10.00","status":"processed",
+                 "transactions":{"payments":[{"id":"PAY30","amount":"10.00","status":"processed"}]}}""")));
+        MP.stubFor(post(urlEqualTo("/v1/orders/ORDTST01R30/refund")).willReturn(json(201, """
+                {"id":"ORDTST01R30","status":"processed","status_detail":"partially_refunded",
+                 "transactions":{"refunds":[{"id":"REF-FAIL","amount":"3.00","status":"failed"},
+                                            {"id":"REF-OK","amount":"3.00","status":"processed"}]}}""")));
+
+        GatewayRefund refund = client.refund("ORDTST01R30", Money.ofCents(300), "k30");
+
+        assertThat(refund.id()).isEqualTo("REF-OK");
+        assertThat(refund.status()).isEqualTo("approved");
+    }
+
+    /**
      * Busca por referência, com o período obrigatório.
      */
     @Test
