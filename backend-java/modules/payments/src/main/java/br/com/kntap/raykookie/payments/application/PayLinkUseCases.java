@@ -303,6 +303,23 @@ public class PayLinkUseCases {
     }
 
     /**
+     * Situação do pagamento com cartão do link, sem cobrar de novo (depois do desafio 3DS ou da análise).
+     *
+     * @param token token
+     * @return {@code approved}, {@code pending} (com {@code challenge_url}) ou a recusa com {@code reason}
+     */
+    public Map<String, Object> cardStatus(String token) {
+        PayLinks.Link l = link(token);
+        if (l.paidAt() != null || "pago".equals(l.payment())) {
+            return CardChargeUseCase.result(true, false, null);
+        }
+        return card.status(null, l.id(), pay -> {
+            links.addCardPayment(l.id(), pay.id(), null);
+            payments.markPaid(l.id(), pay.id(), l.amount());
+        });
+    }
+
+    /**
      * O link pelo token.
      *
      * @param token token

@@ -103,6 +103,12 @@ class OrdersApiIT extends PaymentsItSupport {
                 .jsonPath().getMap("$");
         assertThat(waiting).containsEntry("pending", true).containsKey("challenge_url");
 
+        // ── 2b. "Tentar pagar" de novo com o desafio aberto: devolve o mesmo desafio, sem cobrar outra vez.
+        Response retry = as(customer, card("tok-3ds-2")).post("/api/cliente/pedidos/" + order + "/cartao");
+        assertThat(retry.statusCode()).isEqualTo(200);
+        assertThat(retry.jsonPath().getMap("$")).containsEntry("pending", true).containsKey("challenge_url");
+        MP.verify(1, postRequestedFor(urlEqualTo("/v1/orders")));
+
         // ── 3. Outro cliente não enxerga o pedido.
         assertThat(getAs(signUp(), "/api/cliente/pedidos/" + order + "/cartao").statusCode())
                 .isEqualTo(404);

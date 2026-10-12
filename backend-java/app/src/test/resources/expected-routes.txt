@@ -79,6 +79,7 @@ POST   /api/orders/shop/{id}/cancelar           OWNER
 POST   /api/orders/shop/{id}/devolver           OWNER
 GET    /api/pagar/{token}                       PAY_LINK_TOKEN
 POST   /api/pagar/{token}/cancelar              PAY_LINK_TOKEN
+GET    /api/pagar/{token}/cartao                PAY_LINK_TOKEN
 POST   /api/pagar/{token}/cartao                PAY_LINK_TOKEN
 POST   /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
 DELETE /api/pagar/{token}/devolucao             PAY_LINK_TOKEN
