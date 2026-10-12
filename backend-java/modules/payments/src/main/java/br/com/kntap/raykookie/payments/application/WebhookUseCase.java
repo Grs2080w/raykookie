@@ -21,9 +21,9 @@ import org.springframework.stereotype.Service;
 /**
  * Notificações do Mercado Pago ({@code app/api/webhooks/mercadopago/route.ts}). O pedido só vira "pago" quando o
  * pagamento consultado direto na API está aprovado; assinatura fora da janela (G18) é recusada e reenvio do mesmo
- * {@code x-request-id} é ignorado. Além de {@code payment}, trata o alerta de fraude ({@code stop_delivery_op_wh}) e
- * confirma o recebimento dos pedidos do Mercado Pago ({@code order}); qualquer outro tipo só é confirmado (200) para o
- * Mercado Pago não reenviar.
+ * {@code x-request-id} é ignorado. Trata {@code payment} (API Payments), {@code order} (API Orders: o pedido é
+ * consultado pelo id e aplicado do mesmo jeito) e o alerta de fraude ({@code stop_delivery_op_wh}); qualquer outro
+ * tipo só é confirmado (200) para o Mercado Pago não reenviar.
  */
 @Service
 public class WebhookUseCase {
@@ -33,6 +33,12 @@ public class WebhookUseCase {
 
     /** Tipo da notificação de pagamento. */
     private static final String PAYMENT = "payment";
+
+    /** Tipo da notificação de pedido da API Orders ({@code data.id} é o id do pedido, {@code ORD…}). */
+    private static final String ORDER = "order";
+
+    /** Nome do mesmo evento no painel ({@code orders}). */
+    private static final String ORDERS = "orders";
 
     /** Tipo do alerta de fraude depois do pedido processado. */
     private static final String FRAUD = "stop_delivery_op_wh";
@@ -122,7 +128,7 @@ public class WebhookUseCase {
 
         // ── 2. Tipo que o sistema não trata: só confirma o recebimento, para o Mercado Pago não reenviar.
         boolean fraud = FRAUD.equals(n.type());
-        if (!PAYMENT.equals(n.type()) && !fraud) {
+        if (!PAYMENT.equals(n.type()) && !ORDER.equals(n.type()) && !ORDERS.equals(n.type()) && !fraud) {
             LOG.info("Notificação do Mercado Pago do tipo '{}' recebida, sem tratamento próprio", n.type());
             return new Reply(200, Map.of("ok", true, "ignored", true));
         }

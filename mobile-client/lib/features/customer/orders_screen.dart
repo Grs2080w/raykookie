@@ -18,7 +18,9 @@ import 'package:raykookie_common/ui/widgets.dart';
 
 import '../../core/customer_push.dart';
 import 'brand.dart';
+import 'card_brands.dart';
 import 'card_fields.dart';
+import 'three_ds_challenge.dart';
 import 'feedback_card.dart';
 
 /// Pedidos já feitos pelo cliente, com a situação de cada um.
@@ -821,13 +823,14 @@ class _CardRetryBoxState extends State<_CardRetryBox> {
   bool _busy = false;
   bool _cardEnabled = false;
   String? _publicKey;
+  List<CardBrand> _brands = const [];
 
   @override
   void initState() {
     super.initState();
     context.read<Session>().customerApi.get('/api/payment-config').then((r) {
       final d = Map<String, dynamic>.from(r as Map);
-      if (mounted) setState(() { _cardEnabled = d['cardEnabled'] == true; _publicKey = d['publicKey'] as String?; });
+      if (mounted) setState(() { _cardEnabled = d['cardEnabled'] == true; _publicKey = d['publicKey'] as String?; _brands = parseBrands(d['brands']); });
     }).catchError((_) {});
   }
 
@@ -837,11 +840,15 @@ class _CardRetryBoxState extends State<_CardRetryBox> {
     if (t == null || !mounted) return;
     setState(() => _busy = true);
     try {
-      final r = Map<String, dynamic>.from(await api.post('/api/cliente/pedidos/${widget.o.id}/cartao', {
+      final path = '/api/cliente/pedidos/${widget.o.id}/cartao';
+      var r = Map<String, dynamic>.from(await api.post(path, {
         'card_token': t.cardToken, 'card_payment_method_id': t.paymentMethodId, 'cpf': t.cpf, 'installments': t.installments,
         if (t.issuerId.isNotEmpty) 'card_issuer_id': t.issuerId,
+        if (t.typeId.isNotEmpty) 'card_payment_type_id': t.typeId,
         if (t.deviceId.isNotEmpty) 'device_id': t.deviceId,
       }) as Map);
+      // o banco pode pedir a confirmação do cartão (3DS): mostra aqui mesmo e confere o resultado sem cobrar de novo
+      if (mounted) r = await withChallenge(context, r, () => api.get(path));
       if (r['approved'] == true) {
         Toast.ok('Pagamento aprovado!');
       } else if (r['pending'] == true) {
@@ -867,7 +874,7 @@ class _CardRetryBoxState extends State<_CardRetryBox> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Pagamento com cartão ainda não aprovado. Tente outro cartão:', style: TextStyle(color: c.muted, fontSize: 13.5)),
           const SizedBox(height: 12),
-          CardFields(key: _cardKey, publicKey: _publicKey!, amount: widget.o.total),
+          CardFields(key: _cardKey, publicKey: _publicKey!, brands: _brands, amount: widget.o.total),
           const SizedBox(height: 14),
           BusyButton(label: 'Tentar pagar', busy: _busy, onPressed: _retry),
         ]),

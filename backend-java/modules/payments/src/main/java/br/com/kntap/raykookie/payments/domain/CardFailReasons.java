@@ -28,7 +28,9 @@ public final class CardFailReasons {
             Map.entry("cc_rejected_high_risk", "O Mercado Pago recusou por segurança e nada foi cobrado. Com o mesmo "
                     + "cartão, tentar de novo agora costuma ser recusado também: use outro cartão ou tente mais "
                     + "tarde."),
-            Map.entry("cc_rejected_max_attempts", "Muitas tentativas com esse cartão. Tente outro cartão ou Pix."));
+            Map.entry("cc_rejected_max_attempts", "Muitas tentativas com esse cartão. Tente outro cartão ou Pix."),
+            Map.entry("cc_rejected_3ds_challenge", "A confirmação do cartão no seu banco não foi concluída. Tente de "
+                    + "novo ou use outro cartão ou Pix."));
 
     /** Mensagem quando a API recusou os dados do cartão sem um motivo mapeado. */
     public static final String BAD_REQUEST = "Não conseguimos validar esse cartão. Confira os dados e tente de "

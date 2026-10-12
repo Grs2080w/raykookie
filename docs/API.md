@@ -64,9 +64,25 @@ anterior). Assinatura errada responde 401 e deixa um aviso no log.
 |---|---|
 | `payment` | consulta o pagamento no Mercado Pago e, se aprovado, marca o pedido como pago (valor e dono conferidos) |
 | `stop_delivery_op_wh` (alerta de fraude) | guarda `alerta_fraude` no histórico do pedido, avisa a dona por push ("não entregue") e dispara alerta de operação. Esse aviso **não é reenviado** pelo Mercado Pago |
-| `order` / `orders` e qualquer outro tipo | só confirma o recebimento (200) e registra no log; não usamos a API Orders |
+| `order` / `orders` (API Orders) | `data.id` é o id do pedido (`ORD…`); consulta o pedido e aplica como o `payment` (a assinatura usa o id em minúsculas) |
+| qualquer outro tipo | só confirma o recebimento (200) e registra no log |
 
 Um pagamento aprovado que não é aplicado ao pedido (de outro pedido ou valor menor) também dispara alerta de operação.
+
+### Cartão: 3DS, status e bandeiras
+
+- **`MP_API`** escolhe a API das cobranças **novas**: `payments` (padrão) ou `orders`. Consultas, cancelamentos e
+  devoluções seguem o formato do id (`ORD…` = API Orders; numérico = API Payments), então pagamentos antigos continuam
+  funcionando ao trocar. Detalhes e teste de homologação em [mercadopago-orders-api.md](mercadopago-orders-api.md).
+- **`MP_3DS`** (`on_fraud_risk` padrão, ou `never`): quando o Mercado Pago pede a confirmação do cartão no banco, a
+  resposta do cartão traz `challenge_url` (`approved: false, pending: true`). O cliente abre o endereço num iframe/WebView
+  e, ao terminar, chama **`GET /api/cliente/pedidos/{id}/cartao`** (ou `GET /api/pagar/{token}/cartao` no link), que
+  consulta o Mercado Pago **sem cobrar de novo** e devolve `approved`, `pending` (com `challenge_url` se o desafio segue
+  aberto) ou a recusa com `reason`. Refazer o pagamento com o desafio aberto devolve o mesmo desafio.
+- O corpo do cartão aceita `card_payment_type_id` (`credit_card`, `debit_card`, `prepaid_card`); sem ele, `deb…` na
+  bandeira vale débito. Débito e pré-pago são sempre à vista.
+- **`GET /api/payment-config`** devolve também `brands` (meios de cartão ativos da conta: `id`, `name`, `type`, `logo`,
+  em cache por 1 h; vazio se o Mercado Pago não respondeu) e `statusScreenBrick` (`MP_STATUS_SCREEN`, padrão `true`).
 
 ## Nota fiscal (NFC-e) no estoque
 

@@ -74,6 +74,19 @@ public class PaymentsController {
     }
 
     /**
+     * Situação do pagamento com cartão do pedido, sem cobrar de novo: o cliente chama depois de concluir o desafio 3DS
+     * ou enquanto o cartão está em análise.
+     *
+     * @param id id do pedido
+     * @return {@code approved}, {@code pending} (com {@code challenge_url}) ou a recusa com {@code reason}
+     */
+    @Access(AccessLevel.CUSTOMER)
+    @GetMapping("/api/cliente/pedidos/{id}/cartao")
+    public Map<String, Object> cardStatus(@PathVariable String id) {
+        return orders.cardStatus(orderId(id), actor.requireCustomer());
+    }
+
+    /**
      * "Tentar outro cartão".
      *
      * @param id      pedido
@@ -130,6 +143,18 @@ public class PaymentsController {
     @PostMapping("/api/pagar/{token}/pix")
     public Map<String, Object> linkPix(@PathVariable String token) {
         return links.pix(token);
+    }
+
+    /**
+     * Situação do pagamento com cartão do link, sem cobrar de novo (depois do desafio 3DS ou da análise).
+     *
+     * @param token token do link
+     * @return {@code approved}, {@code pending} (com {@code challenge_url}) ou a recusa com {@code reason}
+     */
+    @Access(AccessLevel.PAY_LINK_TOKEN)
+    @GetMapping("/api/pagar/{token}/cartao")
+    public Map<String, Object> linkCardStatus(@PathVariable String token) {
+        return links.cardStatus(token);
     }
 
     /**

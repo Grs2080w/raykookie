@@ -98,6 +98,8 @@ class OrderForm {
   String cardToken = '', cardPaymentMethodId = '', cpf = '';
   /// Emissor do cartão (vazio = não reconhecido) e device ID do antifraude do Mercado Pago (vazio = não obtido).
   String cardIssuerId = '', deviceId = '';
+  /// Tipo do cartão como o Mercado Pago o reconheceu: credit_card, debit_card ou prepaid_card (vazio = não informado).
+  String cardPaymentTypeId = '';
   /// Cupom aplicado no último passo (vazio = nenhum); o servidor confere de novo ao criar o pedido.
   String couponCode = '';
   int installments = 1;
@@ -111,6 +113,7 @@ class OrderForm {
         if (paymentMethod == 'cartao') ...{
           'card_token': cardToken, 'card_payment_method_id': cardPaymentMethodId, 'cpf': cpf, 'installments': installments,
           if (cardIssuerId.isNotEmpty) 'card_issuer_id': cardIssuerId,
+          if (cardPaymentTypeId.isNotEmpty) 'card_payment_type_id': cardPaymentTypeId,
           if (deviceId.isNotEmpty) 'device_id': deviceId,
         },
       };

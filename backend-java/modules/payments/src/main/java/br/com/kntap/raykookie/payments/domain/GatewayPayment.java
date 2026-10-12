@@ -13,9 +13,36 @@ import br.com.kntap.raykookie.kernel.Money;
  * @param refundedAmount    valor já devolvido
  * @param qrCode            Pix copia e cola (só no Pix recém-criado)
  * @param qrBase64          QR do Pix em PNG base64
+ * @param challengeUrl      endereço do desafio 3DS que o comprador precisa concluir (nulo se não há desafio)
  */
 public record GatewayPayment(String id, String status, String statusDetail, String externalReference, Money amount,
-        Money refundedAmount, String qrCode, String qrBase64) {
+        Money refundedAmount, String qrCode, String qrBase64, String challengeUrl) {
+
+    /**
+     * Pagamento sem desafio 3DS.
+     *
+     * @param id                id do pagamento
+     * @param status            situação
+     * @param statusDetail      motivo do status
+     * @param externalReference id do pedido ou {@code link:<id>}
+     * @param amount            valor cobrado
+     * @param refundedAmount    valor já devolvido
+     * @param qrCode            Pix copia e cola
+     * @param qrBase64          QR do Pix em PNG base64
+     */
+    public GatewayPayment(String id, String status, String statusDetail, String externalReference, Money amount,
+            Money refundedAmount, String qrCode, String qrBase64) {
+        this(id, status, statusDetail, externalReference, amount, refundedAmount, qrCode, qrBase64, null);
+    }
+
+    /**
+     * Espera o comprador concluir o desafio 3DS no banco.
+     *
+     * @return {@code true} se há desafio pendente
+     */
+    public boolean challengePending() {
+        return challengeUrl != null && !challengeUrl.isEmpty();
+    }
 
     /**
      * Diz se foi aprovado.

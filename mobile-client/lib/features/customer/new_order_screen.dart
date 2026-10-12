@@ -16,7 +16,9 @@ import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/menu_extras.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
+import 'card_brands.dart';
 import 'card_fields.dart';
+import 'three_ds_challenge.dart';
 
 class NewOrderScreen extends StatelessWidget {
   const NewOrderScreen({super.key, this.initialItem});
@@ -74,6 +76,7 @@ class _OrderFormState extends State<_OrderForm> {
   final _cardKey = GlobalKey<CardFieldsState>();
   bool _cardEnabled = false;
   String? _cardPublicKey;
+  List<CardBrand> _brands = const [];
 
   TextEditingController _c(String k, [String initial = '']) => _ctl.putIfAbsent(k, () => TextEditingController(text: initial));
 
@@ -85,7 +88,7 @@ class _OrderFormState extends State<_OrderForm> {
     _minDate = addDaysIso(todayIso(), AppConfig.leadDays);
     context.read<Session>().customerApi.get('/api/payment-config').then((r) {
       final d = Map<String, dynamic>.from(r as Map);
-      if (mounted) setState(() { _cardEnabled = d['cardEnabled'] == true; _cardPublicKey = d['publicKey'] as String?; });
+      if (mounted) setState(() { _cardEnabled = d['cardEnabled'] == true; _cardPublicKey = d['publicKey'] as String?; _brands = parseBrands(d['brands']); });
     }).catchError((_) {});
     _form
       ..contactName = p?.name ?? ''
@@ -216,6 +219,7 @@ class _OrderFormState extends State<_OrderForm> {
       ..cpf = t.cpf
       ..installments = t.installments
       ..cardIssuerId = t.issuerId
+      ..cardPaymentTypeId = t.typeId
       ..deviceId = t.deviceId;
     return true;
   }
@@ -230,7 +234,9 @@ class _OrderFormState extends State<_OrderForm> {
     try {
       final r = Map<String, dynamic>.from(await session.customerApi.post('/api/cliente/pedidos', _form.toJson(_cart)) as Map);
       await session.refreshProfile();
-      final card = r['card'] is Map ? Map<String, dynamic>.from(r['card'] as Map) : null;
+      var card = r['card'] is Map ? Map<String, dynamic>.from(r['card'] as Map) : null;
+      // o banco pode pedir a confirmação do cartão (3DS): mostra aqui mesmo e confere o resultado sem cobrar de novo
+      if (card != null && mounted) card = await withChallenge(context, card, () => session.customerApi.get('/api/cliente/pedidos/${r['id']}/cartao'));
       if (card != null && card['pending'] == true) Toast.warn(cardInReview);
       if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}');
       if (mounted) context.go('/cliente/pedidos?novo=${r['id']}');
@@ -497,7 +503,7 @@ class _OrderFormState extends State<_OrderForm> {
               // O cartão fica montado (só escondido fora da etapa de pagamento): assim o que foi digitado não se
               // perde ao voltar/avançar, e o "Finalizar pedido" consegue gerar outro token depois de uma falha.
               if (_form.paymentMethod == 'cartao' && _cardPublicKey != null)
-                Offstage(offstage: _stepIdx != _paymentStep, child: AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, amount: _payable(total)))),
+                Offstage(offstage: _stepIdx != _paymentStep, child: AppCard(child: CardFields(key: _cardKey, publicKey: _cardPublicKey!, brands: _brands, amount: _payable(total)))),
               _section(5, 'Algo mais?', children: [
                 AppTextField(label: 'Observações (opcional)', helper: 'Sabor, decoração, alergias, recado no bolo, ponto de referência…', controller: _c('notes'), maxLength: 300, maxLines: 4, onChanged: (v) => _form.notes = v, capitalization: TextCapitalization.sentences),
               ]),

@@ -54,7 +54,24 @@ public interface ChargeStarter {
      * @param cpf          CPF só com dígitos
      * @param installments parcelas
      * @param deviceId     device ID do antifraude do Mercado Pago (nulo se o app não mandou)
+     * @param typeId       {@code credit_card}, {@code debit_card} ou {@code prepaid_card} (nulo = o gateway deduz da
+     *                     bandeira)
      */
-    record Card(String token, String methodId, String issuerId, String cpf, int installments, String deviceId) {
+    record Card(String token, String methodId, String issuerId, String cpf, int installments, String deviceId,
+            String typeId) {
+
+        /**
+         * Cartão sem o tipo informado (versões antigas do app e do site).
+         *
+         * @param token        token do Mercado Pago
+         * @param methodId     bandeira
+         * @param issuerId     emissor
+         * @param cpf          CPF só com dígitos
+         * @param installments parcelas
+         * @param deviceId     device ID do antifraude
+         */
+        public Card(String token, String methodId, String issuerId, String cpf, int installments, String deviceId) {
+            this(token, methodId, issuerId, cpf, installments, deviceId, null);
+        }
     }
 }

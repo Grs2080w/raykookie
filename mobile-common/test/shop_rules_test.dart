@@ -129,4 +129,14 @@ void main() {
     f.couponCode = 'NATAL20';
     expect(f.toJson({'1': 2})['coupon_code'], 'NATAL20');
   });
+
+  test('pedido no cartão: card_payment_type_id só vai quando o tipo é conhecido', () {
+    final f = OrderForm()..paymentMethod = 'cartao'..cardToken = 'tok'..cardPaymentMethodId = 'elo'..cpf = '52998224725';
+    expect(f.toJson({'1': 1}).containsKey('card_payment_type_id'), isFalse);
+    f.cardPaymentTypeId = 'prepaid_card';
+    expect(f.toJson({'1': 1})['card_payment_type_id'], 'prepaid_card');
+    // no Pix o cartão não entra no corpo
+    f.paymentMethod = 'pix';
+    expect(f.toJson({'1': 1}).containsKey('card_payment_type_id'), isFalse);
+  });
 }
