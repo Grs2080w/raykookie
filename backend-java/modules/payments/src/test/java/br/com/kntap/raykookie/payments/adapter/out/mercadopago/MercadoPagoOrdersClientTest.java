@@ -163,10 +163,10 @@ class MercadoPagoOrdersClientTest {
     }
 
     /**
-     * Débito e pré-pago não levam parcelas; a bandeira perde o prefixo "deb".
+     * Débito e pré-pago não levam parcelas; o id do débito segue como o BIN devolve ("debelo").
      */
     @Test
-    @DisplayName("débito (debelo → elo) e pré-pago: sem parcelas, tipo certo")
+    @DisplayName("débito (id debelo, como o BIN devolve) e pré-pago (elo): sem parcelas, tipo certo")
     void debitAndPrepaid() {
         MP.stubFor(post(urlEqualTo("/v1/orders")).willReturn(json(201, """
                 {"id":"ORDTST01DEB","total_amount":"10.00","status":"processed","status_detail":"accredited",
@@ -177,7 +177,7 @@ class MercadoPagoOrdersClientTest {
         assertThat(client.createCard(card("elo", "prepaid_card")).approved()).isTrue();
 
         MP.verify(postRequestedFor(urlEqualTo("/v1/orders"))
-                .withRequestBody(containing("\"id\":\"elo\",\"type\":\"debit_card\""))
+                .withRequestBody(containing("\"id\":\"debelo\",\"type\":\"debit_card\""))
                 .withRequestBody(notMatching(".*installments.*")));
         MP.verify(postRequestedFor(urlEqualTo("/v1/orders"))
                 .withRequestBody(containing("\"id\":\"elo\",\"type\":\"prepaid_card\""))
@@ -294,7 +294,9 @@ class MercadoPagoOrdersClientTest {
         assertThat(got.refundedOrChargedBack()).isTrue();
 
         client.cancel("ORDTST01OK");
-        MP.verify(postRequestedFor(urlEqualTo("/v1/orders/ORDTST01OK/cancel")));
+        // a API Orders recusa o cancelamento sem X-Idempotency-Key (400 empty_required_header)
+        MP.verify(postRequestedFor(urlEqualTo("/v1/orders/ORDTST01OK/cancel")).withHeader("X-Idempotency-Key",
+                equalTo("rayka-cancel-ORDTST01OK")));
 
         GatewayRefund part = client.refund("ORDTST01OK", Money.ofCents(300), "idem-1");
         assertThat(part.id()).isEqualTo("REF1");

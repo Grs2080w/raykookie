@@ -106,10 +106,11 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
     @Override
     public GatewayPayment createCard(CardCharge charge) {
 
-        // ── 1. Cartão: só o token. Débito e pré-pago não têm parcelas; a bandeira vai sem o prefixo "deb".
+        // ── 1. Cartão: só o token. Débito e pré-pago não têm parcelas. O id é o do BIN, sem mexer: no débito a API
+        //       exige o id do débito ("debelo"), e não a bandeira.
         String type = cardType(charge);
         Map<String, Object> method = new LinkedHashMap<>();
-        method.put("id", charge.methodId().startsWith("deb") ? charge.methodId().substring(3) : charge.methodId());
+        method.put("id", charge.methodId());
         method.put("type", type);
         method.put("token", charge.token());
         method.put("statement_descriptor", MercadoPagoClient.STATEMENT_DESCRIPTOR);
@@ -153,7 +154,8 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
     /** {@inheritDoc} */
     @Override
     public void cancel(String id) {
-        http.call(HttpMethod.POST, "/v1/orders/{id}/cancel", null, null, Map.of(), id);
+        // a API Orders exige a chave de idempotência aqui também; uma por pedido, para repetir ser seguro
+        http.call(HttpMethod.POST, "/v1/orders/{id}/cancel", null, "rayka-cancel-" + id, Map.of(), id);
     }
 
     /** {@inheritDoc} */
