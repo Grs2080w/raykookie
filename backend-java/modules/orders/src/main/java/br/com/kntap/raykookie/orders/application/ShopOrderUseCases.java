@@ -213,6 +213,6 @@ public class ShopOrderUseCases {
             return refused;
         }
         return starter.startCard(order, new ChargeStarter.Card(card.token(), card.methodId(), card.issuerId(),
-                card.cpf(), card.installments(), card.deviceId()), clientIp);
+                card.cpf(), card.installments(), card.deviceId(), card.typeId()), clientIp);
     }
 }

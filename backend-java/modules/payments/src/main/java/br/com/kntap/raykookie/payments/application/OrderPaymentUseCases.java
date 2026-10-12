@@ -153,7 +153,7 @@ public class OrderPaymentUseCases implements ChargeStarter {
         PaymentGateway.CardCharge charge = new PaymentGateway.CardCharge(String.valueOf(orderId), "", total,
                 "Pedido #" + code + " - Raykookie", data.token(), data.installments(), data.methodId(),
                 data.issuerId(), email, PixUseCases.firstName(name), data.cpf(),
-                new PaymentGateway.Buyer(PixUseCases.lastName(name), phone, data.deviceId(), clientIp));
+                new PaymentGateway.Buyer(PixUseCases.lastName(name), phone, data.deviceId(), clientIp), data.typeId());
         PaymentAttempts.Attempt attempt = new PaymentAttempts.Attempt(UUID.randomUUID(), orderId, null,
                 customer.value(), clientIp);
         return card.charge(charge, attempt, pay -> {

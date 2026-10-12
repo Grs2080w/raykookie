@@ -45,6 +45,10 @@ rayka:
     public-key: ${MP_PUBLIC_KEY:}
     webhook-secret: ${MP_WEBHOOK_SECRET:}
     api-base: ${MP_API_BASE:https://api.mercadopago.com}
+    # payments = API Payments (padrão); orders = API Orders (ids ORD…). Pagamentos antigos seguem funcionando.
+    api: ${MP_API:payments}
+    # 3DS na API Orders: on_fraud_risk (o Mercado Pago pede o desafio quando julga arriscado) ou never
+    three-ds: ${MP_3DS:on_fraud_risk}
     webhook-max-skew: ${MP_WEBHOOK_MAX_SKEW:10m}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}

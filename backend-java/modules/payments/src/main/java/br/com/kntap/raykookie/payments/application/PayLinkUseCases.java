@@ -292,7 +292,7 @@ public class PayLinkUseCases {
                 l.amount(), "Pedido #" + l.number() + " - Raykookie", data.token(), data.installments(),
                 data.methodId(), data.issuerId(), settings.payerEmail(), PixUseCases.firstName(l.customer()), data
                         .cpf(), new PaymentGateway.Buyer(PixUseCases.lastName(l.customer()), null, data.deviceId(),
-                                clientIp));
+                                clientIp), data.typeId());
         return card.charge(charge, new PaymentAttempts.Attempt(UUID.randomUUID(), null, l.id(), null, clientIp),
                 pay -> {
             links.addCardPayment(l.id(), pay.id(), data.installments());

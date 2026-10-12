@@ -98,10 +98,35 @@ public interface PaymentGateway {
      * @param firstName      primeiro nome
      * @param cpf            CPF só com dígitos
      * @param buyer          dados do comprador para o antifraude do Mercado Pago
+     * @param typeId         {@code credit_card}, {@code debit_card} ou {@code prepaid_card} (nulo = deduzir da
+     *                       bandeira: {@code deb…} é débito)
      */
     record CardCharge(String reference, String idempotencyKey, Money amount, String description, String token,
             int installments, String methodId, String issuerId, String email, String firstName, String cpf,
-            Buyer buyer) {
+            Buyer buyer, String typeId) {
+
+        /**
+         * Cobrança sem o tipo do cartão informado.
+         *
+         * @param reference      {@code external_reference}
+         * @param idempotencyKey chave de idempotência
+         * @param amount         valor
+         * @param description    descrição
+         * @param token          token do cartão
+         * @param installments   parcelas
+         * @param methodId       bandeira
+         * @param issuerId       emissor
+         * @param email          e-mail do pagador
+         * @param firstName      primeiro nome
+         * @param cpf            CPF só com dígitos
+         * @param buyer          dados do comprador
+         */
+        public CardCharge(String reference, String idempotencyKey, Money amount, String description, String token,
+                int installments, String methodId, String issuerId, String email, String firstName, String cpf,
+                Buyer buyer) {
+            this(reference, idempotencyKey, amount, description, token, installments, methodId, issuerId, email,
+                    firstName, cpf, buyer, null);
+        }
     }
 
     /**

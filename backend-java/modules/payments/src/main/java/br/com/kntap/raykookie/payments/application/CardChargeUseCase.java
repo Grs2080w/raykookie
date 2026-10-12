@@ -373,7 +373,7 @@ public class CardChargeUseCase {
      */
     private static PaymentGateway.CardCharge withKey(PaymentGateway.CardCharge c, UUID id) {
         return new PaymentGateway.CardCharge(c.reference(), id.toString(), c.amount(), c.description(), c.token(),
-                c.installments(), c.methodId(), c.issuerId(), c.email(), c.firstName(), c.cpf(), c.buyer());
+                c.installments(), c.methodId(), c.issuerId(), c.email(), c.firstName(), c.cpf(), c.buyer(), c.typeId());
     }
 
     /**
@@ -385,7 +385,7 @@ public class CardChargeUseCase {
      */
     private static GatewayPayment withAmount(GatewayPayment p, Money amount) {
         return new GatewayPayment(p.id(), p.status(), p.statusDetail(), p.externalReference(), amount,
-                p.refundedAmount(), p.qrCode(), p.qrBase64());
+                p.refundedAmount(), p.qrCode(), p.qrBase64(), p.challengeUrl());
     }
 
     /**

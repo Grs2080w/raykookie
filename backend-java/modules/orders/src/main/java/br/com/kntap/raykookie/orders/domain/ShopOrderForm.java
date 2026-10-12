@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -322,9 +323,39 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
      * @param cpf          CPF só com dígitos
      * @param installments parcelas
      * @param deviceId     device ID do antifraude do Mercado Pago ({@code device_id}, opcional)
+     * @param typeId       tipo do cartão ({@code card_payment_type_id}, opcional): {@code credit_card},
+     *                     {@code debit_card} ou {@code prepaid_card}
      */
     public record Card(String token, String methodId, String issuerId, String cpf, int installments,
-            String deviceId) {
+            String deviceId, String typeId) {
+
+        /** Tipos de cartão aceitos. */
+        private static final Set<String> TYPES = Set.of("credit_card", "debit_card", "prepaid_card");
+
+        /**
+         * Cartão sem o tipo informado.
+         *
+         * @param token        token do Mercado Pago
+         * @param methodId     bandeira
+         * @param issuerId     emissor
+         * @param cpf          CPF só com dígitos
+         * @param installments parcelas
+         * @param deviceId     device ID do antifraude
+         */
+        public Card(String token, String methodId, String issuerId, String cpf, int installments, String deviceId) {
+            this(token, methodId, issuerId, cpf, installments, deviceId, null);
+        }
+
+        /**
+         * Tipo do cartão se veio num valor conhecido.
+         *
+         * @param raw valor do corpo
+         * @return o tipo, ou nulo
+         */
+        public static String typeId(Object raw) {
+            String text = NodeInput.text(raw);
+            return TYPES.contains(text) ? text : null;
+        }
 
         /** Formato do device ID do Mercado Pago (letras, números e {@code :._-}). */
         private static final Pattern DEVICE_ID = Pattern.compile("[A-Za-z0-9:._-]{1,128}");
@@ -363,7 +394,7 @@ public record ShopOrderForm(String contactName, String phone, String fulfillment
                     "Parcelamento só para pedidos acima de R$ 150.");
             String issuer = NodeInput.text(body.get("card_issuer_id"));
             return new Card(token, method, issuer.isEmpty() ? null : issuer, Cpf.clean(body.get("cpf")), installments,
-                    deviceId(body.get("device_id")));
+                    deviceId(body.get("device_id")), typeId(body.get("card_payment_type_id")));
         }
 
         /**
