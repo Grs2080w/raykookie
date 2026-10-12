@@ -1,0 +1,75 @@
+LICENÇA PROPRIETÁRIA — TODOS OS DIREITOS RESERVADOS
+
+Copyright (c) 2026 Gabriel Santos (GitHub: @Grs2080w). Todos os direitos reservados.
+
+1. TITULARIDADE
+
+   Este repositório e todo o seu conteúdo — código-fonte, código compilado, aplicativos
+   (web, Android e iOS), bancos de dados e esquemas, documentação, textos, imagens, ícones,
+   layouts e demais materiais (o "Software") — são de propriedade exclusiva de
+   Gabriel Santos (o "Titular").
+
+2. NENHUMA LICENÇA É CONCEDIDA
+
+   O fato de este repositório estar publicamente visível NÃO concede a ninguém licença,
+   permissão ou direito sobre o Software. Sem autorização prévia e por escrito do Titular,
+   é proibido:
+
+   a) copiar, reproduzir ou baixar o Software para qualquer uso;
+   b) modificar, adaptar, traduzir ou criar obras derivadas;
+   c) distribuir, publicar, sublicenciar, vender, alugar ou ceder;
+   d) executar, hospedar ou implantar o Software, ou oferecê-lo como serviço;
+   e) usar qualquer parte do Software em outro projeto, comercial ou não.
+
+   A única exceção é o mínimo que os Termos de Serviço do GitHub obrigam a permitir em
+   repositórios públicos (visualizar o conteúdo e criar um fork dentro da plataforma
+   GitHub). Essa exceção não autoriza nenhum dos usos acima fora desse limite.
+
+3. NOME E IDENTIDADE VISUAL
+
+   O nome "Raykookie" (e suas variações, como "raykookie" e "Raykookie Gestão"), o logotipo,
+   o símbolo do cookie e toda a identidade visual da marca, na forma como aparecem nos
+   aplicativos, no site e nos arquivos deste repositório (incluindo, entre outros,
+   frontend/public/brand/, raykookie-arts/ e os ícones dos apps), são de uso exclusivo do
+   Titular. É proibido usá-los, reproduzi-los ou imitá-los — inclusive de forma que possa
+   causar confusão — sem autorização prévia e por escrito do Titular. Nada nesta licença
+   concede direito de uso sobre essas marcas.
+
+4. COMPONENTES DE TERCEIROS
+
+   Bibliotecas, ferramentas e outros componentes de terceiros incluídos ou referenciados
+   neste repositório (por exemplo, o Maven Wrapper em backend-java/mvnw, sob a Apache
+   License 2.0, e as dependências declaradas em package.json, pom.xml e pubspec.yaml)
+   continuam regidos pelas próprias licenças, e esta licença não se aplica a eles.
+
+5. CONTRIBUIÇÕES
+
+   Este projeto não aceita contribuições externas. Qualquer material enviado ao
+   repositório (issues, pull requests ou outros) poderá ser usado pelo Titular, sem
+   nenhuma obrigação ou contrapartida.
+
+6. AUSÊNCIA DE GARANTIA
+
+   O SOFTWARE É FORNECIDO "NO ESTADO EM QUE SE ENCONTRA", SEM GARANTIAS DE QUALQUER TIPO,
+   EXPRESSAS OU IMPLÍCITAS. EM NENHUMA HIPÓTESE O TITULAR SERÁ RESPONSÁVEL POR QUALQUER
+   DANO DECORRENTE DO ACESSO AO SOFTWARE OU DE SEU USO NÃO AUTORIZADO.
+
+7. LEGISLAÇÃO APLICÁVEL
+
+   Esta licença é regida pelas leis da República Federativa do Brasil, em especial a
+   Lei nº 9.610/1998 (Direitos Autorais), a Lei nº 9.609/1998 (Programas de Computador) e
+   a Lei nº 9.279/1996 (Propriedade Industrial).
+
+Para pedir autorização: abra contato pelo perfil https://github.com/Grs2080w.
+
+---
+
+PROPRIETARY LICENSE — ALL RIGHTS RESERVED (English summary)
+
+Copyright (c) 2026 Gabriel Santos (@Grs2080w). This repository is publicly visible but is
+NOT open source. No license is granted to copy, modify, distribute, run, host or reuse any
+part of it without the copyright holder's prior written permission, beyond what GitHub's
+Terms of Service require for public repositories. The "Raykookie" name, logo, cookie symbol
+and visual identity are the exclusive property of the copyright holder and may not be used
+in any form. Third-party components remain under their own licenses. The Portuguese text
+above prevails.

@@ -7,6 +7,15 @@ next-env.d.ts
 .env
 .env.*
 !.env.example
+# repo público: chaves e scripts locais com segredos escritos à mão nunca entram
+backend-java/run.sh
+**/key.properties
+*.pem
+*.p12
+*.pfx
+*service-account*.json
+*firebase-adminsdk*.json
+.vscode/
 # mobile (três pacotes Flutter)
 mobile-*/build/
 mobile-*/.dart_tool/
