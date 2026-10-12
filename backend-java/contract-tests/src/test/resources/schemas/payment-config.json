@@ -11,11 +11,47 @@
         "string",
         "null"
       ]
+    },
+    "brands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "credit_card",
+              "debit_card",
+              "prepaid_card"
+            ]
+          },
+          "logo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "logo"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "statusScreenBrick": {
+      "type": "boolean"
     }
   },
   "required": [
     "cardEnabled",
-    "publicKey"
+    "publicKey",
+    "brands",
+    "statusScreenBrick"
   ],
   "additionalProperties": false
 }

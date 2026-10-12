@@ -292,7 +292,7 @@ public class PayLinkUseCases {
                 l.amount(), "Pedido #" + l.number() + " - Raykookie", data.token(), data.installments(),
                 data.methodId(), data.issuerId(), settings.payerEmail(), PixUseCases.firstName(l.customer()), data
                         .cpf(), new PaymentGateway.Buyer(PixUseCases.lastName(l.customer()), null, data.deviceId(),
-                                clientIp));
+                                clientIp), data.typeId());
         return card.charge(charge, new PaymentAttempts.Attempt(UUID.randomUUID(), null, l.id(), null, clientIp),
                 pay -> {
             links.addCardPayment(l.id(), pay.id(), data.installments());
@@ -300,6 +300,23 @@ public class PayLinkUseCases {
                 LOG.warn("Cartão {} aprovado do link {} não aplicado (já pago por outro meio)", pay.id(), l.id());
             }
         }, pending -> links.countCardAttempt(l.id(), pending));
+    }
+
+    /**
+     * Situação do pagamento com cartão do link, sem cobrar de novo (depois do desafio 3DS ou da análise).
+     *
+     * @param token token
+     * @return {@code approved}, {@code pending} (com {@code challenge_url}) ou a recusa com {@code reason}
+     */
+    public Map<String, Object> cardStatus(String token) {
+        PayLinks.Link l = link(token);
+        if (l.paidAt() != null || "pago".equals(l.payment())) {
+            return CardChargeUseCase.result(true, false, null);
+        }
+        return card.status(null, l.id(), pay -> {
+            links.addCardPayment(l.id(), pay.id(), null);
+            payments.markPaid(l.id(), pay.id(), l.amount());
+        });
     }
 
     /**
