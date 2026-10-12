@@ -134,3 +134,9 @@ O script compila em release, assina com a chave `~/.raykookie/release.jks` (**fa
 - `/cliente/*` login (Google ou e-mail e senha), meus pedidos e novo pedido. Cada pedido vira linhas em **Pedidos** do painel do usuário `SHOP_OWNER` (padrão `rayka`).
 - `/login` → `/dashboard`: painel da confeiteira (sem link na landing; só pela URL).
 - Login com Google: defina `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` no `backend/.env` (URI de redirecionamento: `{SITE_URL}/api/cliente/google/callback`).
+
+## Licença
+
+Código **proprietário**, não é open source: o repositório é público só para rodar o CI. Todos os direitos reservados,
+incluindo o nome **Raykookie**, a logo e a identidade visual. Copiar, usar, modificar ou redistribuir exige autorização
+por escrito; ver [LICENSE](LICENSE).
