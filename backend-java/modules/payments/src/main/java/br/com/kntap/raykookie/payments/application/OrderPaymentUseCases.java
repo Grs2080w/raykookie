@@ -135,6 +135,25 @@ public class OrderPaymentUseCases implements ChargeStarter {
     }
 
     /**
+     * Situação do pagamento com cartão de um pedido, sem cobrar de novo (depois do desafio 3DS ou da análise).
+     *
+     * @param orderId  pedido
+     * @param customer dono do pedido
+     * @return {@code approved}, {@code pending} (com {@code challenge_url} se o desafio segue aberto) e {@code reason}
+     */
+    public Map<String, Object> cardStatus(long orderId, CustomerId customer) {
+        OrderCharges.ChargeTarget order = charges.target(orderId, customer)
+                .orElseThrow(() -> new NotFoundException("Pedido não encontrado."));
+        if (order.paid()) {
+            return CardChargeUseCase.result(true, false, null);
+        }
+        return card.status(order.id(), null, pay -> {
+            charges.addPaymentId(order.id(), pay.id());
+            confirm.confirm(order.id(), pay, null, "cartao");
+        });
+    }
+
+    /**
      * Cobra o cartão de um pedido; aprovado, segue pela confirmação única.
      *
      * @param orderId  pedido

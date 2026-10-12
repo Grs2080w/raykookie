@@ -137,7 +137,7 @@ public class CardChargeUseCase {
         if (pay.open()) {
             attempts.finish(attempt.id(), "pending", pay.id());
             counted.accept(pay.id());
-            return result(false, true, null);
+            return pending(pay);
         }
         return refused(pay, attempt, counted);
     }
@@ -294,7 +294,7 @@ public class CardChargeUseCase {
      */
     private GatewayPayment awaitReview(GatewayPayment pay) {
         GatewayPayment current = pay;
-        for (int i = 0; i < REVIEW_POLLS && current.open(); i++) {
+        for (int i = 0; i < REVIEW_POLLS && current.open() && !current.challengePending(); i++) {
 
             // ── 1. Espera um pouco.
             try {
@@ -386,6 +386,56 @@ public class CardChargeUseCase {
     private static GatewayPayment withAmount(GatewayPayment p, Money amount) {
         return new GatewayPayment(p.id(), p.status(), p.statusDetail(), p.externalReference(), amount,
                 p.refundedAmount(), p.qrCode(), p.qrBase64(), p.challengeUrl());
+    }
+
+    /**
+     * Situação do pagamento com cartão de um pedido ou link, sem cobrar de novo: consulta cada tentativa aberta no
+     * Mercado Pago. É o que o cliente chama depois de concluir o desafio 3DS (ou enquanto o cartão está em análise).
+     *
+     * @param shopOrderId pedido da loja (ou nulo)
+     * @param payLinkId   link de pagamento (ou nulo)
+     * @param approved    o que fazer quando o pagamento está aprovado
+     * @return {@code approved}; ou {@code pending} (com {@code challenge_url} se o desafio ainda está aberto); ou
+     *         recusado, com {@code reason}
+     */
+    public Map<String, Object> status(Long shopOrderId, Long payLinkId, Consumer<GatewayPayment> approved) {
+
+        // ── 1. Cada tentativa aberta: aprovada confirma; ainda aberta segue esperando; recusada fecha.
+        String reason = null;
+        for (PaymentAttempts.Open open : attempts.open(shopOrderId, payLinkId)) {
+            GatewayPayment pay;
+            try {
+                pay = gateway.getPayment(open.gatewayId());
+            } catch (GatewayException e) {
+                return result(false, true, null);
+            }
+            if (pay.approved()) {
+                apply(open.id(), pay, approved);
+                return result(true, false, null);
+            }
+            if (pay.open()) {
+                return pending(pay);
+            }
+            attempts.finish(open.id(), "rejected", pay.id());
+            reason = CardFailReasons.of(pay.statusDetail());
+        }
+
+        // ── 2. Nada aberto: o que sobrou foi recusado.
+        return result(false, false, reason);
+    }
+
+    /**
+     * Resposta de pagamento em espera: em análise, ou aguardando o comprador concluir o desafio 3DS.
+     *
+     * @param pay pagamento em aberto
+     * @return {@code approved=false}, {@code pending=true} e, se há desafio, {@code challenge_url}
+     */
+    private static Map<String, Object> pending(GatewayPayment pay) {
+        Map<String, Object> result = result(false, true, null);
+        if (pay.challengePending()) {
+            result.put("challenge_url", pay.challengeUrl());
+        }
+        return result;
     }
 
     /**

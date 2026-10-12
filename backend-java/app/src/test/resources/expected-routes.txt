@@ -32,6 +32,7 @@ POST   /api/cliente/me/privacidade              CUSTOMER
 GET    /api/cliente/pedidos                     CUSTOMER
 POST   /api/cliente/pedidos                     CUSTOMER
 POST   /api/cliente/pedidos/{id}/cancelar       CUSTOMER
+GET    /api/cliente/pedidos/{id}/cartao         CUSTOMER
 POST   /api/cliente/pedidos/{id}/cartao         CUSTOMER
 POST   /api/cliente/pedidos/{id}/devolucao      CUSTOMER
 DELETE /api/cliente/pedidos/{id}/devolucao      CUSTOMER
