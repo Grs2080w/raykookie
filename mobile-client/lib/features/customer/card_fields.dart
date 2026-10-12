@@ -12,6 +12,7 @@ import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
+import 'card_brands.dart';
 import 'mp_device.dart';
 
 /// Aviso de pagamento em análise: deixa claro que nada foi cobrado ainda.
@@ -55,13 +56,15 @@ String cardTokenError(Map<String, dynamic> body) {
 }
 
 class CardTokenResult {
-  CardTokenResult({required this.cardToken, required this.paymentMethodId, required this.cpf, required this.installments, this.issuerId = '', this.deviceId = ''});
+  CardTokenResult({required this.cardToken, required this.paymentMethodId, required this.cpf, required this.installments, this.issuerId = '', this.deviceId = '', this.typeId = ''});
   final String cardToken, paymentMethodId, cpf;
   /// Emissor do cartão, como o Mercado Pago o reconheceu pelo BIN (vazio = não sabemos; a cobrança segue sem ele).
   final String issuerId;
   final int installments;
   /// Device ID do antifraude do Mercado Pago (vazio = não deu para obter; a cobrança segue sem ele).
   final String deviceId;
+  /// credit_card, debit_card ou prepaid_card (vazio = não informado): o Mercado Pago precisa do tipo para cobrar.
+  final String typeId;
 }
 
 String _formatCardNumber(String v) {
@@ -80,9 +83,11 @@ String _formatExpiry(String v) {
 }
 
 class CardFields extends StatefulWidget {
-  const CardFields({super.key, required this.publicKey, required this.amount});
+  const CardFields({super.key, required this.publicKey, required this.amount, this.brands = const []});
   final String publicKey;
   final double amount;
+  /// Bandeiras aceitas, mostradas no topo (vazio = não mostra).
+  final List<CardBrand> brands;
   @override
   State<CardFields> createState() => CardFieldsState();
 }
@@ -232,7 +237,9 @@ class CardFieldsState extends State<CardFields> {
       }
       // débito é sempre à vista
       final installments = _type == 'debit_card' ? 1 : _installments;
-      return CardTokenResult(cardToken: '${data['id']}', paymentMethodId: _paymentMethodId, cpf: onlyDigits(_cpf.text, 11), installments: installments, issuerId: _issuerId, deviceId: _deviceId);
+      // pré-pago tem tipo próprio no Mercado Pago; nos demais vale o que o cliente escolheu (crédito ou débito)
+      final typeId = _detectedType == 'prepaid_card' ? 'prepaid_card' : _type;
+      return CardTokenResult(cardToken: '${data['id']}', paymentMethodId: _paymentMethodId, cpf: onlyDigits(_cpf.text, 11), installments: installments, issuerId: _issuerId, deviceId: _deviceId, typeId: typeId);
     } catch (_) {
       Toast.error('Não conseguimos falar com o Mercado Pago agora. Tente de novo.');
       return null;
@@ -243,6 +250,7 @@ class CardFieldsState extends State<CardFields> {
   Widget build(BuildContext context) {
     final mismatch = _typeMismatch;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      AcceptedBrands(brands: widget.brands),
       LabeledField(
         label: 'Função do cartão',
         child: SizedBox(
