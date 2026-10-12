@@ -209,11 +209,15 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
      */
     private static Map<String, Object> base(String reference, String description, Money amount,
             Map<String, Object> payment) {
+
+        // ── 1. O pedido inteiro como um item.
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("title", description);
         item.put("unit_price", reais(amount).toPlainString());
         item.put("quantity", 1);
         item.put("category_id", "food");
+
+        // ── 2. Pedido online processado na hora, com a referência e o pagamento.
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("type", "online");
         body.put("processing_mode", "automatic");
@@ -232,6 +236,8 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
      * @return o pagador
      */
     private static Map<String, Object> payer(CardCharge charge) {
+
+        // ── 1. E-mail, nome e CPF.
         PaymentGateway.Buyer buyer = charge.buyer();
         Map<String, Object> payer = new LinkedHashMap<>();
         payer.put("email", charge.email());
@@ -240,6 +246,8 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
             payer.put("last_name", buyer.lastName());
         }
         payer.put("identification", Map.of("type", "CPF", "number", charge.cpf()));
+
+        // ── 2. Telefone separado em DDD e número.
         String phone = buyer == null || buyer.phone() == null ? "" : buyer.phone().replaceAll("\\D", "");
         if (phone.length() >= 10) {
             payer.put("phone", Map.of("area_code", phone.substring(0, 2), "number", phone.substring(2)));
@@ -267,9 +275,13 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
      * @return o pagamento (o id é o do pedido)
      */
     static GatewayPayment payment(JsonNode node) {
+
+        // ── 1. O primeiro (e único) pagamento do pedido.
         JsonNode pay = node.path("transactions").path("payments").path(0);
         JsonNode method = pay.path("payment_method");
         String status = status(node.path("status").asString(""));
+
+        // ── 2. Motivo, desafio 3DS e valor.
         String detail = pay.path("status_detail").asString(node.path("status_detail").asString(""));
         String challenge = "pending_challenge".equals(detail) ? text(method.path("transaction_security").path("url"))
                 : null;

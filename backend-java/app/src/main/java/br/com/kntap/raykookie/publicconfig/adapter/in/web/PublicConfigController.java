@@ -59,10 +59,14 @@ public class PublicConfigController {
     @Access(AccessLevel.PUBLIC)
     @GetMapping("/api/payment-config")
     public ResponseEntity<Map<String, Object>> paymentConfig() {
+
+        // ── 1. Cartão disponível e a chave pública para tokenizar no cliente.
         boolean enabled = card.enabled();
         Map<String, Object> json = new HashMap<>();
         json.put("cardEnabled", enabled);
         json.put("publicKey", enabled ? properties.mp().publicKey() : null);
+
+        // ── 2. Bandeiras aceitas e a chave do Status Screen.
         CardBrands source = brands.getIfAvailable();
         List<CardBrands.CardBrand> accepted = enabled && source != null ? source.list() : List.of();
         json.put("brands", accepted);
