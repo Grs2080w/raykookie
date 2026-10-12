@@ -3,6 +3,7 @@ package br.com.kntap.raykookie.payments.adapter.in.web;
 import br.com.kntap.raykookie.payments.application.WebhookUseCase;
 import br.com.kntap.raykookie.security.Access;
 import br.com.kntap.raykookie.security.AccessLevel;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,8 +54,28 @@ public class MercadoPagoWebhookController {
         String type = first(body.path("type"), query.get("type"), query.get("topic"));
         String dataId = first(body.path("data").path("id"), query.get("data.id"), query.get("id"));
         WebhookUseCase.Reply reply = webhook.handle(new WebhookUseCase.Notification(type, dataId, signature,
-                requestId));
+                requestId, simpleFields(body.path("data"))));
         return ResponseEntity.status(reply.status()).body(reply.body());
+    }
+
+    /**
+     * Campos simples (texto ou número) de {@code data}, como texto. Os alertas de fraude trazem aí o pagamento e o
+     * pedido do comerciante.
+     *
+     * @param data o nó {@code data} do corpo
+     * @return os campos (vazio se não houver)
+     */
+    private static Map<String, String> simpleFields(JsonNode data) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        if (data.isObject()) {
+            data.propertyNames().forEach(name -> {
+                JsonNode value = data.get(name);
+                if (value != null && value.isValueNode() && !value.isNull()) {
+                    fields.put(name, value.asString());
+                }
+            });
+        }
+        return fields;
     }
 
     /**

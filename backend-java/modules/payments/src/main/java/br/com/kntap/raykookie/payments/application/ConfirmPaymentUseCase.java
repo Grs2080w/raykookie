@@ -89,6 +89,10 @@ public class ConfirmPaymentUseCase {
         // ── 2. Recusa pagamento que não é deste pedido ou que não cobre o total.
         if (!payment.approved() || !order.ownsPayment(payment.id()) || payment.amount().isLessThan(order.total())) {
             LOG.warn("Pagamento {} não aplicado ao pedido {} (de outro pedido ou valor menor)", payment.id(), orderId);
+            if (payment.approved()) {
+                AfterCommit.run(() -> alert.paymentProblem("pagamento aprovado não aplicado ao pedido (de outro pedido "
+                        + "ou valor menor)", Map.of("order", orderId, "payment", payment.id())));
+            }
             return ConfirmationOutcome.REJECTED;
         }
 
@@ -128,6 +132,38 @@ public class ConfirmPaymentUseCase {
                 .ifPresent(order -> events.publishEvent(new CustomerNotice.CardRefused(new CustomerNotice.OrderRef(
                         order.id(), order.code(), order.customer(), order.total(), order.fulfillment(),
                         order.timeWindow(), false), reason)));
+    }
+
+    /**
+     * Registra o alerta de fraude do Mercado Pago sobre um pagamento do pedido e avisa a dona para não entregar.
+     * O Mercado Pago não reenvia esse aviso: aqui ele precisa ficar guardado e chegar até a dona.
+     *
+     * @param orderId       id do pedido da loja
+     * @param paymentId     pagamento sob suspeita
+     * @param merchantOrder pedido do comerciante informado no alerta (pode ser vazio)
+     * @return {@code true} se o pagamento é deste pedido e o alerta foi registrado
+     */
+    @Transactional
+    public boolean registerFraudAlert(long orderId, String paymentId, String merchantOrder) {
+
+        // ── 1. Só vale para pagamento que pertence ao pedido.
+        ShopOrderLocking.PayableOrder order = orders.lockById(orderId).orElse(null);
+        if (order == null || !order.ownsPayment(paymentId)) {
+            return false;
+        }
+
+        // ── 2. Histórico do pedido e aviso à dona (depois do commit).
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("payment", paymentId);
+        data.put("merchant_order", merchantOrder);
+        ordersApi.logEvent(orderId, "mercadopago", "alerta_fraude", data);
+        events.publishEvent(new OwnerNotice.FraudAlert(order.owner(), order.id(), order.code(), order.contactName(),
+                order.total()));
+
+        // ── 3. Alerta de operação.
+        AfterCommit.run(() -> alert.paymentProblem("alerta de fraude do Mercado Pago: não entregar o pedido",
+                Map.of("order", orderId, "payment", paymentId)));
+        return true;
     }
 
     /**

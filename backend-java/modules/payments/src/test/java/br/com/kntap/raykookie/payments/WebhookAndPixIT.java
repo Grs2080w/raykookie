@@ -87,6 +87,43 @@ class WebhookAndPixIT extends PaymentsItSupport {
     }
 
     /**
+     * Alerta de fraude, pedido do Mercado Pago e tipos desconhecidos.
+     */
+    @Test
+    @DisplayName("webhook: alerta de fraude registra e avisa a dona; pedido do MP e tipo desconhecido só confirmam")
+    void webhookFraudAndOtherTopics() {
+
+        // ── 1. Alerta de fraude assinado com o payment_id: registra no pedido e avisa a dona (uma vez).
+        long pix = paymentId();
+        long order = pixOrder(pix);
+        Map<String, Object> fraud = Map.of("type", "stop_delivery_op_wh", "action", "stop_delivery_op_wh.created",
+                "data", Map.of("merchant_order", "555", "payment_id", pix, "site_id", "MLB"));
+        String requestId = UUID.randomUUID().toString();
+        Response first = signedWebhook(String.valueOf(pix), requestId, fraud);
+        assertThat(first.statusCode()).isEqualTo(200);
+        assertThat(first.jsonPath().getLong("order")).isEqualTo(order);
+        assertThat(value("SELECT count(*) FROM order_events WHERE shop_order_id = :id AND type = 'alerta_fraude'",
+                order)).isEqualTo(1L);
+        assertThat(doubles.notices.stream().filter(n -> n instanceof OwnerNotice.FraudAlert f && f.orderId() == order))
+                .hasSize(1);
+        assertThat(signedWebhook(String.valueOf(pix), requestId, fraud).jsonPath().getBoolean("duplicate")).isTrue();
+
+        // ── 2. Alerta sobre pagamento que não é de nenhum pedido: só alerta a operação.
+        long stranger = paymentId();
+        Map<String, Object> unknown = Map.of("type", "stop_delivery_op_wh", "data", Map.of("payment_id", stranger));
+        assertThat(signedWebhook(String.valueOf(stranger), UUID.randomUUID().toString(), unknown).jsonPath()
+                .getBoolean("unknown")).isTrue();
+
+        // ── 3. Pedido do Mercado Pago e tipos desconhecidos: 200 sem tratar; assinatura errada continua 401.
+        Map<String, Object> mpOrder = Map.of("type", "order", "action", "order.processed", "data", Map.of("id", "ORD1"));
+        assertThat(signedWebhook("ord1", UUID.randomUUID().toString(), mpOrder).jsonPath().getBoolean("ignored"))
+                .isTrue();
+        Map<String, Object> other = Map.of("type", "topic_chargebacks_wh", "data", Map.of("id", "77"));
+        assertThat(signedWebhook("77", UUID.randomUUID().toString(), other).statusCode()).isEqualTo(200);
+        assertThat(signedWebhook("outro-id", UUID.randomUUID().toString(), fraud).statusCode()).isEqualTo(401);
+    }
+
+    /**
      * Webhook: pedido cancelado, estorno e pendente.
      */
     @Test

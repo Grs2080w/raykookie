@@ -49,6 +49,8 @@ public class NoticeListener {
                     "devolução " + o.refundId());
             case OwnerNotice.PriceAlert o -> push.toOwner(o.owner(), d -> Messages.priceAlert(d.token(), o),
                     "preço " + o.recipeId());
+            case OwnerNotice.FraudAlert o -> push.toOwner(o.owner(), d -> Messages.fraudAlert(d.token(), o),
+                    "fraude " + o.orderId());
         }
     }
 

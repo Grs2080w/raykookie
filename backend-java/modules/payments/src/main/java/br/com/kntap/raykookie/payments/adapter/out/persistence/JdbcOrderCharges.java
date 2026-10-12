@@ -91,6 +91,13 @@ public class JdbcOrderCharges implements OrderCharges {
 
     /** {@inheritDoc} */
     @Override
+    public Optional<Long> orderIdByPayment(String paymentId) {
+        return jdbc.sql("SELECT id FROM shop_orders WHERE :payment = ANY(mp_payment_ids) ORDER BY id LIMIT 1")
+                .param("payment", paymentId).query(Long.class).optional();
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public List<OpenCharge> openCharges() {
         return jdbc.sql("""
                 SELECT id, mp_payment_ids FROM shop_orders
