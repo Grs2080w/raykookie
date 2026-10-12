@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import { PixCopy } from '@/components/PixCopy';
 import { CardFields, type CardFieldsHandle } from '@/components/site/CardFields';
 import { api } from '@/lib/client';
+import { useThreeDs } from '@/components/site/ThreeDsDialog';
+import { usePaymentConfig } from '@/lib/payment-config';
+import { withChallenge, type CardResult } from '@/lib/card-flow';
 import type { PayLinkView } from '@shared/types';
 
 const brl = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
@@ -14,14 +17,11 @@ export function PayLink({ token, view, children }: { token: string; view: PayLin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [method, setMethod] = useState<'' | 'pix' | 'cartao'>('');
-  const [cardCfg, setCardCfg] = useState<{ cardEnabled: boolean; publicKey: string | null } | null>(null);
+  const cardCfg = usePaymentConfig();
+  const threeDs = useThreeDs();
   const cardRef = useRef<CardFieldsHandle>(null);
   const url = `/api/pagar/${encodeURIComponent(token)}`;
   const waiting = view.state === 'aberto' && !!view.pix;
-
-  useEffect(() => {
-    fetch('/api/payment-config').then((r) => r.json()).then(setCardCfg).catch(() => setCardCfg({ cardEnabled: false, publicKey: null }));
-  }, []);
 
   // com o Pix na tela, confere o pagamento a cada 5 s e recarrega quando o estado muda
   useEffect(() => {
@@ -51,7 +51,8 @@ export function PayLink({ token, view, children }: { token: string; view: PayLin
     if (!t) return;
     setBusy(true); setError('');
     try {
-      const r = await api<{ approved: boolean; pending?: boolean; reason?: string }>(`${url}/cartao`, 'POST', t);
+      // o banco pode pedir a confirmação do cartão (3DS): mostra aqui e confere o resultado (GET na mesma rota, sem cobrar de novo)
+      const r = await withChallenge(await api<CardResult>(`${url}/cartao`, 'POST', t), `${url}/cartao`, threeDs.run);
       if (r.approved || r.pending) router.refresh();
       else setError(r.reason ?? 'Pagamento recusado. Confira os dados e tente de novo.');
     } catch (e: any) { setError(e.message); }
@@ -90,7 +91,7 @@ export function PayLink({ token, view, children }: { token: string; view: PayLin
       )}
       {view.state === 'aberto' && !view.pix && method === 'cartao' && cardCfg?.publicKey && (
         <div className="rounded-2xl border border-line bg-surface p-4">
-          <CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={view.amount} />
+          <CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={view.amount} brands={cardCfg.brands} />
           <button type="button" onClick={payCard} disabled={busy} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink px-4 font-semibold text-on-pink hover:bg-pink-strong disabled:opacity-60">
             {busy ? 'Enviando…' : 'Pagar com cartão'}
           </button>
@@ -105,6 +106,7 @@ export function PayLink({ token, view, children }: { token: string; view: PayLin
       )}
       {children}
       {error && <p role="alert" className="text-sm font-semibold text-bad">{error}</p>}
+    {threeDs.dialog}
     </>
   );
 }

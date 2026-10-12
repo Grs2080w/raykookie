@@ -7,6 +7,9 @@ import clsx from 'clsx';
 import { EmptyState } from '@/components/PageHeader';
 import { Photo } from '@/components/site/Photo';
 import { CardFields, type CardFieldsHandle } from '@/components/site/CardFields';
+import { useThreeDs } from '@/components/site/ThreeDsDialog';
+import { usePaymentConfig } from '@/lib/payment-config';
+import { withChallenge, type CardResult } from '@/lib/card-flow';
 import { Button, Card, Field, Input, NumberInput, Select, Textarea } from '@/components/ui/form';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/client';
@@ -53,11 +56,9 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
   const [busy, setBusy] = useState(false);
   const cepAbort = useRef<AbortController | null>(null);
   const set = (patch: Partial<typeof f>) => setF((s) => ({ ...s, ...patch }));
-  const [cardCfg, setCardCfg] = useState<{ cardEnabled: boolean; publicKey: string | null } | null>(null);
+  const cardCfg = usePaymentConfig();
+  const threeDs = useThreeDs();
   const cardRef = useRef<CardFieldsHandle>(null);
-  useEffect(() => {
-    fetch('/api/payment-config').then((r) => r.json()).then(setCardCfg).catch(() => setCardCfg({ cardEnabled: false, publicKey: null }));
-  }, []);
   const paymentMethods = PAYMENT_METHODS.filter((p) => p.id !== 'cartao' || cardCfg?.cardEnabled);
 
   const lines = Object.entries(qty).filter(([, n]) => n > 0).map(([id, n]) => ({ id, qty: n }));
@@ -114,20 +115,23 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
     if (f.payment_method === 'cartao') {
       const t = await cardRef.current?.tokenize();
       if (!t) return;
-      body = { ...body, card_token: t.card_token, card_payment_method_id: t.card_payment_method_id, cpf: t.cpf, installments: t.installments };
+      body = { ...body, card_token: t.card_token, card_payment_method_id: t.card_payment_method_id, card_payment_type_id: t.card_payment_type_id, cpf: t.cpf, installments: t.installments };
     }
     const check = parseShopOrder(body, addDays(minDate, -LEAD_DAYS), menu.items);
     if (check.error) { toast.error(check.error); return; }
     setBusy(true);
     try {
-      const r = await api<{ id: number; card: { approved: boolean; pending?: boolean; reason?: string } | null }>('/api/cliente/pedidos', 'POST', body);
-      if (r.card && !r.card.approved && !r.card.pending) toast.error(r.card.reason ?? 'Pagamento recusado. Tente outro cartão no pedido.');
+      const r = await api<{ id: number; card: CardResult | null }>('/api/cliente/pedidos', 'POST', body);
+      // o banco pode pedir a confirmação do cartão (3DS): mostra aqui mesmo e confere o resultado sem cobrar de novo
+      const card = r.card ? await withChallenge(r.card, `/api/cliente/pedidos/${r.id}/cartao`, threeDs.run) : null;
+      if (card && !card.approved && !card.pending) toast.error(card.reason ?? 'Pagamento recusado. Tente outro cartão no pedido.');
       router.replace(`/cliente/pedidos?novo=${r.id}`); router.refresh();
     } catch (err: any) { toast.error(err.message); setBusy(false); }
   }
 
   if (menu.items.length === 0) return <EmptyState icon={<UtensilsCrossed size={26} />} title="Cardápio em preparação" text="Ainda não há itens disponíveis para encomenda. Volte em breve!" />;
   return (
+    <>
     <form id="order-form" onSubmit={submit} noValidate>
       {backHref && <Link href={backHref} className="mb-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink"><ArrowLeft size={16} />Voltar ao cardápio</Link>}
       <h1 className="font-display text-3xl font-semibold leading-tight">Novo pedido</h1>
@@ -216,7 +220,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
           {paymentMethods.map((o) => <Choice key={o.id} name="payment" value={o.id} checked={f.payment_method === o.id} onChange={() => set({ payment_method: o.id })} title={o.label} hint={o.hint} />)}
         </div>
         {f.payment_method === 'cartao' && cardCfg?.publicKey && (
-          <Card className="mt-3 p-4"><CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={payable} /></Card>
+          <Card className="mt-3 p-4"><CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={payable} brands={cardCfg.brands} /></Card>
         )}
         {f.payment_method === 'dinheiro' && (
           <Card className="mt-3 p-4">
@@ -266,5 +270,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         </div>
       </div>
     </form>
+    {threeDs.dialog}
+    </>
   );
 }
