@@ -163,10 +163,10 @@ class MercadoPagoOrdersClientTest {
     }
 
     /**
-     * Débito e pré-pago não levam parcelas; a bandeira perde o prefixo "deb".
+     * Débito e pré-pago não levam parcelas; o id do débito segue como o BIN devolve ("debelo").
      */
     @Test
-    @DisplayName("débito (debelo → elo) e pré-pago: sem parcelas, tipo certo")
+    @DisplayName("débito (id debelo, como o BIN devolve) e pré-pago (elo): sem parcelas, tipo certo")
     void debitAndPrepaid() {
         MP.stubFor(post(urlEqualTo("/v1/orders")).willReturn(json(201, """
                 {"id":"ORDTST01DEB","total_amount":"10.00","status":"processed","status_detail":"accredited",
@@ -177,7 +177,7 @@ class MercadoPagoOrdersClientTest {
         assertThat(client.createCard(card("elo", "prepaid_card")).approved()).isTrue();
 
         MP.verify(postRequestedFor(urlEqualTo("/v1/orders"))
-                .withRequestBody(containing("\"id\":\"elo\",\"type\":\"debit_card\""))
+                .withRequestBody(containing("\"id\":\"debelo\",\"type\":\"debit_card\""))
                 .withRequestBody(notMatching(".*installments.*")));
         MP.verify(postRequestedFor(urlEqualTo("/v1/orders"))
                 .withRequestBody(containing("\"id\":\"elo\",\"type\":\"prepaid_card\""))
@@ -294,7 +294,9 @@ class MercadoPagoOrdersClientTest {
         assertThat(got.refundedOrChargedBack()).isTrue();
 
         client.cancel("ORDTST01OK");
-        MP.verify(postRequestedFor(urlEqualTo("/v1/orders/ORDTST01OK/cancel")));
+        // a API Orders recusa o cancelamento sem X-Idempotency-Key (400 empty_required_header)
+        MP.verify(postRequestedFor(urlEqualTo("/v1/orders/ORDTST01OK/cancel")).withHeader("X-Idempotency-Key",
+                equalTo("rayka-cancel-ORDTST01OK")));
 
         GatewayRefund part = client.refund("ORDTST01OK", Money.ofCents(300), "idem-1");
         assertThat(part.id()).isEqualTo("REF1");
@@ -307,6 +309,26 @@ class MercadoPagoOrdersClientTest {
         MP.verify(postRequestedFor(urlEqualTo("/v1/orders/ORDTST01OK/refund")).withHeader("X-Idempotency-Key",
                 equalTo("idem-2")).withRequestBody(absent()));
         assertThat(client.listRefunds("ORDTST01OK")).extracting(GatewayRefund::id).containsExactly("REF1");
+    }
+
+    /**
+     * Uma tentativa que deu 422 deixa um registro "failed" na lista; a devolução devolvida é a processada.
+     */
+    @Test
+    @DisplayName("devolução: com um registro 'failed' de tentativa anterior, devolve a processada")
+    void refundPicksTheProcessedOne() {
+        MP.stubFor(get(urlEqualTo("/v1/orders/ORDTST01R30")).willReturn(json(200, """
+                {"id":"ORDTST01R30","total_amount":"10.00","status":"processed",
+                 "transactions":{"payments":[{"id":"PAY30","amount":"10.00","status":"processed"}]}}""")));
+        MP.stubFor(post(urlEqualTo("/v1/orders/ORDTST01R30/refund")).willReturn(json(201, """
+                {"id":"ORDTST01R30","status":"processed","status_detail":"partially_refunded",
+                 "transactions":{"refunds":[{"id":"REF-FAIL","amount":"3.00","status":"failed"},
+                                            {"id":"REF-OK","amount":"3.00","status":"processed"}]}}""")));
+
+        GatewayRefund refund = client.refund("ORDTST01R30", Money.ofCents(300), "k30");
+
+        assertThat(refund.id()).isEqualTo("REF-OK");
+        assertThat(refund.status()).isEqualTo("approved");
     }
 
     /**

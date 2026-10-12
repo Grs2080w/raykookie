@@ -25,6 +25,16 @@ Nada disso muda a produção sozinho: com `MP_API` ausente, o sistema continua n
 - O e-mail do comprador no sandbox precisa terminar em **`@testuser.com`**.
 - Pedidos de teste têm id **`ORDTST…`** (produção: `ORD…`). Pagamentos: `PAY…`. Devoluções: `REF…`.
 - **Débito e pré-pago não aceitam `installments`.** O cartão Elo de teste é detectado como **pré-pago** pelo BIN.
+- **Débito exige o id do débito (`debelo`)**, o mesmo que o BIN devolve; não se tira o prefixo `deb` nem se usa só a
+  bandeira (`elo` + `debit_card` dá `400 property_value`). No sandbox, o vendedor de teste responde
+  `payment_method_not_allowed_for_collector` para `debelo`: **o débito não é testável nessa conta de teste** (precisa
+  habilitar o débito no vendedor de teste). O que está verificado é só que o id e o tipo enviados são os aceitos.
+- **Cancelar exige `X-Idempotency-Key`** (`400 empty_required_header` sem ela). O adaptador manda `rayka-cancel-<id>`.
+- **Devolução logo depois da compra** pode voltar `422 Post processing rejected the operation` ou
+  `409 post_processing_operation_pending` (o pedido ainda está sendo processado, `automatic_async`). É transitório e
+  **repetir é seguro**: a tentativa que deu 422 deixa só um registro de devolução com `status: failed` (sem devolver
+  dinheiro) e a seguinte cria a `processed`; o pedido mostra as duas, mas só uma devolveu. O adaptador devolve a
+  processada, e `refunded_amount` só soma as processadas.
 - **Recusa vem como HTTP 402**, com o pedido em `data` (`status: failed`, motivo em `status_detail`, ex.:
   `insufficient_amount`). O adaptador traduz para os `cc_rejected_*` que o sistema já explica ao cliente.
 - **3DS:** com `config.online.transaction_security` (`on_fraud_risk` + `liability_shift: required`) o pedido volta
@@ -36,6 +46,22 @@ Nada disso muda a produção sozinho: com `MP_API` ausente, o sistema continua n
 - Cancelar (`POST /v1/orders/{id}/cancel`), devolver tudo (`POST …/refund` sem corpo) e devolver parte
   (`{"transactions":[{"id":"PAY…","amount":"3.00"}]}`) funcionam; a devolução vem em `transactions.refunds[]`.
 - Busca por referência: `GET /v1/orders?external_reference=…&begin_date=…&end_date=…` (o período é obrigatório).
+
+## Teste de integração contra o sandbox real
+
+`MercadoPagoOrdersSandboxLive` exercita o **nosso adaptador** na API real: crédito (Mastercard e Visa), pré-pago, débito,
+Pix (com busca por referência e cancelamento), 3DS, recusa por saldo, devolução parcial e total, e as bandeiras da
+conta. O nome não termina em `IT` de propósito: o `verify` e o CI (que não aceita teste pulado) nunca o incluem. Ele só
+roda quando chamado pelo nome, com `RUN_MP_SANDBOX=1`:
+
+```
+RUN_MP_SANDBOX=1 MP_SANDBOX_ACCESS_TOKEN=… MP_SANDBOX_PUBLIC_KEY=… \
+  ./mvnw -pl modules/payments -am verify -Dit.test=MercadoPagoOrdersSandboxLive
+```
+
+Os ids dos pedidos criados vão para `backend-java/modules/payments/target/mp-sandbox-orders.txt`. Resultado de
+2026-10-12: 8 casos, 0 falhas, 1 pulado (débito, pela razão acima). Esse teste achou dois erros que os testes com Mercado
+Pago falso não pegavam: o prefixo `deb` tirado do débito e o cancelamento sem a chave de idempotência.
 
 ## Como conseguir o Order ID para a homologação
 
