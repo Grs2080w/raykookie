@@ -53,6 +53,21 @@ Há dois tipos de conta, com sessões separadas (um token de cliente **não** ab
 Regras: data com pelo menos 2 dias de antecedência; `fulfillment` `retirada|entrega` (endereço só é exigido na entrega); `time_window` `manha|tarde|noite`; `payment_method` `pix|dinheiro` (`change_for` só vale em dinheiro e precisa ser ≥ total). Cada item vira uma linha na tela Pedidos do painel (status `novo`, pagamento `pendente`, com o endereço no campo `address`).
 Em Pix, a resposta traz `pix: { code, qr_base64 }` (copia e cola do Mercado Pago). O pedido só passa a `pago` quando o webhook `POST /api/webhooks/mercadopago` recebe a notificação de pagamento **aprovado** (assinatura `x-signature` validada com `MP_WEBHOOK_SECRET`, pagamento reconsultado na API do MP e conferido por `external_reference` = id do pedido). Requer `MP_ACCESS_TOKEN` e `MP_WEBHOOK_SECRET`.
 
+## Webhook do Mercado Pago (`POST /api/webhooks/mercadopago`)
+
+URL cadastrada no painel (modo **produção**): `https://raykookie.kntap.com.br/api/webhooks/mercadopago` (o site repassa
+para a API). A assinatura (`x-signature`) é conferida com `MP_WEBHOOK_SECRET`, que precisa ser a **assinatura secreta de
+produção** do aplicativo (o painel tem um segredo para o modo de teste e outro para produção; gerar um novo invalida o
+anterior). Assinatura errada responde 401 e deixa um aviso no log.
+
+| Evento (`type`) | O que o sistema faz |
+|---|---|
+| `payment` | consulta o pagamento no Mercado Pago e, se aprovado, marca o pedido como pago (valor e dono conferidos) |
+| `stop_delivery_op_wh` (alerta de fraude) | guarda `alerta_fraude` no histórico do pedido, avisa a dona por push ("não entregue") e dispara alerta de operação. Esse aviso **não é reenviado** pelo Mercado Pago |
+| `order` / `orders` e qualquer outro tipo | só confirma o recebimento (200) e registra no log; não usamos a API Orders |
+
+Um pagamento aprovado que não é aplicado ao pedido (de outro pedido ou valor menor) também dispara alerta de operação.
+
 ## Nota fiscal (NFC-e) no estoque
 
 Usado pelo app de gestão (**Estoque → Ler nota**). O celular lê o QR code do cupom, baixa a página de consulta do portal da SEFAZ (quem acessa o portal é o aparelho, não este servidor) e manda o HTML para cá interpretar.

@@ -103,4 +103,17 @@ public sealed interface OwnerNotice {
     record PriceAlert(OwnerId owner, long recipeId, String name, String kind, double before, double after,
             String cause) implements OwnerNotice {
     }
+
+    /**
+     * Alerta de fraude do Mercado Pago sobre um pedido: não entregar (a notificação não é reenviada).
+     *
+     * @param owner       dona
+     * @param orderId     id do pedido
+     * @param code        número público do pedido
+     * @param customer    nome do cliente
+     * @param total       total do pedido
+     */
+    record FraudAlert(OwnerId owner, long orderId, Integer code, String customer, Money total)
+            implements OwnerNotice {
+    }
 }

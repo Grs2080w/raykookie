@@ -257,6 +257,21 @@ abstract class PaymentsItSupport extends PostgresTestBase {
     }
 
     /**
+     * Notificação de qualquer tipo, assinada agora com o id informado (o alerta de fraude não traz {@code data.id}).
+     *
+     * @param signedId  id que entra no texto assinado
+     * @param requestId {@code x-request-id}
+     * @param body      corpo da notificação
+     * @return a resposta
+     */
+    Response signedWebhook(String signedId, String requestId, Map<String, Object> body) {
+        long ts = Instant.now().getEpochSecond();
+        String v1 = WebhookSignature.hmac(SECRET, "id:" + signedId + ";request-id:" + requestId + ";ts:" + ts + ";");
+        return api().header("x-signature", "ts=" + ts + ",v1=" + v1).header("x-request-id", requestId).body(body)
+                .post("/api/webhooks/mercadopago");
+    }
+
+    /**
      * Valor de uma coluna.
      *
      * @param sql consulta com {@code :id}

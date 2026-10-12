@@ -183,6 +183,20 @@ public final class Messages {
     }
 
     /**
+     * Alerta de fraude do Mercado Pago: o pedido não deve ser entregue.
+     *
+     * @param token token
+     * @param o     alerta
+     * @return a mensagem
+     */
+    public static PushMessage fraudAlert(String token, OwnerNotice.FraudAlert o) {
+        return owner(token, "Alerta de fraude · Pedido #" + codeOrId(o.code(), o.orderId()),
+                "O Mercado Pago suspeita de fraude no pagamento de " + o.customer() + " (" + brl(o.total())
+                        + "). Não entregue o pedido.",
+                Map.of("type", "alerta_fraude", "orderId", String.valueOf(o.orderId())), ALERT_SOUND);
+    }
+
+    /**
      * Versão nova do app: tocar abre o app, que baixa e abre o instalador.
      *
      * @param token token

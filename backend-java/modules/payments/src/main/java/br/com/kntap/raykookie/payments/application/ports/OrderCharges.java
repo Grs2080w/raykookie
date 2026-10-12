@@ -57,6 +57,14 @@ public interface OrderCharges {
     List<OpenCharge> openCharges();
 
     /**
+     * Acha o pedido a que um pagamento pertence (qualquer um dos pagamentos gerados para ele).
+     *
+     * @param paymentId id do pagamento no Mercado Pago
+     * @return o id do pedido, se existir
+     */
+    Optional<Long> orderIdByPayment(String paymentId);
+
+    /**
      * Pedido a cobrar.
      *
      * @param id            pedido

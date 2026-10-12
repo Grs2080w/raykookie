@@ -121,6 +121,19 @@ class MessagesTest {
     }
 
     /**
+     * Alerta de fraude: título com o número do pedido e orientação de não entregar.
+     */
+    @Test
+    @DisplayName("alerta de fraude: pedido, cliente, valor e 'não entregue'")
+    void fraudAlert() {
+        PushMessage fraud = Messages.fraudAlert("tok", new OwnerNotice.FraudAlert(OWNER, 7, 1234, "Ana",
+                Money.ofCents(6400)));
+        assertThat(fraud.title()).isEqualTo("Alerta de fraude · Pedido #1234");
+        assertThat(fraud.body()).contains("Ana").contains("R$ 64,00").contains("Não entregue o pedido");
+        assertThat(fraud.data()).containsEntry("type", "alerta_fraude").containsEntry("orderId", "7");
+    }
+
+    /**
      * Avisos ao cliente, com o canal único.
      */
     @Test
