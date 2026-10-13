@@ -31,7 +31,7 @@ Não é objetivo: publicidade, remarketing, perfil individual de comportamento, 
 | Verdade do funil final | **Servidor.** `order_created` e `payment_approved` saem do que já existe (`shop_orders`, pagamentos), não do cliente. | Cliente perde evento (aba fechada, sem rede); pedido e pagamento não podem divergir do relatório. |
 | Parte de cima do funil e passos | **Cliente** (`track()`), em lote. | É o único lugar onde se vê "abriu e não pediu". |
 | Retenção | Eventos brutos **90 dias**; **agregados diários** guardados por mais tempo (13 meses). | Responde às perguntas sem acumular dado bruto. |
-| Aplicação | Respeitar um **interruptor "não medir"** no app e no site (Meus dados). | Direito de oposição (LGPD); barato de fazer agora. |
+| Consentimento | **Só mede depois do aceite.** Aviso de cookies/medição na primeira visita ao site (e na primeira abertura do app); sem resposta ou "Recusar" = nada é gravado nem enviado. A escolha fica salva e pode ser mudada em Meus dados. | Decisão da dona (§9.2); base legal clara (consentimento, LGPD art. 7º, I). |
 
 ## 4. Eventos
 
@@ -55,7 +55,8 @@ Gerados no servidor (sem passar pelo cliente): `order_created`, `payment_approve
 
 ## 5. Coleta (clientes)
 
-- **Site:** módulo `frontend/lib/track.ts` com `track(name, props)`: fila na memória, envio em lote (até 20 eventos ou 5 s), `navigator.sendBeacon` ao sair da aba; `visitor_id` em `localStorage` (sem cookie), `session_id` novo após 30 min parado. Chamado nos pontos do §4 (`CardFields` e o formulário de pedido já têm os passos). Não envia nada no `localhost` nem nos previews.
+- **Aviso e aceite:** componente `ConsentBanner` no site (rodapé, "Aceitar" / "Recusar", link para a Política); a escolha vai para `localStorage` (`rk_consent`). `track()` e o `visitor_id` só existem depois do aceite; "Recusar" ou fechar sem responder não grava nada. Se o cliente mudar para recusado, a fila é descartada e o `visitor_id` apagado. No app, a mesma tela na primeira abertura. O servidor também confere um campo `consent: true` no lote e descarta o que vier sem ele.
+- **Site:** módulo `frontend/lib/track.ts` com `track(name, props)`: fila na memória, envio em lote (até 20 eventos ou 5 s), `navigator.sendBeacon` ao sair da aba; `visitor_id` em `localStorage` (só após o aceite), `session_id` novo após 30 min parado. Chamado nos pontos do §4 (`CardFields` e o formulário de pedido já têm os passos). Não envia nada no `localhost` nem nos previews.
 - **App:** classe `Analytics` em `mobile-common` (usada por `mobile-client`): mesma fila, persistida em disco se estiver sem rede (limite de 200 eventos), `visitor_id` no armazenamento do app. Telas registradas pelo `GoRouter` (um observer), itens e passos como no site.
 - **Caminho:** `POST /api/medicao/eventos`, pelo mesmo domínio (o rewrite `/api` já existe), com nome **neutro** (evita bloqueio por listas de anúncios; não usar `analytics` nem `track` no caminho).
 - **Mesmo evento nos dois lados:** o catálogo de nomes e chaves vive em `shared/` (TypeScript) e em `mobile-common` (Dart), com um teste que compara os dois, no modelo que o projeto já usa para regras (G25).
@@ -90,22 +91,22 @@ Os números de pedido e receita vêm das tabelas de pedidos (não dos eventos), 
 
 - **Gestão web:** página **Engajamento** (`/engajamento`; entra na lista `GESTAO_ROUTES` do middleware): seletor de período e plataforma, cartões de resumo, **funil** em barras horizontais com a perda entre passos, **ranking de receitas** (tabela ordenável) e **páginas mais acessadas**. Gráficos simples em SVG/CSS (sem dependência nova), seguindo o kit de componentes do painel.
 - **Gestão mobile** (`mobile-server`): tela **Mais → Engajamento** com os mesmos quatro blocos, consumindo as mesmas rotas; cálculo nenhum no cliente.
-- **Meus dados (clientes):** interruptor "Ajudar a melhorar o cardápio (medir meu uso)".
+- **Clientes:** aviso de cookies/medição na entrada (site e app) e, em Meus dados, o interruptor "Ajudar a melhorar o cardápio (medir meu uso)" para mudar a escolha depois.
 
-## 9. Perguntas para a dona decidir
+## 9. Decisões da dona
 
-1. **Ligar o `customer_id` aos eventos de quem está logado?** Proposta: **não** no início (só visitante anônimo); isso responde as quatro perguntas e simplifica a política. Ligar permitiria "o que o cliente X olhou antes de pedir", e exigiria texto mais forte e base legal mais cuidadosa.
-2. **Medir por padrão com opção de desligar, ou só depois de aceitar?** Proposta: por padrão **com aviso claro e interruptor** (dados anônimos, sem terceiros). Se preferir pedir aceite, entra um aviso no primeiro acesso do site e do app.
-3. **Retenção:** 90 dias de bruto e 13 meses de agregado está bom?
-4. **Texto da Política de Privacidade e dos Termos:** revisar com quem cuida da parte jurídica antes do PR 5.
+1. **`customer_id` nos eventos de quem está logado:** a dona pediu mais explicação; **fica em aberto** e, até decidir, vale o padrão **só visitante anônimo** (nada muda no que as quatro perguntas respondem). Explicação na descrição do PR.
+2. **Consentimento: decidido.** Aviso de cookies ao entrar no site; só com aceite a medição fica ligada. Sem aceite, nenhum evento é enviado ou guardado. O mesmo vale para o app na primeira abertura (extensão da decisão, a confirmar).
+3. **Retenção: decidido.** 90 dias de bruto e 13 meses de agregado.
+4. **Revisão do texto da Política e dos Termos: decidido.** A própria dona revisa antes do PR 5.
 
 ## 10. Entregas (PRs, nesta ordem)
 
 1. **Backend: ingestão, tabelas e agregado.** Módulo `engagement`, V29, endpoint de coleta com limite de taxa, jobs, testes (unitários do agregado e do funil com massa fixa; IT de ingestão; contrato; matriz de acesso; ArchUnit). Sem efeito para quem usa: ninguém envia evento ainda.
-2. **Coleta nos clientes.** `track.ts` e `Analytics` (Dart) + instrumentação das telas e do pedido + teste de paridade do catálogo + testes de widget/unidade. Atrás de uma chave (`MP`-style, `ENGAGEMENT_ENABLED`) desligada por padrão.
+2. **Coleta nos clientes.** `ConsentBanner`, `track.ts` e `Analytics` (Dart), ambos só depois do aceite, + instrumentação das telas e do pedido + teste de paridade do catálogo + testes de widget/unidade. Atrás de uma chave (`MP`-style, `ENGAGEMENT_ENABLED`) desligada por padrão.
 3. **Rotas de leitura e página Engajamento no gestão web.**
 4. **Tela de Engajamento no gestão mobile.**
-5. **Privacidade e produção:** texto novo da política, interruptor em Meus dados, exclusão de conta limpando eventos, retenção, e só então ligar `ENGAGEMENT_ENABLED`.
+5. **Privacidade e produção:** texto novo da política (revisado pela dona), aviso de cookies/aceite (site e app), interruptor em Meus dados, exclusão de conta limpando eventos, retenção, e só então ligar `ENGAGEMENT_ENABLED`.
 
 Cada PR sai com `tsc`/build ou `verify` verde e verificação no navegador/aparelho (o que foi e o que não foi testado, como nos PRs anteriores).
 
