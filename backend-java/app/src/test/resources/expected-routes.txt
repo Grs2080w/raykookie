@@ -48,6 +48,11 @@ POST   /api/devolucoes/{id}/tentar              OWNER
 GET    /api/downloads                           OWNER_OR_PUBLIC
 GET    /api/downloads/{app}                     OWNER_OR_PUBLIC
 POST   /api/downloads/{app}/link                OWNER
+GET    /api/engagement/funnel                   OWNER
+GET    /api/engagement/overview                 OWNER
+GET    /api/engagement/pages                    OWNER
+GET    /api/engagement/recipes                  OWNER
+GET    /api/engagement/sources                  OWNER
 GET    /api/feedback                            OWNER
 GET    /api/feedback/{id}/fotos/{n}             OWNER
 GET    /api/fixed-costs                         OWNER
@@ -68,6 +73,7 @@ POST   /api/jobs/tick                           PUBLIC
 GET    /api/legal/{doc}                         PUBLIC
 GET    /api/menu                                PUBLIC
 GET    /api/me                                  OWNER
+POST   /api/medicao/eventos                     PUBLIC
 POST   /api/nota/importar                       OWNER
 POST   /api/nota/ler                            OWNER
 GET    /api/orders                              OWNER

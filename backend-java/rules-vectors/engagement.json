@@ -1,0 +1,123 @@
+{
+ "card_3ds": {
+  "route": false,
+  "item": false,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "authenticated",
+   "closed",
+   "failed"
+  ]
+ },
+ "cart_add": {
+  "route": false,
+  "item": true,
+  "qty": true,
+  "detail_required": false,
+  "details": []
+ },
+ "cart_remove": {
+  "route": false,
+  "item": true,
+  "qty": true,
+  "detail_required": false,
+  "details": []
+ },
+ "checkout_step": {
+  "route": false,
+  "item": false,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "data",
+   "delivery",
+   "extras",
+   "items",
+   "payment"
+  ]
+ },
+ "checkout_submit": {
+  "route": false,
+  "item": false,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "card_refused",
+   "network",
+   "ok",
+   "other",
+   "validation"
+  ]
+ },
+ "coupon_attempt": {
+  "route": false,
+  "item": false,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "inactive",
+   "invalid",
+   "min_total",
+   "ok",
+   "used_up"
+  ]
+ },
+ "menu_item_click": {
+  "route": false,
+  "item": true,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "cardapio",
+   "home_app",
+   "landing"
+  ]
+ },
+ "menu_item_view": {
+  "route": false,
+  "item": true,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "cardapio",
+   "home_app",
+   "landing"
+  ]
+ },
+ "order_placed": {
+  "route": false,
+  "item": false,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "cartao",
+   "dinheiro",
+   "pix"
+  ]
+ },
+ "payment_method_select": {
+  "route": false,
+  "item": false,
+  "qty": false,
+  "detail_required": true,
+  "details": [
+   "cartao",
+   "dinheiro",
+   "pix"
+  ]
+ },
+ "screen_view": {
+  "route": true,
+  "item": false,
+  "qty": false,
+  "detail_required": false,
+  "details": [
+   "direct",
+   "instagram",
+   "other",
+   "search",
+   "whatsapp"
+  ]
+ }
+}

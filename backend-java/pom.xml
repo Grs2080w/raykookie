@@ -31,6 +31,7 @@
         <module>modules/payments</module>
         <module>modules/refunds</module>
         <module>modules/feedback</module>
+        <module>modules/engagement</module>
         <module>modules/insights</module>
         <module>modules/releases</module>
         <module>app</module>
@@ -205,6 +206,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-feedback</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-engagement</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

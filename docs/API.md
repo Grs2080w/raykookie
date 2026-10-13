@@ -278,3 +278,22 @@ Todas exigem sessão da confeiteira.
 - **Alertas** (`price_alerts`): toda mudança de `package_cost`/`package_size` (edição, nota fiscal, "usar este preço") grava no histórico e compara cada receita que usa o ingrediente. Com preço fixado: avisa se a margem real cair abaixo do mínimo ou perder 5 pontos. Sem preço fixado: avisa se o preço sugerido subir 5% ou mais.
 - **Atualização diária** (job, 04h de Brasília): relê os produtos ligados e grava cotação nova quando o preço do site mudou; **não** altera o preço do ingrediente sozinha.
 - Scraper: `backend/lib/scrapers/tray.ts` (lê `data-ga4-name`/`data-ga4-price` da busca; respeita o robots.txt). Se o site mudar, o fornecedor aparece como "precisa de revisão" com o erro.
+
+## Engajamento dos clientes (medição anônima)
+
+O site e o app dos clientes enviam eventos anônimos; a confeiteira lê os números na gestão (web e app). **Nada identifica a pessoa:** só um `session_id` aleatório que dura uma visita (sem código fixo por aparelho, sem conta, sem IP gravado, sem conteúdo de campos). Eventos brutos ficam 90 dias; o agregado diário, 13 meses. Plano: `docs/superpowers/plans/2026-10-13-engajamento-clientes.md`.
+
+| Rota | O que faz |
+|---|---|
+| `POST /api/medicao/eventos` (público) | Lote de até 20 eventos: `{session_id, platform ("site"/"android"/"ios"), app_version, events: [{name, at (ms desde 1970), route?, item_id?, detail?, qty?}]}`. Responde `204` sempre que o formato do lote é válido (evento inválido é descartado em silêncio); `400` se `session_id`/`platform`/`events` estiverem errados; `429` acima de 120 lotes/10 min por IP. Vista e clique do mesmo item contam uma vez por sessão. |
+| `GET /api/engagement/overview` | `current` e `previous` (período anterior do mesmo tamanho): `sessions`, `page_views`, `orders`, `paid_orders`, `revenue`, `conversion_pct`. Pedidos e receita vêm das tabelas de pedidos. |
+| `GET /api/engagement/funnel` | `steps` (Entrou → Clicou em um item → Adicionou ao pedido → Preencheu os dados → Escolheu a entrega → Chegou ao pagamento → Enviou o pedido → Pedido feito) com `sessions`, `pct_of_top`, `pct_of_previous`, e `biggest_drop` (`after`, `lost`). |
+| `GET /api/engagement/recipes?sort=` | Por receita/combo: `views`, `clicks`, `adds`, `orders`, `revenue`, `click_rate_pct`, `order_rate_pct`. `sort`: `views`, `clicks` (padrão), `adds`, `orders`, `revenue`. |
+| `GET /api/engagement/pages` | Por página/tela: `views` e `sessions`. |
+| `GET /api/engagement/sources` | `referrers` (origem das entradas) e `platforms` (sessões por plataforma). |
+
+**Desligada por padrão.** A coleta só envia eventos quando o build a liga: site → variável `NEXT_PUBLIC_ENGAGEMENT_ENABLED=true` (Vercel; não envia nos previews `*.vercel.app`); app do cliente → `--dart-define=ENGAGEMENT_ENABLED=true`. Ligar só depois de a Política de Privacidade nova estar no ar e revisada. Quem não quer ser medido usa "Não medir meu uso" (rodapé do site, `localStorage` `rk_no_track`) ou o interruptor em Meus dados (app); *Do Not Track* e *Global Privacy Control* também desligam.
+
+As rotas de leitura são só da dona e aceitam `from`, `to` (`AAAA-MM-DD`; padrão: últimos 30 dias; máximo 400 dias) e `platform` (opcional). O agregado é refeito a cada 5 minutos.
+
+Eventos (lista fechada): `screen_view` (`route`, `detail` = origem: `direct`, `instagram`, `whatsapp`, `search`, `other`), `menu_item_view`/`menu_item_click` (`item_id` = id da receita ou `combo-<id>`, `detail` = `landing`/`cardapio`/`home_app`), `cart_add`/`cart_remove` (`item_id`, `qty` 1 a 99), `checkout_step` (`detail`: `items`, `data`, `delivery`, `payment`, `extras`), `payment_method_select` e `order_placed` (`detail`: `pix`, `cartao`, `dinheiro`), `coupon_attempt` (`ok`, `invalid`, `min_total`, `inactive`, `used_up`; nunca o código), `checkout_submit` (`ok`, `validation`, `card_refused`, `network`, `other`), `card_3ds` (`authenticated`, `closed`, `failed`).

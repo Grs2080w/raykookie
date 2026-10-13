@@ -67,6 +67,10 @@
         </dependency>
         <dependency>
             <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-engagement</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
             <artifactId>raykookie-refunds</artifactId>
         </dependency>
         <dependency>
