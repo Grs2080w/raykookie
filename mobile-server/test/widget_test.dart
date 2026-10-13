@@ -871,4 +871,65 @@ void main() {
       expect(find.textContaining('Pedidos acima de R\$'), findsOneWidget);
     });
   });
+
+  group('engajamento dos clientes (gestão)', () {
+    const summary = {'sessions': 40, 'page_views': 120, 'orders': 3, 'paid_orders': 2, 'revenue': 90.0, 'conversion_pct': 7.5};
+    final routes = <String, Handler>{
+      'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+      'GET /api/engagement/overview': (_) => (200, {'from': '2026-09-14', 'to': '2026-10-13', 'platform': null, 'current': summary, 'previous': {...summary, 'sessions': 20, 'orders': 3}}),
+      'GET /api/engagement/funnel': (_) => (200, {
+            'from': '2026-09-14', 'to': '2026-10-13', 'biggest_drop': {'after': 'Chegou ao pagamento', 'lost': 9},
+            'steps': [
+              {'key': 'screen_view|*', 'label': 'Entrou no site ou app', 'sessions': 40, 'pct_of_top': 100.0, 'pct_of_previous': 100.0},
+              {'key': 'order_placed|*', 'label': 'Pedido feito', 'sessions': 3, 'pct_of_top': 7.5, 'pct_of_previous': 25.0},
+            ],
+          }),
+      'GET /api/engagement/recipes': (_) => (200, {'from': '2026-09-14', 'to': '2026-10-13', 'sort': 'clicks', 'list': [
+            {'item_id': '7', 'name': 'Brownie', 'views': 30, 'clicks': 12, 'adds': 8, 'orders': 3, 'revenue': 90.0, 'click_rate_pct': 40.0, 'order_rate_pct': 25.0},
+          ]}),
+      'GET /api/engagement/pages': (_) => (200, {'list': [{'route': '/cardapio', 'views': 70, 'sessions': 30}]}),
+      'GET /api/engagement/sources': (_) => (200, {'referrers': [{'kind': 'instagram', 'sessions': 25}], 'platforms': [{'platform': 'site', 'sessions': 40}]}),
+    };
+
+    testWidgets('mostra resumo, funil, receitas, páginas e origens do servidor; trocar o período e a plataforma consulta de novo', (t) async {
+      final be = FakeBackend(routes);
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/engajamento', session: s);
+      expect(find.text('Visitas'), findsOneWidget);
+      expect(find.text('40'), findsWidgets);
+      expect(find.textContaining('Onde mais param: depois de "Chegou ao pagamento"'), findsOneWidget);
+      expect(find.text('2. Pedido feito'), findsOneWidget);
+      await t.scrollUntilVisible(find.text('Brownie'), 300, scrollable: find.byType(Scrollable).last);
+      expect(find.textContaining('12 cliques (40%)'), findsOneWidget);
+      await t.scrollUntilVisible(find.text('/cardapio'), 300, scrollable: find.byType(Scrollable).last);
+      await t.scrollUntilVisible(find.text('Instagram'), 300, scrollable: find.byType(Scrollable).last);
+      expect(find.text('Site'), findsWidgets);
+
+      final before = be.calls.where((c) => c.startsWith('GET /api/engagement/overview')).length;
+      await t.tap(find.text('Últimos 7 dias'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('App Android'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      final overviews = be.calls.where((c) => c.startsWith('GET /api/engagement/overview')).toList();
+      expect(overviews.length, before + 2);
+      expect(overviews.last, contains('platform=android'));
+    });
+
+    testWidgets('sem dados no período mostra o aviso', (t) async {
+      final empty = {'sessions': 0, 'page_views': 0, 'orders': 0, 'paid_orders': 0, 'revenue': 0, 'conversion_pct': 0};
+      final be = FakeBackend({
+        ...routes,
+        'GET /api/engagement/overview': (_) => (200, {'from': 'a', 'to': 'b', 'platform': null, 'current': empty, 'previous': empty}),
+        'GET /api/engagement/funnel': (_) => (200, {'steps': [], 'biggest_drop': null}),
+        'GET /api/engagement/recipes': (_) => (200, {'list': []}),
+        'GET /api/engagement/pages': (_) => (200, {'list': []}),
+        'GET /api/engagement/sources': (_) => (200, {'referrers': [], 'platforms': []}),
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/engajamento', session: s);
+      expect(find.text('Ainda sem dados neste período'), findsOneWidget);
+    });
+  });
 }

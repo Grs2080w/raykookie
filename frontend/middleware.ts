@@ -10,7 +10,7 @@ const SITE_HOST = new URL(SITE_URL).host;
 
 /** Primeiro segmento das rotas do painel: o grupo (app) mais o login e o cadastro do (auth). */
 const GESTAO_ROUTES = new Set([
-  'dashboard', 'categorias', 'configuracoes', 'devolucoes', 'enderecos', 'estoque', 'feedback', 'fornecedores',
+  'dashboard', 'categorias', 'configuracoes', 'devolucoes', 'enderecos', 'engajamento', 'estoque', 'feedback', 'fornecedores',
   'metas', 'pedidos', 'receitas', 'solicitacoes-privacidade', 'login', 'register',
 ]);
 
