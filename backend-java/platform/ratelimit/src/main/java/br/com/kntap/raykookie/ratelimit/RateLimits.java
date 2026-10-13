@@ -32,6 +32,9 @@ public final class RateLimits {
     /** Pix gerados, por cliente (G11). */
     public static final RateLimit PIX_CREATE = new RateLimit("pix-create", 20, Duration.ofHours(1));
 
+    /** Lotes de medição de engajamento, por IP (o IP só conta aqui; não é gravado com o evento). */
+    public static final RateLimit ENGAGEMENT_INGEST = new RateLimit("engagement-ingest", 120, Duration.ofMinutes(10));
+
     /** A maior janela entre os limites: a limpeza diária apaga só o que é mais velho que isso. */
     public static final Duration LONGEST_WINDOW = Duration.ofHours(24);
 
