@@ -9,7 +9,7 @@ import { AcceptedBrands } from '@/components/site/AcceptedBrands';
 import type { CardBrand } from '@/lib/payment-config';
 
 // Tipos mínimos do SDK do Mercado Pago (carregado via <script>, não é um pacote npm — ver loadMp()).
-type MpField = { on: (event: 'binChange', cb: (d: { bin: string }) => void) => void; mount: (el: HTMLElement) => MpField };
+type MpField = { on: (event: 'binChange', cb: (d: { bin: string }) => void) => void; mount: (containerId: string) => MpField };
 type MpPayerCost = { installments: number; installment_rate: number; installment_amount: number };
 type Mp = {
   fields: {
@@ -42,7 +42,12 @@ const fieldStyle = {
   },
 };
 
-export type CardFieldsResult = { card_token: string; card_payment_method_id: string; card_payment_type_id?: string; cpf: string; installments: number };
+// O MercadoPago.js monta cada campo pelo ID do contêiner (receber o elemento dá "Container not found").
+const NUMBER_ID = 'mp-card-number';
+const DATE_ID = 'mp-card-date';
+const CVV_ID = 'mp-card-cvv';
+
+export type CardFieldsResult ={ card_token: string; card_payment_method_id: string; card_payment_type_id?: string; cpf: string; installments: number };
 export type CardFieldsHandle = { tokenize: () => Promise<CardFieldsResult | null> };
 
 /** Formulário de cartão com a nossa cara: só número, validade e CVV são campos do Mercado Pago (iframes
@@ -69,9 +74,9 @@ export const CardFields = forwardRef<CardFieldsHandle, { publicKey: string; amou
       if (cancelled || !window.MercadoPago || !numberRef.current || !dateRef.current || !cvvRef.current) return;
       const mp = new window.MercadoPago(publicKey, { locale: 'pt-BR' });
       mpRef.current = mp;
-      const cardNumber = mp.fields.create('cardNumber', { ...fieldStyle, placeholder: 'Número do cartão' }).mount(numberRef.current);
-      mp.fields.create('expirationDate', { ...fieldStyle, placeholder: 'MM/AA' }).mount(dateRef.current);
-      mp.fields.create('securityCode', { ...fieldStyle, placeholder: 'CVV' }).mount(cvvRef.current);
+      const cardNumber = mp.fields.create('cardNumber', { ...fieldStyle, placeholder: 'Número do cartão' }).mount(NUMBER_ID);
+      mp.fields.create('expirationDate', { ...fieldStyle, placeholder: 'MM/AA' }).mount(DATE_ID);
+      mp.fields.create('securityCode', { ...fieldStyle, placeholder: 'CVV' }).mount(CVV_ID);
       cardNumber.on('binChange', async ({ bin }) => {
         if (!bin) { setPaymentMethodId(''); setPaymentTypeId(''); setOptions([]); return; }
         // getPaymentMethods({bin}) NÃO filtra de verdade pelo bin (confirmado contra a API real) — quem
@@ -112,10 +117,10 @@ export const CardFields = forwardRef<CardFieldsHandle, { publicKey: string; amou
   return (
     <div className="flex flex-col gap-4">
       <AcceptedBrands brands={brands} />
-      <Field label="Número do cartão">{() => <div ref={numberRef} className="h-11 rounded-xl border border-line bg-surface px-3.5 py-2.5" />}</Field>
+      <Field label="Número do cartão">{() => <div id={NUMBER_ID} ref={numberRef} className="h-11 rounded-xl border border-line bg-surface px-3.5 py-2.5" />}</Field>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Validade">{() => <div ref={dateRef} className="h-11 rounded-xl border border-line bg-surface px-3.5 py-2.5" />}</Field>
-        <Field label="CVV">{() => <div ref={cvvRef} className="h-11 rounded-xl border border-line bg-surface px-3.5 py-2.5" />}</Field>
+        <Field label="Validade">{() => <div id={DATE_ID} ref={dateRef} className="h-11 rounded-xl border border-line bg-surface px-3.5 py-2.5" />}</Field>
+        <Field label="CVV">{() => <div id={CVV_ID} ref={cvvRef} className="h-11 rounded-xl border border-line bg-surface px-3.5 py-2.5" />}</Field>
       </div>
       <Field label="Nome impresso no cartão">{(id) => <Input id={id} autoComplete="cc-name" maxLength={60} value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} />}</Field>
       <Field label="CPF" hint="Exigido pelo Mercado Pago para pagar com cartão. Não guardamos esse número.">
