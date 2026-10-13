@@ -53,10 +53,14 @@ public class PaymentSettings {
             @Value("${rayka.pix-expires-minutes:60}") int pixMinutes,
             @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl,
             @Value("${rayka.pay-link-payer-email:}") String payerEmail) {
+
+        // ── 1. Mercado Pago: token e segredos das notificações (produção e teste).
         this.accessToken = accessToken;
         this.webhookSecret = webhookSecret;
         this.webhookTestSecret = webhookTestSecret;
         this.webhookMaxSkew = webhookMaxSkew;
+
+        // ── 2. Pix, site e e-mail do pagador do link.
         this.pixValidity = Duration.ofMinutes(Math.min(Math.max(pixMinutes, 31), 30 * 24 * 60));
         this.siteUrl = siteUrl.replaceAll("/+$", "");
         this.payerEmail = payerEmail;
