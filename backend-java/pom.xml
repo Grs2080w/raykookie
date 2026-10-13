@@ -49,6 +49,7 @@
         <archunit.version>1.5.1</archunit.version>
         <javaparser.version>3.28.2</javaparser.version>
         <wiremock.version>3.13.2</wiremock.version>
+        <mercadopago-sdk.version>3.7.0</mercadopago-sdk.version>
         <rest-assured.version>6.0.1</rest-assured.version>
         <jqwik.version>1.10.1</jqwik.version>
         <pitest.version>1.30.0</pitest.version>
@@ -118,6 +119,12 @@
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <!-- SDK oficial do Mercado Pago para Java (API Orders). -->
+                <groupId>com.mercadopago</groupId>
+                <artifactId>sdk-java</artifactId>
+                <version>${mercadopago-sdk.version}</version>
             </dependency>
             <dependency>
                 <!-- Versão "standalone": traz Jetty e Jackson próprios, sem colidir com os do Spring Boot 4. -->
