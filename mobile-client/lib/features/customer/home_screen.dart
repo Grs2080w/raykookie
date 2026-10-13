@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:raykookie_common/core/analytics.dart';
 import 'package:raykookie_common/core/api_client.dart';
 import 'package:raykookie_common/core/config.dart';
 import 'package:raykookie_common/core/format.dart';
@@ -12,6 +13,7 @@ import 'package:raykookie_common/core/shop_rules.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/app_update.dart';
 import 'package:raykookie_common/ui/menu_extras.dart';
+import 'package:raykookie_common/ui/seen_once.dart';
 import 'package:raykookie_common/ui/legal.dart';
 import 'package:raykookie_common/ui/share_menu.dart';
 import 'package:raykookie_common/ui/widgets.dart';
@@ -577,7 +579,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _menuTile(BuildContext context, MenuItem m) {
+  /// Cartão de um item do cardápio. Na medição anônima conta "visto" quando metade dele aparece na tela.
+  Widget _menuTile(BuildContext context, MenuItem m) => SeenOnce(
+        key: ValueKey('seen-${m.id}'),
+        onSeen: () => Analytics.instance.track('menu_item_view', itemId: m.id, detail: 'home_app'),
+        child: _menuTileBody(context, m),
+      );
+
+  Widget _menuTileBody(BuildContext context, MenuItem m) {
     final c = context.c;
     final api = context.read<Session>().customerApi;
     return Container(
@@ -653,7 +662,10 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => context.push('/cliente/pedidos/novo?item=${m.id}'),
+                onTap: () {
+                  Analytics.instance.track('menu_item_click', itemId: m.id, detail: 'home_app');
+                  context.push('/cliente/pedidos/novo?item=${m.id}');
+                },
                 child: SizedBox(
                   width: 48,
                   height: 48,

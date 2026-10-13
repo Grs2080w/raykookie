@@ -13,6 +13,8 @@ import { withChallenge, type CardResult } from '@/lib/card-flow';
 import { Button, Card, Field, Input, NumberInput, Select, Textarea } from '@/components/ui/form';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/client';
+import { track } from '@/lib/track';
+import { couponReason } from '@shared/engagement';
 import type { Customer, Menu } from '@shared/types';
 import { money } from '@/lib/format';
 import {
@@ -22,9 +24,9 @@ import {
 import { addDays } from '@shared/text';
 import { weightLabel } from '@shared/shop';
 
-function Section({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
+function Section({ n, title, hint, onTouch, children }: { n: number; title: string; hint?: string; onTouch?: () => void; children: React.ReactNode }) {
   return (
-    <section className="mt-7">
+    <section className="mt-7" onFocusCapture={onTouch}>
       <h2 className="flex items-center gap-2.5 font-display text-xl font-semibold"><span className="grid size-7 place-items-center rounded-full bg-pink text-sm font-bold text-on-pink">{n}</span>{title}</h2>
       {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
       <div className="mt-3">{children}</div>
@@ -59,6 +61,18 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
   const cardCfg = usePaymentConfig();
   const threeDs = useThreeDs();
   const cardRef = useRef<CardFieldsHandle>(null);
+  // medição anônima: o formulário é de uma página só, então "chegou ao passo" = mexeu naquela parte pela primeira vez
+  const touched = useRef(new Set<string>());
+  const touch = (stepName: 'data' | 'delivery' | 'payment' | 'extras') => {
+    if (touched.current.has(stepName)) return;
+    touched.current.add(stepName);
+    track('checkout_step', { detail: stepName });
+  };
+  useEffect(() => {
+    track('checkout_step', { detail: 'items' });
+    if (initialItem && menu.items.some((m) => m.id === initialItem)) track('cart_add', { item_id: initialItem, qty: 1 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir o formulário
+  }, []);
   const paymentMethods = PAYMENT_METHODS.filter((p) => p.id !== 'cartao' || cardCfg?.cardEnabled);
 
   const lines = Object.entries(qty).filter(([, n]) => n > 0).map(([id, n]) => ({ id, qty: n }));
@@ -75,13 +89,15 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
     setCouponBusy(true);
     try {
       setCoupon(await api('/api/cliente/cupom', 'POST', { code: couponInput.trim(), items: lines }));
+      track('coupon_attempt', { detail: 'ok' });
       toast.ok('Cupom aplicado');
-    } catch (err: any) { setCoupon(null); toast.error(err.message); }
+    } catch (err: any) { setCoupon(null); track('coupon_attempt', { detail: couponReason(String(err.message)) }); toast.error(err.message); }
     finally { setCouponBusy(false); }
   }
 
   function step(id: string, d: number) {
     setCoupon(null);
+    if (d < 0 || (qty[id] ?? 0) + d <= MAX_QTY) track(d > 0 ? 'cart_add' : 'cart_remove', { item_id: id, qty: 1 });
     setQty((q) => {
       const next = (q[id] ?? 0) + d;
       if (next > MAX_QTY) { toast.warn(`Para mais de ${MAX_QTY} unidades do mesmo item, fale com a gente pelo WhatsApp.`); return q; }
@@ -118,15 +134,18 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
       body = { ...body, card_token: t.card_token, card_payment_method_id: t.card_payment_method_id, card_payment_type_id: t.card_payment_type_id, cpf: t.cpf, installments: t.installments };
     }
     const check = parseShopOrder(body, addDays(minDate, -LEAD_DAYS), menu.items);
-    if (check.error) { toast.error(check.error); return; }
+    if (check.error) { track('checkout_submit', { detail: 'validation' }); toast.error(check.error); return; }
     setBusy(true);
     try {
       const r = await api<{ id: number; card: CardResult | null }>('/api/cliente/pedidos', 'POST', body);
       // o banco pode pedir a confirmação do cartão (3DS): mostra aqui mesmo e confere o resultado sem cobrar de novo
+      track('checkout_submit', { detail: 'ok' });
+      track('order_placed', { detail: f.payment_method });
       const card = r.card ? await withChallenge(r.card, `/api/cliente/pedidos/${r.id}/cartao`, threeDs.run) : null;
-      if (card && !card.approved && !card.pending) toast.error(card.reason ?? 'Pagamento recusado. Tente outro cartão no pedido.');
+      if (r.card?.challenge_url && card) track('card_3ds', { detail: card.approved || card.pending ? 'authenticated' : 'failed' });
+      if (card && !card.approved && !card.pending) { track('checkout_submit', { detail: 'card_refused' }); toast.error(card.reason ?? 'Pagamento recusado. Tente outro cartão no pedido.'); }
       router.replace(`/cliente/pedidos?novo=${r.id}`); router.refresh();
-    } catch (err: any) { toast.error(err.message); setBusy(false); }
+    } catch (err: any) { track('checkout_submit', { detail: err instanceof TypeError ? 'network' : 'other' }); toast.error(err.message); setBusy(false); }
   }
 
   if (menu.items.length === 0) return <EmptyState icon={<UtensilsCrossed size={26} />} title="Cardápio em preparação" text="Ainda não há itens disponíveis para encomenda. Volte em breve!" />;
@@ -168,7 +187,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         ))}
       </Section>
 
-      <Section n={2} title="Seus dados" hint="O acompanhamento do pedido é feito pelo app. Usamos o telefone só se precisarmos falar com você.">
+      <Section n={2} title="Seus dados" onTouch={() => touch('data')} hint="O acompanhamento do pedido é feito pelo app. Usamos o telefone só se precisarmos falar com você.">
         <Card className="flex flex-col gap-4 p-4">
           <Field label="Nome completo">{(id) => <Input id={id} autoComplete="name" maxLength={80} value={f.contact_name} onChange={(e) => set({ contact_name: e.target.value })} />}</Field>
           <Field label="Telefone com WhatsApp" hint="Com DDD. Só usamos se for necessário.">{(id) => <Input id={id} type="tel" inputMode="tel" autoComplete="tel-national" maxLength={15} placeholder="(11) 91234-5678" value={f.phone} onChange={(e) => onPhone(e.target.value)} />}</Field>
@@ -176,7 +195,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         </Card>
       </Section>
 
-      <Section n={3} title="Como você quer receber?">
+      <Section n={3} title="Como você quer receber?" onTouch={() => touch('delivery')}>
         <div className="grid gap-2.5 sm:grid-cols-2">
           {FULFILLMENT.map((o) => <Choice key={o.id} name="fulfillment" value={o.id} checked={f.fulfillment === o.id} onChange={() => set({ fulfillment: o.id })} title={o.label} hint={o.hint} />)}
         </div>
@@ -215,9 +234,9 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         </Card>
       </Section>
 
-      <Section n={4} title="Forma de pagamento" hint="O pagamento é combinado na confirmação do pedido.">
+      <Section n={4} title="Forma de pagamento" onTouch={() => touch('payment')} hint="O pagamento é combinado na confirmação do pedido.">
         <div className="grid gap-2.5 sm:grid-cols-3">
-          {paymentMethods.map((o) => <Choice key={o.id} name="payment" value={o.id} checked={f.payment_method === o.id} onChange={() => set({ payment_method: o.id })} title={o.label} hint={o.hint} />)}
+          {paymentMethods.map((o) => <Choice key={o.id} name="payment" value={o.id} checked={f.payment_method === o.id} onChange={() => { set({ payment_method: o.id }); touch('payment'); track('payment_method_select', { detail: o.id }); }} title={o.label} hint={o.hint} />)}
         </div>
         {f.payment_method === 'cartao' && cardCfg?.publicKey && (
           <Card className="mt-3 p-4"><CardFields ref={cardRef} publicKey={cardCfg.publicKey} amount={payable} brands={cardCfg.brands} /></Card>
@@ -231,7 +250,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
         )}
       </Section>
 
-      <Section n={5} title="Algo mais?">
+      <Section n={5} title="Algo mais?" onTouch={() => touch('extras')}>
         <Field label="Observações (opcional)" hint="Sabor, decoração, alergias, recado no bolo, ponto de referência…">
           {(id) => <Textarea id={id} maxLength={300} value={f.notes} onChange={(e) => set({ notes: e.target.value })} />}
         </Field>

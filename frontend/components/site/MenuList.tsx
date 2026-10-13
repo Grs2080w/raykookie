@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Photo } from '@/components/site/Photo';
+import { TrackedItem } from '@/components/site/TrackedItem';
 import { money } from '@/lib/format';
 import { photoKind, weightLabel } from '@shared/shop';
 import { menuTagLabel } from '@shared/menu-tags';
@@ -25,7 +26,7 @@ export function MenuList({ menu, from }: { menu: Menu; from: 'cardapio' | 'home'
           {menu.groups.length > 1 && <h3 className="font-display text-2xl font-semibold">{g.name}</h3>}
           <ul className="mt-4 grid gap-3 md:grid-cols-2">
             {g.items.map((m) => (
-              <li key={m.id} className="flex items-center gap-3.5 rounded-3xl border border-line bg-white p-3 shadow-card">
+              <TrackedItem key={m.id} itemId={m.id} surface={from === 'home' ? 'landing' : 'cardapio'} className="flex items-center gap-3.5 rounded-3xl border border-line bg-white p-3 shadow-card">
                 <Photo kind={photoKind(m)} src={m.image} label={m.name} className="size-24 shrink-0 sm:size-28" rounded="rounded-2xl" />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <p className="text-lg font-bold leading-snug">{m.name}</p>
@@ -46,10 +47,10 @@ export function MenuList({ menu, from }: { menu: Menu; from: 'cardapio' | 'home'
                   {!!m.ingredients?.length && <p className="-mt-1 text-sm text-muted">Ingredientes: {m.ingredients.join(', ')}</p>}
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-display text-2xl font-semibold tnum">{money(m.price)}</p>
-                    <Link href={`/cliente/pedidos/novo?item=${encodeURIComponent(m.id)}&from=${from}`} className="inline-flex min-h-11 items-center rounded-xl bg-pink-tint px-4 text-sm font-bold text-pink-strong hover:brightness-95" aria-label={`Pedir ${m.name}`}>Pedir</Link>
+                    <Link href={`/cliente/pedidos/novo?item=${encodeURIComponent(m.id)}&from=${from}`} data-track-click className="inline-flex min-h-11 items-center rounded-xl bg-pink-tint px-4 text-sm font-bold text-pink-strong hover:brightness-95" aria-label={`Pedir ${m.name}`}>Pedir</Link>
                   </div>
                 </div>
-              </li>
+              </TrackedItem>
             ))}
           </ul>
         </div>
