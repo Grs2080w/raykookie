@@ -12,7 +12,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
@@ -73,7 +72,7 @@ public class MercadoPagoCardBrands implements CardBrands {
         // ── 2. Lê de novo; se falhar, segue com a última boa e tenta outra vez na próxima chamada depois de um
         //       minuto (para não martelar o Mercado Pago).
         try {
-            cached = parse(http.call(HttpMethod.GET, "/v1/payment_methods", null, null, Map.of()));
+            cached = parse(http.call((sdk, options) -> sdk.paymentMethods().list(options), null, Map.of()));
             loadedAt = Instant.now();
         } catch (GatewayException e) {
             LOG.warn("Não consegui ler os meios de pagamento do Mercado Pago ({}); mantendo a última lista",

@@ -44,6 +44,9 @@ rayka:
     access-token: ${MP_ACCESS_TOKEN:}
     public-key: ${MP_PUBLIC_KEY:}
     webhook-secret: ${MP_WEBHOOK_SECRET:}
+    # Segredo do modo de TESTE do webhook (painel do Mercado Pago, aba de teste). Opcional: com ele, notificações de
+    # pedidos de teste (live_mode false) são confirmadas com 200 e nunca tocam nos pedidos reais.
+    webhook-secret-test: ${MP_WEBHOOK_SECRET_TEST:}
     api-base: ${MP_API_BASE:https://api.mercadopago.com}
     # payments = API Payments (padrão); orders = API Orders (ids ORD…). Pagamentos antigos seguem funcionando.
     api: ${MP_API:payments}

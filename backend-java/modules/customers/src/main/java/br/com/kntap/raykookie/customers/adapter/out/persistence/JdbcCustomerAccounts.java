@@ -8,6 +8,7 @@ import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.persistence.NodeRows;
+import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -279,10 +280,11 @@ public class JdbcCustomerAccounts implements CustomerAccounts, CustomersApi {
     /** {@inheritDoc} */
     @Override
     public Optional<CustomerSummary> summary(CustomerId id) {
-        return jdbc.sql("SELECT id, email, name, phone, guest FROM customers WHERE id = :id")
+        return jdbc.sql("SELECT id, email, name, phone, guest, created_at FROM customers WHERE id = :id")
                 .param("id", id.value())
                 .query((rs, row) -> new CustomerSummary(id, rs.getString("email"), rs.getString("name"),
-                        rs.getString("phone"), rs.getBoolean("guest")))
+                        rs.getString("phone"), rs.getBoolean("guest"),
+                        rs.getObject("created_at", OffsetDateTime.class).toInstant()))
                 .optional();
     }
 

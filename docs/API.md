@@ -60,6 +60,12 @@ para a API). A assinatura (`x-signature`) é conferida com `MP_WEBHOOK_SECRET`, 
 produção** do aplicativo (o painel tem um segredo para o modo de teste e outro para produção; gerar um novo invalida o
 anterior). Assinatura errada responde 401 e deixa um aviso no log.
 
+`MP_WEBHOOK_SECRET_TEST` (opcional) é a assinatura secreta da aba de **modo de teste** do painel. Pedidos de teste
+(`ORDTST…`) notificam a mesma URL assinados com esse segredo; com ele configurado, essas notificações recebem 200
+(`{"ok":true,"test":true}`) sem consultar o Mercado Pago nem tocar em pedido real. Sem a variável, são recusadas com 401.
+Um `data.id` que o Mercado Pago não conhece (o botão **Simular** do painel) também recebe 200 (`ignored`), porque repetir
+não adianta. Como toda variável do `backend/.env.docker`, só vale depois de recriar o container.
+
 | Evento (`type`) | O que o sistema faz |
 |---|---|
 | `payment` | consulta o pagamento no Mercado Pago e, se aprovado, marca o pedido como pago (valor e dono conferidos) |

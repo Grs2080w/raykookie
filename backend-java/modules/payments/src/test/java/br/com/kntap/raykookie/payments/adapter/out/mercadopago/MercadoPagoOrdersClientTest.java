@@ -129,6 +129,28 @@ class MercadoPagoOrdersClientTest {
     }
 
     /**
+     * A data de cadastro do cliente segue em {@code additional_info.payer.registration_date}.
+     */
+    @Test
+    @DisplayName("cartão: a data de cadastro vai em additional_info como chave pontuada (a API Orders recusa o aninhado)")
+    void registrationDate() {
+        MP.stubFor(post(urlEqualTo("/v1/orders")).willReturn(json(201, """
+                {"id":"ORDTST02","external_reference":"36","total_amount":"10.00","status":"processed",
+                 "transactions":{"payments":[{"id":"PAY3","amount":"10.00","status":"processed",
+                 "status_detail":"accredited","payment_method":{"id":"master","type":"credit_card"}}]}}""")));
+        PaymentGateway.CardCharge base = card("master", null);
+        PaymentGateway.Buyer buyer = new PaymentGateway.Buyer("Souza", null, "dev-1", null,
+                Instant.parse("2026-03-04T10:15:30Z"));
+
+        client.createCard(new PaymentGateway.CardCharge(base.reference(), base.idempotencyKey(), base.amount(),
+                base.description(), base.token(), base.installments(), base.methodId(), null, base.email(),
+                base.firstName(), base.cpf(), buyer, null));
+
+        MP.verify(postRequestedFor(urlEqualTo("/v1/orders")).withRequestBody(equalToJson("""
+                {"additional_info":{"payer.registration_date":"2026-03-04T10:15:30Z"}}""", true, true)));
+    }
+
+    /**
      * Cartão de crédito aprovado, com o 3DS ligado no pedido.
      */
     @Test

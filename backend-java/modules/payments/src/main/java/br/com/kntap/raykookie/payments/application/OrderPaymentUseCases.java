@@ -5,6 +5,7 @@ import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.kernel.NotFoundException;
 import br.com.kntap.raykookie.kernel.TooManyRequestsException;
+import br.com.kntap.raykookie.customers.api.CustomersApi;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
 import br.com.kntap.raykookie.orders.api.ports.ChargeStarter;
 import br.com.kntap.raykookie.payments.application.ports.OrderCharges;
@@ -46,17 +47,22 @@ public class OrderPaymentUseCases implements ChargeStarter {
     /** Configuração. */
     private final PaymentSettings settings;
 
+    /** Clientes (data de cadastro, para o antifraude do Mercado Pago). */
+    private final CustomersApi customers;
+
     /**
      * Cria os casos de uso.
      *
-     * @param pix      Pix
-     * @param card     cartão
-     * @param confirm  confirmação única
-     * @param charges  colunas de cobrança
-     * @param settings configuração
+     * @param pix       Pix
+     * @param card      cartão
+     * @param confirm   confirmação única
+     * @param charges   colunas de cobrança
+     * @param settings  configuração
+     * @param customers clientes
      */
     public OrderPaymentUseCases(PixUseCases pix, CardChargeUseCase card, ConfirmPaymentUseCase confirm,
-            OrderCharges charges, PaymentSettings settings) {
+            OrderCharges charges, PaymentSettings settings, CustomersApi customers) {
+        this.customers = customers;
         this.pix = pix;
         this.card = card;
         this.confirm = confirm;
@@ -172,7 +178,9 @@ public class OrderPaymentUseCases implements ChargeStarter {
         PaymentGateway.CardCharge charge = new PaymentGateway.CardCharge(String.valueOf(orderId), "", total,
                 "Pedido #" + code + " - Raykookie", data.token(), data.installments(), data.methodId(),
                 data.issuerId(), email, PixUseCases.firstName(name), data.cpf(),
-                new PaymentGateway.Buyer(PixUseCases.lastName(name), phone, data.deviceId(), clientIp), data.typeId());
+                new PaymentGateway.Buyer(PixUseCases.lastName(name), phone, data.deviceId(), clientIp,
+                        customers.byId(customer).map(CustomersApi.CustomerSummary::registeredAt).orElse(null)),
+                data.typeId());
         PaymentAttempts.Attempt attempt = new PaymentAttempts.Attempt(UUID.randomUUID(), orderId, null,
                 customer.value(), clientIp);
         return card.charge(charge, attempt, pay -> {

@@ -5,6 +5,11 @@ ficou sem confirmar está marcado.
 
 ## O que mudou no sistema
 
+- **SDK oficial (`com.mercadopago:sdk-java` 3.7.0).** Toda chamada à API Orders (criar, consultar, cancelar,
+  devolver, buscar) e a lista de meios de pagamento passam pelo `OrderClient`/`PaymentMethodClient` do SDK, ligados em
+  `MercadoPagoHttp`. Era o item "SDK do backend" do relatório de qualidade (nota 75/100). O SDK só fala HTTPS; um
+  `MP_API_BASE` em `http://` (Mercado Pago falso de teste) usa um cliente Apache comum, e qualquer `MP_API_BASE`
+  substitui o endereço fixo do SDK.
 - **`MercadoPagoOrdersClient`** (`backend-java/modules/payments/.../adapter/out/mercadopago/`): Pix, cartão (crédito,
   débito, pré-pago), 3DS, consulta, cancelamento, devolução total e parcial, e busca por `external_reference`.
 - **`RoutingPaymentGateway`**: cobranças novas vão para a API de `MP_API` (`payments` padrão, `orders`); o resto segue

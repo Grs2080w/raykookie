@@ -2,6 +2,7 @@ package br.com.kntap.raykookie.payments.application;
 
 import br.com.kntap.raykookie.observability.OpsAlert;
 import br.com.kntap.raykookie.orders.api.OrdersApi;
+import br.com.kntap.raykookie.payments.api.GatewayException;
 import br.com.kntap.raykookie.payments.api.ports.RefundRequester;
 import br.com.kntap.raykookie.payments.application.ports.OrderCharges;
 import br.com.kntap.raykookie.payments.application.ports.PaymentGateway;
@@ -120,7 +121,13 @@ public class WebhookUseCase {
         if (settings.webhookSecret().isEmpty() || !settings.configured()) {
             return new Reply(503, Map.of("error", "Webhook não configurado"));
         }
-        if (!signed(n)) {
+        if (!signed(n, settings.webhookSecret())) {
+            // Pedidos de teste notificam a mesma URL, assinados com o segredo do modo de teste: confirma sem tratar.
+            if (!settings.webhookTestSecret().isEmpty() && signed(n, settings.webhookTestSecret())) {
+                LOG.info("Notificação de teste do Mercado Pago confirmada, sem tratamento (tipo {}, id {})", n.type(),
+                        n.dataId());
+                return new Reply(200, Map.of("ok", true, "test", true));
+            }
             LOG.warn("Notificação do Mercado Pago recusada: assinatura inválida (tipo {}, request-id {}). "
                     + "Confira se MP_WEBHOOK_SECRET é o segredo de produção do aplicativo.", n.type(), n.requestId());
             return new Reply(401, Map.of("error", "Assinatura inválida"));
@@ -159,6 +166,16 @@ public class WebhookUseCase {
                 deliveries.remember(n.requestId(), subject);
             }
             return new Reply(200, body);
+        } catch (GatewayException e) {
+            // O Mercado Pago diz que o id não existe (ou não é válido): repetir não adianta, então confirma o
+            // recebimento. É o caso do "Simular" do painel e dos pedidos de teste, que a conta de produção não vê.
+            if (e.status() == 404 || e.status() == 400) {
+                LOG.info("Notificação {} de '{}' ignorada: o Mercado Pago não conhece o id (HTTP {})", n.type(),
+                        subject, e.status());
+                return new Reply(200, Map.of("ok", true, "ignored", true, "reason", "not_found"));
+            }
+            LOG.error("Falha ao processar a notificação {} do pagamento {}", n.type(), subject, e);
+            return new Reply(500, Map.of("error", "Falha ao processar"));
         } catch (RuntimeException e) {
             LOG.error("Falha ao processar a notificação {} do pagamento {}", n.type(), subject, e);
             return new Reply(500, Map.of("error", "Falha ao processar"));
@@ -170,14 +187,15 @@ public class WebhookUseCase {
      * ele (ou com o pedido do comerciante) no lugar de {@code data.id}; aceita qualquer um desses, desde que o HMAC
      * com o segredo bata.
      *
-     * @param n a notificação
+     * @param n      a notificação
+     * @param secret segredo da aplicação (produção ou teste)
      * @return {@code true} se a assinatura é válida e recente
      */
-    private boolean signed(Notification n) {
+    private boolean signed(Notification n, String secret) {
         List<String> ids = FRAUD.equals(n.type())
                 ? List.of(n.dataId(), n.paymentId(), n.data().getOrDefault("merchant_order", ""))
                 : List.of(n.dataId());
-        return ids.stream().anyMatch(id -> WebhookSignature.valid(settings.webhookSecret(), id, n.signature(),
+        return ids.stream().anyMatch(id -> WebhookSignature.valid(secret, id, n.signature(),
                 n.requestId(), clock.instant(), settings.webhookMaxSkew()));
     }
 
