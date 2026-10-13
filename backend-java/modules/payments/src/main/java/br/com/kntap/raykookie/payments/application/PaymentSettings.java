@@ -3,6 +3,7 @@ package br.com.kntap.raykookie.payments.application;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Locale;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,9 @@ public class PaymentSettings {
 
     /** Segredo das notificações. */
     private final String webhookSecret;
+
+    /** Segredo das notificações do modo de teste (vazio = não aceita notificações de teste). */
+    private final String webhookTestSecret;
 
     /** Distância máxima do {@code ts} da notificação (G18). */
     private final Duration webhookMaxSkew;
@@ -35,23 +39,42 @@ public class PaymentSettings {
      *
      * @param accessToken    {@code MP_ACCESS_TOKEN}
      * @param webhookSecret  {@code MP_WEBHOOK_SECRET}
+     * @param webhookTestSecret {@code MP_WEBHOOK_SECRET_TEST}
      * @param webhookMaxSkew {@code MP_WEBHOOK_MAX_SKEW}
      * @param pixMinutes     {@code PIX_EXPIRES_MINUTES}
      * @param siteUrl        {@code SITE_URL}
      * @param payerEmail     {@code PAY_LINK_PAYER_EMAIL}
      */
+    @Autowired
     public PaymentSettings(@Value("${rayka.mp.access-token:}") String accessToken,
             @Value("${rayka.mp.webhook-secret:}") String webhookSecret,
+            @Value("${rayka.mp.webhook-secret-test:}") String webhookTestSecret,
             @Value("${rayka.mp.webhook-max-skew:10m}") Duration webhookMaxSkew,
             @Value("${rayka.pix-expires-minutes:60}") int pixMinutes,
             @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl,
             @Value("${rayka.pay-link-payer-email:}") String payerEmail) {
         this.accessToken = accessToken;
         this.webhookSecret = webhookSecret;
+        this.webhookTestSecret = webhookTestSecret;
         this.webhookMaxSkew = webhookMaxSkew;
         this.pixValidity = Duration.ofMinutes(Math.min(Math.max(pixMinutes, 31), 30 * 24 * 60));
         this.siteUrl = siteUrl.replaceAll("/+$", "");
         this.payerEmail = payerEmail;
+    }
+
+    /**
+     * Configuração sem o segredo do modo de teste.
+     *
+     * @param accessToken    {@code MP_ACCESS_TOKEN}
+     * @param webhookSecret  {@code MP_WEBHOOK_SECRET}
+     * @param webhookMaxSkew {@code MP_WEBHOOK_MAX_SKEW}
+     * @param pixMinutes     {@code PIX_EXPIRES_MINUTES}
+     * @param siteUrl        {@code SITE_URL}
+     * @param payerEmail     {@code PAY_LINK_PAYER_EMAIL}
+     */
+    public PaymentSettings(String accessToken, String webhookSecret, Duration webhookMaxSkew, int pixMinutes,
+            String siteUrl, String payerEmail) {
+        this(accessToken, webhookSecret, "", webhookMaxSkew, pixMinutes, siteUrl, payerEmail);
     }
 
     /**
@@ -79,6 +102,15 @@ public class PaymentSettings {
      */
     public String webhookSecret() {
         return webhookSecret;
+    }
+
+    /**
+     * Segredo das notificações do modo de teste.
+     *
+     * @return o segredo (vazio = notificações de teste não são aceitas)
+     */
+    public String webhookTestSecret() {
+        return webhookTestSecret;
     }
 
     /**

@@ -120,6 +120,14 @@ class WebhookAndPixIT extends PaymentsItSupport {
                 + "\"total_amount\":\"1.00\",\"status\":\"processed\",\"status_detail\":\"accredited\"}")));
         assertThat(signedWebhook("ord1", UUID.randomUUID().toString(), mpOrder).jsonPath().getString("status"))
                 .isEqualTo("approved");
+        // notificação do modo de teste (segredo de teste): 200 sem tratar, sem consultar o Mercado Pago nem tocar em pedido
+        Map<String, Object> testOrder = Map.of("type", "order", "live_mode", false, "data", Map.of("id", "ORDTST9"));
+        Response test = signedWebhook(TEST_SECRET, "ordtst9", UUID.randomUUID().toString(), testOrder);
+        assertThat(test.statusCode()).isEqualTo(200);
+        assertThat(test.jsonPath().getBoolean("test")).isTrue();
+        assertThat(signedWebhook("outro-segredo", "ordtst9", UUID.randomUUID().toString(), testOrder).statusCode())
+                .isEqualTo(401);
+
         // id que o Mercado Pago não conhece (o "Simular" do painel, pedido de teste): 200 sem tratar, sem repetir
         MP.stubFor(get(urlEqualTo("/v1/orders/ORDTST404")).willReturn(aResponse().withStatus(404)
                 .withBody("{\"errors\":[{\"code\":\"order_not_found\"}]}")));

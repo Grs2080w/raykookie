@@ -121,7 +121,13 @@ public class WebhookUseCase {
         if (settings.webhookSecret().isEmpty() || !settings.configured()) {
             return new Reply(503, Map.of("error", "Webhook não configurado"));
         }
-        if (!signed(n)) {
+        if (!signed(n, settings.webhookSecret())) {
+            // Pedidos de teste notificam a mesma URL, assinados com o segredo do modo de teste: confirma sem tratar.
+            if (!settings.webhookTestSecret().isEmpty() && signed(n, settings.webhookTestSecret())) {
+                LOG.info("Notificação de teste do Mercado Pago confirmada, sem tratamento (tipo {}, id {})", n.type(),
+                        n.dataId());
+                return new Reply(200, Map.of("ok", true, "test", true));
+            }
             LOG.warn("Notificação do Mercado Pago recusada: assinatura inválida (tipo {}, request-id {}). "
                     + "Confira se MP_WEBHOOK_SECRET é o segredo de produção do aplicativo.", n.type(), n.requestId());
             return new Reply(401, Map.of("error", "Assinatura inválida"));
@@ -181,14 +187,15 @@ public class WebhookUseCase {
      * ele (ou com o pedido do comerciante) no lugar de {@code data.id}; aceita qualquer um desses, desde que o HMAC
      * com o segredo bata.
      *
-     * @param n a notificação
+     * @param n      a notificação
+     * @param secret segredo da aplicação (produção ou teste)
      * @return {@code true} se a assinatura é válida e recente
      */
-    private boolean signed(Notification n) {
+    private boolean signed(Notification n, String secret) {
         List<String> ids = FRAUD.equals(n.type())
                 ? List.of(n.dataId(), n.paymentId(), n.data().getOrDefault("merchant_order", ""))
                 : List.of(n.dataId());
-        return ids.stream().anyMatch(id -> WebhookSignature.valid(settings.webhookSecret(), id, n.signature(),
+        return ids.stream().anyMatch(id -> WebhookSignature.valid(secret, id, n.signature(),
                 n.requestId(), clock.instant(), settings.webhookMaxSkew()));
     }
 

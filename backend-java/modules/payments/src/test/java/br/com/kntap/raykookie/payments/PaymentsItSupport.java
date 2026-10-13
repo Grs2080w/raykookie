@@ -35,7 +35,8 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"rayka.shop-owner=dona", "rayka.jobs-enabled=false", "rayka.mp.access-token=TEST-it",
-            "rayka.mp.webhook-secret=" + PaymentsItSupport.SECRET, "rayka.site-url=https://loja.teste",
+            "rayka.mp.webhook-secret=" + PaymentsItSupport.SECRET,
+            "rayka.mp.webhook-secret-test=" + PaymentsItSupport.TEST_SECRET, "rayka.site-url=https://loja.teste",
             "rayka.mp.review-poll=PT0S",
             "spring.flyway.locations=classpath:db/migration/production,classpath:db/migration/platform,"
                     + "classpath:db/testdata"})
@@ -43,6 +44,9 @@ abstract class PaymentsItSupport extends PostgresTestBase {
 
     /** Segredo do webhook. */
     static final String SECRET = "segredo-it";
+
+    /** Segredo do modo de teste do webhook usado nos testes. */
+    static final String TEST_SECRET = "segredo-teste-it";
 
     /** CPF válido de teste. */
     static final String CPF = "529.982.247-25";
@@ -265,8 +269,21 @@ abstract class PaymentsItSupport extends PostgresTestBase {
      * @return a resposta
      */
     Response signedWebhook(String signedId, String requestId, Map<String, Object> body) {
+        return signedWebhook(SECRET, signedId, requestId, body);
+    }
+
+    /**
+     * Notificação assinada agora com o segredo informado.
+     *
+     * @param secret    segredo da assinatura
+     * @param signedId  id que entra no texto assinado
+     * @param requestId {@code x-request-id}
+     * @param body      corpo da notificação
+     * @return a resposta
+     */
+    Response signedWebhook(String secret, String signedId, String requestId, Map<String, Object> body) {
         long ts = Instant.now().getEpochSecond();
-        String v1 = WebhookSignature.hmac(SECRET, "id:" + signedId + ";request-id:" + requestId + ";ts:" + ts + ";");
+        String v1 = WebhookSignature.hmac(secret, "id:" + signedId + ";request-id:" + requestId + ";ts:" + ts + ";");
         return api().header("x-signature", "ts=" + ts + ",v1=" + v1).header("x-request-id", requestId).body(body)
                 .post("/api/webhooks/mercadopago");
     }
