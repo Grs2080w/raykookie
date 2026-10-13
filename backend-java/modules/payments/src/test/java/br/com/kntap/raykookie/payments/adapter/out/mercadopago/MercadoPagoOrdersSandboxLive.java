@@ -258,6 +258,12 @@ class MercadoPagoOrdersSandboxLive {
         GatewayPayment pay = withThreeDs.createCard(charge(token("4235647728025682", "APRO-CHOK"), "visa",
                 "credit_card"));
         note("3DS (desafio)", pay);
+
+        // Com on_fraud_risk quem decide é o Mercado Pago: aprovar direto (dinheiro do comprador para o vendedor) é
+        // um resultado válido; se ele pedir o desafio, o pedido tem que vir pendente com o endereço.
+        if (pay.approved()) {
+            return;
+        }
         assertThat(pay.status()).isEqualTo("pending");
         assertThat(pay.open()).isTrue();
         assertThat(pay.challengePending()).isTrue();
