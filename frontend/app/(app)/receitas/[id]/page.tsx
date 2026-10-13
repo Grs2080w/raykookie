@@ -14,5 +14,5 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     apiGet<FixedCost[]>('/api/fixed-costs'), isNew ? Promise.resolve(null) : apiGet<RecipeRow>(`/api/recipes/${id}`),
   ]);
   const fixedTotal = costs.reduce((s, c) => s + c.amount, 0);
-  return <RecipeEditor recipe={recipe} ingredients={ingredients} categories={categories} settings={settings} fixedTotal={fixedTotal} />;
+  return <RecipeEditor key={id} recipe={recipe} ingredients={ingredients} categories={categories} settings={settings} fixedTotal={fixedTotal} />;
 }

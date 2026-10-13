@@ -27,8 +27,11 @@ export type RecipeRow = {
   show_on_menu: boolean; // aparece no cardápio da loja (editor de cardápio do painel)
   tags: string[]; // características fixas (ver shared/menu-tags.ts) exibidas no cardápio
   items: { ingredient_id: number; qty: number }[];
+  variants?: RecipeVariant[]; // só em GET /api/recipes/{id}
 };
 export type PricedRecipe = RecipeRow & { pricing: PricingResult };
+/** Uma receita (aba) do produto: GET /api/recipes/{id} traz `variants`; a padrão vale para o preço do cardápio, combos, lucro e metas. */
+export type RecipeVariant = { id: number; name: string; position: number; yield_units: number; prep_hours: number; is_default: boolean; items: { ingredient_id: number; qty: number }[] };
 export type Goal = { revenue: number; orders: number; new_customers: number; avg_ticket: number };
 export type MonthStats = { revenue: number; profit: number; orders: number; avg_ticket: number; new_customers: number };
 
@@ -93,3 +96,15 @@ export type PayLinkView = {
   pix: { code: string; qr_base64: string; expires_in: number; expired: boolean } | null;
   shop_order: ShopOrder | null;
 };
+
+// Cardápio, combos e cupons (editor do painel)
+/** Linha do editor de cardápio (GET /api/recipes/cardapio). */
+export type CardapioRecipe = { id: number; name: string; priced: boolean; price?: number; photo_v: string | null; show_on_menu: boolean; show_ingredients: boolean; tags: string[] };
+export type ComboProduct = { id: number; name: string; price?: number; cost?: number; on_menu: boolean };
+export type Combo = {
+  id: number; name: string; price: number | null; show_on_menu: boolean; items: { recipe_id: number; name: string; qty: number }[];
+  full_price: number; cost: number; final_price: number; profit: number; margin_pct: number; below_cost: boolean; available: boolean; unavailable_reason?: string;
+};
+/** Toda rota de /api/combos devolve a página inteira. */
+export type CombosPage = { combos: Combo[]; products: ComboProduct[]; discount_pct: number; min_margin_pct: number };
+export type Coupon = { id: number; code: string; percent: number; min_total: number | null; min_inclusive: boolean; active: boolean; uses: number };
