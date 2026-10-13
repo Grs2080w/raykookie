@@ -7,6 +7,7 @@ import br.com.kntap.raykookie.payments.application.ports.PaymentGateway;
 import br.com.kntap.raykookie.payments.domain.GatewayPayment;
 import com.mercadopago.client.common.IdentificationRequest;
 import com.mercadopago.client.common.PhoneRequest;
+import com.mercadopago.client.order.AdditionalInfoRequest;
 import com.mercadopago.client.order.OrderConfigRequest;
 import com.mercadopago.client.order.OrderCreateRequest;
 import com.mercadopago.client.order.OrderItemRequest;
@@ -18,6 +19,7 @@ import com.mercadopago.client.order.OrderRefundPaymentRequest;
 import com.mercadopago.client.order.OrderRefundRequest;
 import com.mercadopago.client.order.OrderTransactionRequest;
 import com.mercadopago.client.order.OrderTransactionSecurity;
+import com.mercadopago.client.order.PayerInfo;
 import com.mercadopago.net.MPSearchRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -130,14 +132,10 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
         OrderPaymentRequest payment = OrderPaymentRequest.builder().amount(reais(charge.amount()).toPlainString())
                 .paymentMethod(method.build()).build();
 
-        // ── 2. Pagador, comprador e desafio 3DS quando o Mercado Pago julgar necessário.
+        // ── 2. Pagador, comprador (com a data de cadastro) e desafio 3DS quando o Mercado Pago julgar necessário.
         OrderCreateRequest.OrderCreateRequestBuilder builder = base(charge.reference(), charge.description(),
                 charge.amount(), payment).payer(payer(charge));
-        if (!"never".equals(threeDs)) {
-            builder.config(OrderConfigRequest.builder().online(OrderOnlineConfig.builder().transactionSecurity(
-                    OrderTransactionSecurity.builder().validation(threeDs).liabilityShift("required").build())
-                    .build()).build());
-        }
+        withSecurity(builder, charge.buyer());
         OrderCreateRequest request = builder.build();
 
         // ── 3. Antifraude (device ID) e cobrança; a recusa vem como HTTP 402 com o pedido em "data".
@@ -223,6 +221,24 @@ public class MercadoPagoOrdersClient implements PaymentGateway {
         http.call((sdk, options) -> sdk.orders().search(request, options), null, Map.of()).path("data")
                 .forEach(node -> found.add(payment(node)));
         return found;
+    }
+
+    /**
+     * Dados de segurança do pedido de cartão: desafio 3DS (se ligado) e data de cadastro do cliente.
+     *
+     * @param builder pedido em montagem
+     * @param buyer   comprador (pode ser nulo)
+     */
+    private void withSecurity(OrderCreateRequest.OrderCreateRequestBuilder builder, PaymentGateway.Buyer buyer) {
+        if (!"never".equals(threeDs)) {
+            builder.config(OrderConfigRequest.builder().online(OrderOnlineConfig.builder().transactionSecurity(
+                    OrderTransactionSecurity.builder().validation(threeDs).liabilityShift("required").build())
+                    .build()).build());
+        }
+        if (buyer != null && buyer.registeredAt() != null) {
+            builder.additionalInfo(AdditionalInfoRequest.builder().payer(PayerInfo.builder()
+                    .registrationDate(buyer.registeredAt().toString()).build()).build());
+        }
     }
 
     /**

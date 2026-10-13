@@ -137,7 +137,20 @@ public interface PaymentGateway {
      * @param phone    telefone com DDD, só dígitos
      * @param deviceId device ID do script de segurança do Mercado Pago (header {@code X-meli-session-id})
      * @param ip       IP real do cliente
+     * @param registeredAt quando o cliente se cadastrou no sistema (nulo = não informado)
      */
-    record Buyer(String lastName, String phone, String deviceId, String ip) {
+    record Buyer(String lastName, String phone, String deviceId, String ip, Instant registeredAt) {
+
+        /**
+         * Comprador sem a data de cadastro.
+         *
+         * @param lastName sobrenome
+         * @param phone    telefone com DDD, só dígitos
+         * @param deviceId device ID do script de segurança do Mercado Pago
+         * @param ip       IP real do cliente
+         */
+        public Buyer(String lastName, String phone, String deviceId, String ip) {
+            this(lastName, phone, deviceId, ip, null);
+        }
     }
 }

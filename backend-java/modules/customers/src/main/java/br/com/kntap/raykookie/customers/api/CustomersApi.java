@@ -1,6 +1,7 @@
 package br.com.kntap.raykookie.customers.api;
 
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -24,7 +25,9 @@ public interface CustomersApi {
      * @param name  nome
      * @param phone telefone (só dígitos)
      * @param guest cliente convidado do link de pagamento (não entra)
+     * @param registeredAt quando o cliente se cadastrou
      */
-    record CustomerSummary(CustomerId id, String email, String name, String phone, boolean guest) {
+    record CustomerSummary(CustomerId id, String email, String name, String phone, boolean guest,
+            Instant registeredAt) {
     }
 }

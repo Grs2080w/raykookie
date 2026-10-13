@@ -104,7 +104,7 @@ public class MercadoPagoClient implements PaymentGateway {
         }
 
         // ── 2. Pagador, referência e aviso.
-        PaymentGateway.Buyer buyer = charge.buyer() == null ? new PaymentGateway.Buyer(null, null, null, null)
+        PaymentGateway.Buyer buyer = charge.buyer() == null ? new PaymentGateway.Buyer(null, null, null, null, null)
                 : charge.buyer();
         Map<String, Object> payer = new LinkedHashMap<>();
         payer.put("email", charge.email());
