@@ -71,3 +71,13 @@ export function Button({ variant = 'primary', size = 'md', busy, className, chil
 export function Card({ className, children, ...p }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={clsx('rounded-3xl border border-line bg-surface shadow-card', className)} {...p}>{children}</div>;
 }
+
+/** Liga/desliga (role="switch"); o rótulo vai em `label` para leitores de tela. */
+export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => onChange(!checked)}
+      className={clsx('relative h-6.5 w-11.5 shrink-0 rounded-full transition-colors disabled:opacity-55', checked ? 'bg-pink' : 'bg-line')}>
+      <span className={clsx('absolute left-0.5 top-0.5 size-5.5 rounded-full bg-white shadow transition-transform', checked ? 'translate-x-5' : 'translate-x-0')} />
+    </button>
+  );
+}
