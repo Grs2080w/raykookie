@@ -2,6 +2,8 @@ package br.com.kntap.raykookie.payments.adapter.out.mercadopago;
 
 import br.com.kntap.raykookie.payments.api.GatewayException;
 import br.com.kntap.raykookie.payments.application.PaymentSettings;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mercadopago.client.order.OrderClient;
 import com.mercadopago.client.paymentmethod.PaymentMethodClient;
 import com.mercadopago.core.MPRequestOptions;
@@ -151,8 +153,9 @@ class MercadoPagoHttp {
     }
 
     /**
-     * Cliente HTTP do SDK que troca o endereço padrão da API pelo configurado em {@code MP_API_BASE} (o SDK fixa
-     * {@code https://api.mercadopago.com}); em produção o endereço é o mesmo.
+     * Cliente HTTP do SDK com dois ajustes: troca o endereço padrão da API pelo configurado em {@code MP_API_BASE} (o
+     * SDK fixa {@code https://api.mercadopago.com}; em produção o endereço é o mesmo) e manda o
+     * {@code additional_info} como a API Orders o aceita, com chaves pontuadas.
      */
     private static final class RebasedHttpClient implements MPHttpClient {
 
@@ -176,16 +179,55 @@ class MercadoPagoHttp {
         /** {@inheritDoc} */
         @Override
         public MPResponse send(MPRequest request) throws MPException, MPApiException {
+            JsonObject payload = flattenAdditionalInfo(request.getPayload());
             String uri = request.getUri();
-            if (!uri.startsWith(SDK_BASE) || SDK_BASE.equals(base)) {
+            boolean rebase = uri.startsWith(SDK_BASE) && !SDK_BASE.equals(base);
+            if (payload == request.getPayload() && !rebase) {
                 return delegate.send(request);
             }
-            return delegate.send(MPRequest.builder().uri(base + uri.substring(SDK_BASE.length()))
-                    .method(request.getMethod()).headers(request.getHeaders()).payload(request.getPayload())
+            return delegate.send(MPRequest.builder().uri(rebase ? base + uri.substring(SDK_BASE.length()) : uri)
+                    .method(request.getMethod()).headers(request.getHeaders()).payload(payload)
                     .queryParams(request.getQueryParams()).accessToken(request.getAccessToken())
                     .connectionTimeout(request.getConnectionTimeout())
                     .connectionRequestTimeout(request.getConnectionRequestTimeout())
                     .socketTimeout(request.getSocketTimeout()).build());
+        }
+    }
+
+    /**
+     * A API Orders só aceita os campos de {@code additional_info} com a chave pontuada
+     * ({@code {"payer.registration_date":"…"}}) e recusa o formato aninhado que o SDK gera
+     * ({@code {"payer":{"registration_date":"…"}}}, 400 {@code additionalProperties 'payer' not allowed}), o que foi
+     * verificado no sandbox. Aqui o aninhado vira pontuado.
+     *
+     * @param payload corpo da requisição (pode ser nulo)
+     * @return o mesmo objeto se não há {@code additional_info}; senão, uma cópia com ele achatado
+     */
+    static JsonObject flattenAdditionalInfo(JsonObject payload) {
+        if (payload == null || !payload.has("additional_info") || !payload.get("additional_info").isJsonObject()) {
+            return payload;
+        }
+        JsonObject copy = payload.deepCopy();
+        JsonObject flat = new JsonObject();
+        flatten("", copy.getAsJsonObject("additional_info"), flat);
+        copy.add("additional_info", flat);
+        return copy;
+    }
+
+    /**
+     * Copia as folhas de {@code source} para {@code target}, com o caminho como chave.
+     *
+     * @param prefix caminho até aqui, com ponto no fim (vazio na raiz)
+     * @param source objeto aninhado
+     * @param target objeto achatado
+     */
+    private static void flatten(String prefix, JsonObject source, JsonObject target) {
+        for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
+            if (entry.getValue().isJsonObject()) {
+                flatten(prefix + entry.getKey() + ".", entry.getValue().getAsJsonObject(), target);
+            } else {
+                target.add(prefix + entry.getKey(), entry.getValue());
+            }
         }
     }
 }

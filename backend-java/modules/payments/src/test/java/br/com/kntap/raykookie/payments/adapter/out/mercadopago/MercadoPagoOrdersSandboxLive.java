@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,10 +126,13 @@ class MercadoPagoOrdersSandboxLive {
      * @return a cobrança
      */
     private static PaymentGateway.CardCharge charge(String token, String methodId, String typeId) {
-        return new PaymentGateway.CardCharge("sandbox-" + UUID.randomUUID().toString().substring(0, 8),
-                UUID.randomUUID().toString(), TEN, "Pedido de teste - Raykookie", token, 1, methodId, null, BUYER,
-                "Ana", CPF, new PaymentGateway.Buyer("Souza", "(11) 91234-5678", "device-sandbox", "203.0.113.9"),
-                typeId);
+        // Igual a OrderPaymentUseCases.chargeOrder: referência = id numérico do pedido, descrição "Pedido #código",
+        // comprador com sobrenome, telefone (só dígitos), device ID, IP e a data de cadastro do cliente.
+        long orderId = ThreadLocalRandom.current().nextLong(1_000_000L, 9_000_000L);
+        return new PaymentGateway.CardCharge(String.valueOf(orderId), UUID.randomUUID().toString(), TEN,
+                "Pedido #" + (orderId % 100_000) + " - Raykookie", token, 1, methodId, null, BUYER, "Ana", CPF,
+                new PaymentGateway.Buyer("Souza", "11912345678", UUID.randomUUID().toString(), "203.0.113.9",
+                        Instant.now().minus(Duration.ofDays(120))), typeId);
     }
 
     /**
@@ -169,7 +173,7 @@ class MercadoPagoOrdersSandboxLive {
         assertThat(pay.id()).startsWith("ORD");
         assertThat(pay.approved()).isTrue();
         assertThat(pay.amount()).isEqualTo(TEN);
-        assertThat(pay.externalReference()).startsWith("sandbox-");
+        assertThat(pay.externalReference()).matches("\\d+");
 
         GatewayPayment fetched = plain.getPayment(pay.id());
         assertThat(fetched.approved()).isTrue();
@@ -277,10 +281,12 @@ class MercadoPagoOrdersSandboxLive {
     @Test
     @DisplayName("Pix: nasce pendente com o copia e cola; a busca por referência acha; cancelar fecha")
     void pix() throws Exception {
-        String reference = "sandbox-pix-" + UUID.randomUUID().toString().substring(0, 8);
-        GatewayPayment pix = plain.createPix(new PaymentGateway.PixCharge(reference, UUID.randomUUID().toString(),
-                Money.ofCents(640), "Pedido de teste Pix - Raykookie", BUYER, "Ana", Instant.now().plus(
-                        Duration.ofHours(1))));
+        // Igual a PixUseCases.issue: referência numérica, chave "rayka-order-<id>-<tentativa>", descrição "Pedido #código".
+        long orderId = ThreadLocalRandom.current().nextLong(1_000_000L, 9_000_000L);
+        String reference = String.valueOf(orderId);
+        GatewayPayment pix = plain.createPix(new PaymentGateway.PixCharge(reference, "rayka-order-" + orderId + "-1",
+                Money.ofCents(640), "Pedido #" + (orderId % 100_000) + " - Raykookie", BUYER, "Ana", Instant.now()
+                        .plus(Duration.ofHours(1))));
         note("Pix", pix);
         assertThat(pix.id()).startsWith("ORD");
         assertThat(pix.status()).isEqualTo("pending");

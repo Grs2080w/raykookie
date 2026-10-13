@@ -2,6 +2,7 @@ package br.com.kntap.raykookie.payments.application;
 
 import br.com.kntap.raykookie.observability.OpsAlert;
 import br.com.kntap.raykookie.orders.api.OrdersApi;
+import br.com.kntap.raykookie.payments.api.GatewayException;
 import br.com.kntap.raykookie.payments.api.ports.RefundRequester;
 import br.com.kntap.raykookie.payments.application.ports.OrderCharges;
 import br.com.kntap.raykookie.payments.application.ports.PaymentGateway;
@@ -159,6 +160,16 @@ public class WebhookUseCase {
                 deliveries.remember(n.requestId(), subject);
             }
             return new Reply(200, body);
+        } catch (GatewayException e) {
+            // O Mercado Pago diz que o id não existe (ou não é válido): repetir não adianta, então confirma o
+            // recebimento. É o caso do "Simular" do painel e dos pedidos de teste, que a conta de produção não vê.
+            if (e.status() == 404 || e.status() == 400) {
+                LOG.info("Notificação {} de '{}' ignorada: o Mercado Pago não conhece o id (HTTP {})", n.type(),
+                        subject, e.status());
+                return new Reply(200, Map.of("ok", true, "ignored", true, "reason", "not_found"));
+            }
+            LOG.error("Falha ao processar a notificação {} do pagamento {}", n.type(), subject, e);
+            return new Reply(500, Map.of("error", "Falha ao processar"));
         } catch (RuntimeException e) {
             LOG.error("Falha ao processar a notificação {} do pagamento {}", n.type(), subject, e);
             return new Reply(500, Map.of("error", "Falha ao processar"));

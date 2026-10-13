@@ -132,7 +132,7 @@ class MercadoPagoOrdersClientTest {
      * A data de cadastro do cliente segue em {@code additional_info.payer.registration_date}.
      */
     @Test
-    @DisplayName("cartão: a data de cadastro do cliente vai em additional_info.payer.registration_date")
+    @DisplayName("cartão: a data de cadastro vai em additional_info como chave pontuada (a API Orders recusa o aninhado)")
     void registrationDate() {
         MP.stubFor(post(urlEqualTo("/v1/orders")).willReturn(json(201, """
                 {"id":"ORDTST02","external_reference":"36","total_amount":"10.00","status":"processed",
@@ -147,7 +147,7 @@ class MercadoPagoOrdersClientTest {
                 base.firstName(), base.cpf(), buyer, null));
 
         MP.verify(postRequestedFor(urlEqualTo("/v1/orders")).withRequestBody(equalToJson("""
-                {"additional_info":{"payer":{"registration_date":"2026-03-04T10:15:30Z"}}}""", true, true)));
+                {"additional_info":{"payer.registration_date":"2026-03-04T10:15:30Z"}}""", true, true)));
     }
 
     /**

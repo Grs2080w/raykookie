@@ -120,6 +120,14 @@ class WebhookAndPixIT extends PaymentsItSupport {
                 + "\"total_amount\":\"1.00\",\"status\":\"processed\",\"status_detail\":\"accredited\"}")));
         assertThat(signedWebhook("ord1", UUID.randomUUID().toString(), mpOrder).jsonPath().getString("status"))
                 .isEqualTo("approved");
+        // id que o Mercado Pago não conhece (o "Simular" do painel, pedido de teste): 200 sem tratar, sem repetir
+        MP.stubFor(get(urlEqualTo("/v1/orders/ORDTST404")).willReturn(aResponse().withStatus(404)
+                .withBody("{\"errors\":[{\"code\":\"order_not_found\"}]}")));
+        Map<String, Object> simulated = Map.of("type", "order", "action", "order.processed", "data",
+                Map.of("id", "ORDTST404"));
+        Response notFound = signedWebhook("ordtst404", UUID.randomUUID().toString(), simulated);
+        assertThat(notFound.statusCode()).isEqualTo(200);
+        assertThat(notFound.jsonPath().getString("reason")).isEqualTo("not_found");
         Map<String, Object> merchant = Map.of("type", "topic_merchant_order_wh", "data", Map.of("id", "9"));
         assertThat(signedWebhook("9", UUID.randomUUID().toString(), merchant).jsonPath().getBoolean("ignored"))
                 .isTrue();
