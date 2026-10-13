@@ -13,7 +13,7 @@ export const LEGAL_ENTITY = {
   email: 'raykookie@kntap.com.br', // e-mail de contato e do encarregado de dados
 };
 
-export const LEGAL_UPDATED = '6 de outubro de 2026';
+export const LEGAL_UPDATED = '13 de outubro de 2026';
 
 export type LegalSection = { h: string; p?: string[]; ul?: string[] };
 export type LegalDoc = { id: LegalId; title: string; summary: string; updated: string; sections: LegalSection[] };
@@ -163,6 +163,7 @@ const PRIVACIDADE: LegalDoc = {
         'Pagamento por cartão: os dados do cartão e o seu CPF são enviados pelo seu aparelho ou navegador diretamente ao Mercado Pago — nunca chegam aos nossos servidores nem são guardados por nós. Recebemos apenas o identificador do pagamento, a bandeira do cartão, a quantidade de parcelas e o status (aprovado ou não).',
         'Notificações do aplicativo (se você permitir): o identificador do aparelho para avisos do pedido, guardado enquanto você estiver logado nele. Você pode desligar nas configurações do celular a qualquer momento.',
         'Dados técnicos: cookies de sessão para manter você conectado, e registros do servidor (como horário, endereço de rede e erros), usados para segurança e funcionamento.',
+        'Medição de uso, anônima: quais telas e itens do cardápio são vistos e em que passo do pedido cada visita termina. Cada visita recebe um código aleatório que vale só enquanto a aba do site está aberta (no aplicativo, enquanto ele está em uso) e que não é ligado ao seu cadastro, e-mail, telefone, CPF nem ao seu aparelho. Não guardamos seu endereço de rede (IP) junto com essa medição, nem o que você digita nos campos, nem o código de cupom.',
         'Login com o Google (se você escolher): recebemos apenas o seu nome e o seu e-mail, com a permissão que você concede na tela do Google. Não acessamos contatos, arquivos, agenda nem qualquer outro dado da sua conta Google, e não publicamos nada em seu nome. Você pode retirar a permissão a qualquer momento em myaccount.google.com/permissions.',
       ],
     },
@@ -172,6 +173,7 @@ const PRIVACIDADE: LegalDoc = {
         'Criar e manter sua conta, receber, preparar, entregar e cobrar seus pedidos, e falar com você sobre eles: execução do contrato e procedimentos preliminares.',
         'Confirmar pagamentos e evitar fraudes, manter a segurança e o bom funcionamento do sistema: legítimo interesse e prevenção a fraudes.',
         'Cumprir obrigações legais e fiscais e defender nossos direitos: obrigação legal e exercício regular de direitos.',
+        'Entender quais receitas e páginas mais chamam atenção e até onde as pessoas vão no pedido, para melhorar o cardápio e o site: legítimo interesse, usando só dados anônimos. Você pode desligar essa medição quando quiser (seção 5).',
         'Mostrar o andamento do seu pedido no site e no aplicativo e, somente quando necessário, falar com você por WhatsApp ou telefone: execução do contrato. Não enviamos propaganda sem a sua autorização.',
         'Quando o uso depender de consentimento, você poderá retirá-lo a qualquer momento.',
       ],
@@ -190,13 +192,14 @@ const PRIVACIDADE: LegalDoc = {
     {
       h: '5. Cookies e armazenamento no aparelho',
       p: [
-        'Usamos apenas cookies essenciais, para manter sua sessão e proteger a conta. No aplicativo, o token de acesso fica no cofre seguro do aparelho (Keystore no Android). Não usamos cookies nem ferramentas de publicidade ou de rastreamento de comportamento.',
+        'Usamos apenas cookies essenciais, para manter sua sessão e proteger a conta. No aplicativo, o token de acesso fica no cofre seguro do aparelho (Keystore no Android). Não usamos cookies de publicidade nem ferramentas de terceiros para acompanhar seu comportamento.',
+        'Medimos o uso do site e do aplicativo de forma anônima, por conta própria: o código aleatório da visita fica na própria aba (no navegador, em sessionStorage, sem cookie) e é descartado quando você a fecha. Isso não identifica você e não é compartilhado com ninguém. Para desligar, use "Não medir meu uso" no rodapé do site ou o interruptor em Meus dados no aplicativo; também respeitamos os sinais Do Not Track e Global Privacy Control do navegador.',
       ],
     },
     {
       h: '6. Por quanto tempo guardamos',
       p: [
-        'Guardamos os dados enquanto sua conta existir e pelo tempo necessário para cumprir obrigações legais, resolver disputas e manter o histórico dos pedidos. Depois, eliminamos ou anonimizamos os dados, salvo se a lei exigir a guarda por mais tempo. Se você excluir a conta, apagamos seus dados pessoais (nome, e-mail, telefone, endereço e login) e mantemos apenas o registro dos pedidos e pagamentos, sem identificar você, pelo prazo que a lei exigir.',
+        'Guardamos os dados enquanto sua conta existir e pelo tempo necessário para cumprir obrigações legais, resolver disputas e manter o histórico dos pedidos. Depois, eliminamos ou anonimizamos os dados, salvo se a lei exigir a guarda por mais tempo. Os eventos da medição anônima de uso ficam 90 dias; depois ficam só os totais por dia, por 13 meses, sem qualquer ligação com você. Se você excluir a conta, apagamos seus dados pessoais (nome, e-mail, telefone, endereço e login) e mantemos apenas o registro dos pedidos e pagamentos, sem identificar você, pelo prazo que a lei exigir.',
       ],
     },
     {
