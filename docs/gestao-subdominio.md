@@ -9,6 +9,11 @@ Quem decide é `frontend/middleware.ts`, pelo cabeçalho `Host`:
 | `raykookie.kntap.com.br` | site | redirecionam para o subdomínio de gestão | abrem |
 | `localhost`, previews da Vercel | site | abrem | abrem |
 
+Rotas do painel (primeiro segmento, lista `GESTAO_ROUTES` em `frontend/middleware.ts`): `dashboard`, `estoque`… e,
+desde a paridade com o app de gestão, **`cardapio-do-site`** (Cardápio e combos; o nome é diferente de `/cardapio`
+porque esse é a página pública do site) e **`cupons`**. Rota nova do painel precisa entrar nessa lista, senão o domínio
+de gestão a manda para o site.
+
 `/api`, `/_next` e arquivos com extensão não passam pelo middleware. A API continua pelo rewrite do `vercel.json`
 (mesmo domínio, sem CORS) e o cookie de sessão não tem `Domain`, então vale no subdomínio novo; quem estava logado no
 domínio antigo entra de novo.
