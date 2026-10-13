@@ -9,6 +9,7 @@ import { apiPublic } from '@/lib/server-api';
 import { AppDownload } from '@/components/AppDownload';
 import { MobileOrderBar } from '@/components/site/MobileOrderBar';
 import { MenuList } from '@/components/site/MenuList';
+import { TrackingToggle } from '@/components/site/TrackingToggle';
 import { InstagramCard } from '@/components/site/InstagramCard';
 import { FeedbackForm } from '@/components/site/FeedbackForm';
 import { ShareMenu } from '@/components/ShareMenu';
@@ -233,6 +234,7 @@ export default async function Landing() {
             <Link href="/termos" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Termos de Serviço</Link>
             <Link href="/privacidade" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Privacidade</Link>
             <Link href="/excluir-conta" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Excluir conta</Link>
+            <TrackingToggle className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong" />
           </nav>
         </div>
       </footer>

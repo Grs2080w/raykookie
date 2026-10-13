@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:raykookie_common/core/analytics.dart';
 import 'package:raykookie_common/core/api_client.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/ui/share_menu.dart';
@@ -179,6 +180,23 @@ class _MyDataScreenState extends State<MyDataScreen> {
                           ),
                         ),
                       ]),
+                      if (Analytics.instance.configured)
+                        _card('Medição de uso', [
+                          Material(
+                            color: Colors.transparent,
+                            child: SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Ajudar a melhorar o cardápio', style: TextStyle(fontWeight: FontWeight.w700)),
+                              subtitle: Text('Mede de forma anônima quais telas e itens são mais vistos, sem ligar a você nem guardar o que você digita.', style: TextStyle(color: c.muted, fontSize: 13)),
+                              value: !Analytics.instance.optedOut,
+                              activeTrackColor: c.pink,
+                              onChanged: (on) async {
+                                await Analytics.instance.setOptOut(!on);
+                                if (mounted) setState(() {});
+                              },
+                            ),
+                          ),
+                        ]),
                       _card('O que guardamos sobre você', [
                         Text('E-mail: ${d['email']}'),
                         Text('Login: ${[if (d['has_password'] == true) 'e-mail e senha', if (d['has_google'] == true) 'Google'].join(' e ')}'),

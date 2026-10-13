@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { ShareMenu } from '@/components/ShareMenu';
 import { MenuList } from '@/components/site/MenuList';
+import { TrackingToggle } from '@/components/site/TrackingToggle';
 import { apiPublic } from '@/lib/server-api';
 import type { Menu } from '@shared/types';
 import { leadDaysLabel } from '@shared/shop';
@@ -47,6 +48,7 @@ export default async function Page() {
           <nav aria-label="Documentos legais" className="flex gap-1 font-semibold">
             <Link href="/termos" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Termos de Serviço</Link>
             <Link href="/privacidade" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Privacidade</Link>
+            <TrackingToggle className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong" />
           </nav>
         </div>
       </footer>

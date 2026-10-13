@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ToastHost } from '@/components/ui/Toast';
+import { Tracker } from '@/components/Tracker';
 
 // Endereço público do site: o og:image precisa ser uma URL absoluta. Defina SITE_URL no .env.
 const site = process.env.SITE_URL || 'https://raykookie.kntap.com.br';
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <ToastHost />
+        <Tracker />
       </body>
     </html>
   );
