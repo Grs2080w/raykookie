@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
+import 'package:raykookie_common/core/analytics.dart';
 import 'package:raykookie_common/core/api_client.dart';
 import 'package:raykookie_common/core/config.dart';
+import 'package:raykookie_common/core/engagement_catalog.dart';
 import 'package:raykookie_common/core/format.dart';
 import 'package:raykookie_common/core/models.dart';
 import 'package:raykookie_common/core/session.dart';
@@ -84,6 +86,9 @@ class _OrderFormState extends State<_OrderForm> {
   void initState() {
     super.initState();
     _cart = {if (widget.initialItem != null && widget.menu.items.any((m) => m.id == widget.initialItem)) widget.initialItem!: 1};
+    // medição anônima: abriu o pedido (e já com um item, se veio do botão Pedir do cardápio)
+    Analytics.instance.track('checkout_step', detail: _trackSteps.first);
+    if (_cart.isNotEmpty) Analytics.instance.track('cart_add', itemId: _cart.keys.first, qty: 1);
     final p = context.read<Session>().profile;
     _minDate = addDaysIso(todayIso(), AppConfig.leadDays);
     context.read<Session>().customerApi.get('/api/payment-config').then((r) {
@@ -123,6 +128,7 @@ class _OrderFormState extends State<_OrderForm> {
   void _step(String id, int d) {
     final next = (_cart[id] ?? 0) + d;
     if (next > maxQty) return Toast.warn('Para mais de $maxQty unidades do mesmo item, fale com a gente pelo WhatsApp.');
+    if (d > 0 || (_cart[id] ?? 0) > 0) Analytics.instance.track(d > 0 ? 'cart_add' : 'cart_remove', itemId: id, qty: 1);
     setState(() {
       _cart[id] = next < 0 ? 0 : next;
       // o total mudou: o cupom precisa ser conferido de novo
@@ -142,8 +148,10 @@ class _OrderFormState extends State<_OrderForm> {
         _coupon = Map<String, dynamic>.from(r as Map);
         _form.couponCode = '${_coupon!['code']}';
       });
+      Analytics.instance.track('coupon_attempt', detail: 'ok');
       Toast.ok('Cupom aplicado');
     } on ApiException catch (e) {
+      Analytics.instance.track('coupon_attempt', detail: couponReason(e.message));
       setState(() {
         _coupon = null;
         _form.couponCode = '';
@@ -187,7 +195,11 @@ class _OrderFormState extends State<_OrderForm> {
     if (d != null) setState(() => _form.scheduledFor = todayIso(d));
   }
 
+  /// Etapas do pedido na medição anônima (mesma ordem de `orderSteps`).
+  static const _trackSteps = ['items', 'data', 'delivery', 'payment', 'extras'];
+
   void _goTo(int step) {
+    Analytics.instance.track('checkout_step', detail: _trackSteps[step]);
     setState(() => _stepIdx = step);
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
@@ -227,20 +239,31 @@ class _OrderFormState extends State<_OrderForm> {
   Future<void> _submit() async {
     if (_form.paymentMethod == 'cartao' && _form.cardToken.isEmpty && !await _tokenizeCard()) return;
     final err = validateOrder(_form, _cart, widget.menu.items);
-    if (err != null) return Toast.error(err);
+    if (err != null) {
+      Analytics.instance.track('checkout_submit', detail: 'validation');
+      return Toast.error(err);
+    }
     if (!mounted) return;
     final session = context.read<Session>();
     setState(() => _busy = true);
     try {
       final r = Map<String, dynamic>.from(await session.customerApi.post('/api/cliente/pedidos', _form.toJson(_cart)) as Map);
+      Analytics.instance.track('checkout_submit', detail: 'ok');
+      Analytics.instance.track('order_placed', detail: _form.paymentMethod);
       await session.refreshProfile();
       var card = r['card'] is Map ? Map<String, dynamic>.from(r['card'] as Map) : null;
+      final hadChallenge = card?['challenge_url'] != null;
       // o banco pode pedir a confirmação do cartão (3DS): mostra aqui mesmo e confere o resultado sem cobrar de novo
       if (card != null && mounted) card = await withChallenge(context, card, () => session.customerApi.get('/api/cliente/pedidos/${r['id']}/cartao'));
+      if (hadChallenge && card != null) Analytics.instance.track('card_3ds', detail: card['approved'] == true || card['pending'] == true ? 'authenticated' : 'failed');
       if (card != null && card['pending'] == true) Toast.warn(cardInReview);
-      if (card != null && card['approved'] != true && card['pending'] != true) Toast.error('${card['reason'] ?? 'Pagamento recusado'}');
+      if (card != null && card['approved'] != true && card['pending'] != true) {
+        Analytics.instance.track('checkout_submit', detail: 'card_refused');
+        Toast.error('${card['reason'] ?? 'Pagamento recusado'}');
+      }
       if (mounted) context.go('/cliente/pedidos?novo=${r['id']}');
     } on ApiException catch (e) {
+      Analytics.instance.track('checkout_submit', detail: e.status == 0 ? 'network' : 'other');
       // o token do cartão é de uso único: a nova tentativa gera outro com o mesmo formulário
       _form.cardToken = '';
       Toast.error(e.message);
@@ -496,7 +519,10 @@ class _OrderFormState extends State<_OrderForm> {
               ]),
               _section(4, 'Forma de pagamento', hint: 'Com Pix, o código aparece logo depois que você finalizar o pedido.', children: [
                 for (final p in paymentMethods.where((p) => p.id != 'cartao' || _cardEnabled))
-                  _choice(selected: _form.paymentMethod == p.id, title: p.label, hint: p.hint, tag: p.id == 'pix' ? 'Mais rápido' : null, onTap: () => setState(() => _form.paymentMethod = p.id)),
+                  _choice(selected: _form.paymentMethod == p.id, title: p.label, hint: p.hint, tag: p.id == 'pix' ? 'Mais rápido' : null, onTap: () {
+                    Analytics.instance.track('payment_method_select', detail: p.id);
+                    setState(() => _form.paymentMethod = p.id);
+                  }),
                 if (_form.paymentMethod == 'dinheiro')
                   AppCard(child: NumberField(label: 'Precisa de troco para quanto? (opcional)', helper: 'Deixe em branco se tiver o valor certinho.', hint: 'Ex.: 100', controller: _c('change'), onChanged: (v) => _form.changeFor = v)),
               ]),

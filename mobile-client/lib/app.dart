@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:raykookie_common/core/analytics.dart';
 import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/ui/toast.dart';
 
@@ -24,14 +25,28 @@ class _RaykookieAppState extends State<RaykookieApp> {
   late final CustomerPush _push = widget.push ?? CustomerPush();
   late final ThemeController _theme = widget.theme ?? ThemeController();
 
+  String _lastScreen = '';
+
+  /// Medição anônima: cada tela nova do roteador é uma `screen_view` (sem a consulta nem ids).
+  void _trackScreen() {
+    final location = _router.routerDelegate.currentConfiguration.uri.toString();
+    final route = Analytics.routeOf(location);
+    if (route == _lastScreen) return;
+    _lastScreen = route;
+    Analytics.instance.screen(location);
+  }
+
   @override
   void initState() {
     super.initState();
     _push.onOpen = _router.go; // tocar no aviso abre Meus pedidos, no pedido certo
+    _router.routerDelegate.addListener(_trackScreen);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _trackScreen());
   }
 
   @override
   void dispose() {
+    _router.routerDelegate.removeListener(_trackScreen);
     _router.dispose();
     super.dispose();
   }

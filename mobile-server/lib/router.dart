@@ -9,6 +9,7 @@ import 'features/admin/costs_screen.dart';
 import 'features/admin/cardapio_screen.dart';
 import 'features/admin/coupons_screen.dart';
 import 'features/admin/dashboard_screen.dart';
+import 'features/admin/engagement_screen.dart';
 import 'features/admin/feedback_screen.dart';
 import 'features/admin/goals_screen.dart';
 import 'features/admin/more_screen.dart';
@@ -153,6 +154,11 @@ GoRouter buildRouter(
       parentNavigatorKey: _rootKey,
       path: '/painel/cupons',
       builder: (_, _) => const CouponsScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/painel/engajamento',
+      builder: (_, _) => const EngagementScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,
