@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   title: { default: 'Raykookie', template: '%s · Raykookie' },
   applicationName: 'Raykookie',
   description: 'Raykookie: confeitaria feita à mão. Veja o cardápio, faça sua encomenda, pague por Pix e acompanhe o pedido pelo site ou pelo app.',
-  ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
+  // Verificação de propriedade do Search Console (meta google-site-verification); não remover.
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || 'qaZ6jlbTIo0CCHVKSn79lRtvJAp3FSKXAbRciSaS0_0' },
   icons: {
     icon: [{ url: '/favicon.ico', sizes: '48x48' }, { url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: '/apple-touch-icon.png',
