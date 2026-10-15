@@ -4,7 +4,7 @@ import { apiGet, requireCustomer } from '@/lib/server-api';
 import type { ShopOrder } from '@shared/types';
 import { RefundForm } from './RefundForm';
 
-export const metadata = { title: 'Pedir devolução' };
+export const metadata = { title: 'Pedir devolução', description: 'Solicite a devolução de um pedido da Raykookie.' };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

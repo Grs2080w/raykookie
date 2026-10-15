@@ -3,7 +3,7 @@ import { apiPublic, getCustomer } from '@/lib/server-api';
 import { safeNext } from '@shared/shop';
 import { CustomerAuth } from './CustomerAuth';
 
-export const metadata = { title: 'Entrar para pedir' };
+export const metadata = { title: 'Entrar para pedir', description: 'Entre ou crie sua conta Raykookie para fazer encomendas e acompanhar seus pedidos.' };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ next?: string; erro?: string }> }) {
   const { next, erro } = await searchParams;

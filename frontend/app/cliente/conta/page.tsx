@@ -2,7 +2,7 @@ import { requireCustomer } from '@/lib/server-api';
 import { apiGet } from '@/lib/server-api';
 import { MyData, type MyDataT } from './MyData';
 
-export const metadata = { title: 'Meus dados' };
+export const metadata = { title: 'Meus dados', description: 'Veja e gerencie os dados da sua conta Raykookie.' };
 
 export default async function Page() {
   await requireCustomer('/cliente/conta');

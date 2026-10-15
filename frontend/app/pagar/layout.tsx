@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Pagar pedido', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'Pagar pedido', description: 'Pague seu pedido da Raykookie com segurança.', robots: { index: false, follow: false } };
 
 export default function PagarLayout({ children }: { children: React.ReactNode }) {
   return (

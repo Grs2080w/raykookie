@@ -5,7 +5,7 @@ import { addDays } from '@shared/text';
 import { LEAD_DAYS } from '@shared/shop';
 import { NewOrderForm } from './NewOrderForm';
 
-export const metadata = { title: 'Novo pedido' };
+export const metadata = { title: 'Novo pedido', description: 'Monte sua encomenda de cookies, tortas, brownies e bolos feitos à mão.' };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ item?: string; from?: string }> }) {
   const { item, from } = await searchParams;

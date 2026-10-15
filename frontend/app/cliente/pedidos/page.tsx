@@ -6,7 +6,7 @@ import type { ShopOrder } from '@shared/types';
 import { OrderCard, orderLinks } from '@/components/OrderCard';
 import { FeedbackForm } from '@/components/site/FeedbackForm';
 
-export const metadata = { title: 'Meus pedidos' };
+export const metadata = { title: 'Meus pedidos', description: 'Acompanhe suas encomendas na Raykookie.' };
 
 const newBtn = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-pink px-6 text-base font-bold text-on-pink shadow-[0_10px_24px_-10px_var(--pink)] transition hover:bg-pink-strong active:scale-[0.98] sm:w-auto';
 

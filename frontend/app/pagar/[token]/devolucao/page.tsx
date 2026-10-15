@@ -4,7 +4,7 @@ import { apiPublic } from '@/lib/server-api';
 import type { PayLinkView } from '@shared/types';
 import { RefundForm } from '@/app/cliente/pedidos/[id]/devolucao/RefundForm';
 
-export const metadata = { title: 'Pedir devolução' };
+export const metadata = { title: 'Pedir devolução', description: 'Solicite a devolução de um pedido da Raykookie.' };
 
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
