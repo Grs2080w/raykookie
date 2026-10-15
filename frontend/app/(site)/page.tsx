@@ -18,6 +18,7 @@ import type { AppReleases, Menu } from '@shared/types';
 export const metadata: Metadata = {
   title: { absolute: 'Raykookie · Confeitaria feita à mão' },
   description: 'Cookies, tortas, brownies e bolos feitos à mão, sob encomenda. Escolha no cardápio e faça seu pedido online.',
+  alternates: { canonical: '/' },
 };
 
 const PEDIR = '/cliente';
