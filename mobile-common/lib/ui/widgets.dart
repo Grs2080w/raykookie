@@ -404,7 +404,7 @@ class PhotoTile extends StatelessWidget {
       final tone = switch (kind) { 'cookie' => const Color(0xFFECC9A2), 'brownie' => const Color(0xFF4A2618), _ => c.pinkTint };
       art = Container(
         color: tone,
-        child: Center(child: FractionallySizedBox(widthFactor: 0.3, child: Transform.rotate(angle: -0.14, child: SvgPicture.asset('assets/brand/raykookie-simbolo-cookie.svg')))),
+        child: Center(child: FractionallySizedBox(widthFactor: (size != null && size! < 100) ? 0.5 : 0.3, child: Transform.rotate(angle: -0.14, child: SvgPicture.asset('assets/brand/raykookie-simbolo-cookie.svg')))),
       );
     } else {
       final (a, b) = artColors[kind] ?? artColors['bancada']!;

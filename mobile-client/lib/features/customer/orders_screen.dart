@@ -22,6 +22,7 @@ import 'card_brands.dart';
 import 'card_fields.dart';
 import 'three_ds_challenge.dart';
 import 'feedback_card.dart';
+import 'menu_view.dart';
 
 /// Pedidos já feitos pelo cliente, com a situação de cada um.
 class CustomerOrdersScreen extends StatelessWidget {
@@ -333,7 +334,7 @@ class _OrderCardState extends State<_OrderCard> {
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            TextSpan(text: i.name),
+                            TextSpan(text: niceName(i.name)),
                           ],
                         ),
                       ),
@@ -1095,7 +1096,7 @@ class _Steps extends StatelessWidget {
                 height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: i < done ? (finalOk && i == labels.length - 1 ? c.ok : c.pink) : Colors.white,
+                  color: i < done ? (finalOk && i == labels.length - 1 ? c.ok : c.pink) : c.surface,
                   border: Border.all(color: i < done ? Colors.transparent : (i == done ? c.pink : c.line), width: 2),
                 ),
               ),

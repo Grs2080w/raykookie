@@ -1,4 +1,14 @@
 import 'package:raykookie_common/core/models.dart';
+import 'package:raykookie_common/core/shop_rules.dart';
+
+/// Chips de características de um item: "Vegetariano", "Sem lactose"… um por tag; os "Contém …" se juntam num só ("Contém soja e ovos").
+List<String> tagChips(List<String> tags) {
+  final diet = [for (final t in tags) if (!t.startsWith('contem_')) menuTagLabel(t)];
+  final contains = [for (final t in tags) if (t.startsWith('contem_')) menuTagLabel(t).replaceFirst('Contém ', '')];
+  if (contains.isEmpty) return diet;
+  final list = contains.length > 1 ? '${contains.sublist(0, contains.length - 1).join(', ')} e ${contains.last}' : contains.first;
+  return [...diet, 'Contém $list'];
+}
 
 /// Só apresentação do cardápio (nada grava no banco), igual ao `lib/menu-view.ts` do site: quando o nome de um grupo não
 /// descreve o que há dentro (ex.: brownies dentro de "Bolos"), a vitrine mostra o nome certo e junta os grupos que acabam
