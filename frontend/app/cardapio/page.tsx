@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ShareMenu } from '@/components/ShareMenu';
 import { MenuList } from '@/components/site/MenuList';
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome';
+import { siteClass } from '@/lib/site-font';
 import { apiPublic } from '@/lib/server-api';
 import type { Menu } from '@shared/types';
 import { leadDaysLabel } from '@shared/shop';
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
 export default async function Page() {
   const menu = (await apiPublic<Menu>('/api/menu', 10)) ?? { items: [], groups: [] };
   return (
-    <div className="rk-site">
+    <div className={siteClass}>
       <a href="#conteudo" className="rk-skip">Ir para o cardápio</a>
       <SiteHeader orderHref="/cliente/pedidos/novo?from=cardapio" nav={false} />
       <main id="conteudo" className="rk-wrap rk-section" style={{ paddingTop: 'var(--s-7)' }}>

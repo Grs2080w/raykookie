@@ -3,8 +3,6 @@
  * Tudo aqui vive sob `.rk-site`: não vaza para /cliente nem para o app. Valores soltos só aparecem na seção de tokens.
  * Direção: confeitaria artesanal contemporânea. Fundo de massa crua (creme quente), tinta de cacau, o rosa da marca como destaque.
  */
-@import '@fontsource/young-serif/latin-400.css';
-
 /* ── 1. Tokens ─────────────────────────────────────────────────────────────── */
 .rk-site {
   /* cor · papéis */
@@ -28,7 +26,7 @@
   --brownie: #4a2618;        /* placeholder de brownie */
 
   /* tipografia */
-  --font-display: 'Young Serif', ui-serif, Georgia, serif;
+  --font-display: var(--font-site-display), ui-serif, Georgia, serif; /* Young Serif, vem de lib/site-font.ts */
   --font-text: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
   --fs-sm: 0.875rem;
   --fs-base: 1rem;

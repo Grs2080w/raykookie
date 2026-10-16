@@ -8,6 +8,7 @@ import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome';
 import { SiteApp } from '@/components/site/SiteApp';
 import { ShareMenu } from '@/components/ShareMenu';
 import { niceName } from '@/lib/menu-view';
+import { siteClass } from '@/lib/site-font';
 import { apiPublic } from '@/lib/server-api';
 import { leadDaysLabel } from '@shared/shop';
 import type { AppReleases, Menu } from '@shared/types';
@@ -42,7 +43,7 @@ const REVIEWS = [
 ];
 
 // Fotos de vitrine da casa (public/fotos). As do cardápio entram na galeria a partir do próprio cardápio.
-const SHOWCASE = { alt: 'Cookie com fios de chocolate sobre papel de cookies', src: '/fotos/bolo-destaque.jpg' };
+const SHOWCASE = { alt: 'Cookie com fios de chocolate sobre papel de cookies', src: '/fotos/bolo-destaque-800.jpg' };
 
 /** Fotos distintas do cardápio, cada uma com o nome do item (prefere o item avulso ao combo que reaproveita a foto). */
 function menuPhotos(menu: Menu): { src: string; name: string }[] {
@@ -72,7 +73,7 @@ export default async function Landing() {
   const [lead, ...others] = REVIEWS;
 
   return (
-    <div className="rk-site">
+    <div className={siteClass}>
       <a href="#cardapio" className="rk-skip">Ir para o cardápio</a>
       <SiteHeader orderHref={PEDIR} />
 
@@ -81,7 +82,7 @@ export default async function Landing() {
         <section className="rk-hero" aria-labelledby="hero-titulo">
           <div className="rk-wrap rk-hero__grid">
             <div className="rk-hero__copy">
-              <h1 id="hero-titulo" className="rk-in" style={{ '--i': 0 } as React.CSSProperties}>Confeitaria feita à mão, do forno para a sua mesa.</h1>
+              <h1 id="hero-titulo">Confeitaria feita à mão, do forno para a sua mesa.</h1>
               <p className="rk-hero__lede rk-in" style={{ '--i': 1 } as React.CSSProperties}>Cookies, tortas, brownies e bolos preparados em pequenas fornadas, com ingredientes selecionados e muito cuidado em cada detalhe.</p>
               <div className="rk-hero__actions rk-in" style={{ '--i': 2 } as React.CSSProperties}>
                 <Link id="cta-hero" href={PEDIR} className="rk-btn rk-btn--lg">Fazer pedido</Link>
@@ -95,11 +96,11 @@ export default async function Landing() {
               <img src="/brand/raykookie-simbolo-cookie.svg" alt="" width={320} height={320} className="rk-hero__mark" aria-hidden />
               <figure className="rk-arch rk-hero__main rk-in" style={{ '--i': 1 } as React.CSSProperties}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fotos/cookie-destaque.jpg" alt="Dois cookies com gotas e fios de chocolate sobre papel de cookies da Raykookie" width={1050} height={1400} fetchPriority="high" />
+                <img src="/fotos/cookie-destaque-800.jpg" srcSet="/fotos/cookie-destaque-480.jpg 480w, /fotos/cookie-destaque-800.jpg 800w" sizes="(min-width: 56rem) 400px, 70vw" alt="Dois cookies com gotas e fios de chocolate sobre papel de cookies da Raykookie" width={800} height={1067} fetchPriority="high" />
               </figure>
               <figure className="rk-hero__small rk-in" style={{ '--i': 3 } as React.CSSProperties}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fotos/brownie-destaque.jpg" alt="Brownies de chocolate sobre uma grade de resfriar" width={1050} height={1400} loading="lazy" decoding="async" />
+                <img src="/fotos/brownie-destaque-480.jpg" srcSet="/fotos/brownie-destaque-480.jpg 480w, /fotos/brownie-destaque-800.jpg 800w" sizes="(min-width: 56rem) 220px, 40vw" alt="Brownies de chocolate sobre uma grade de resfriar" width={480} height={640} decoding="async" />
               </figure>
             </div>
           </div>
@@ -140,7 +141,7 @@ export default async function Landing() {
         <section id="sobre" className="rk-wrap rk-section rk-anchor rk-story" aria-labelledby="sobre-titulo">
           <figure className="rk-arch rk-reveal">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/fotos/bancada-destaque.jpg" alt="Brownies recém-assados esfriando na grade da nossa bancada" width={1050} height={1400} loading="lazy" decoding="async" />
+            <img src="/fotos/bancada-destaque-800.jpg" srcSet="/fotos/bancada-destaque-480.jpg 480w, /fotos/bancada-destaque-800.jpg 800w" sizes="(min-width: 56rem) 416px, 90vw" alt="Brownies recém-assados esfriando na grade da nossa bancada" width={800} height={1067} loading="lazy" decoding="async" />
           </figure>
           <div className="rk-story__text">
             <h2 id="sobre-titulo">Doces simples, feitos com capricho.</h2>

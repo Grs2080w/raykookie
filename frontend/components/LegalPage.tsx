@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome';
+import { siteClass } from '@/lib/site-font';
 import { LEGAL_IDS, LEGAL_LABEL, LEGAL_PATH, type LegalDoc } from '@shared/legal';
 
 /** Página de um documento legal (Termos de Serviço ou Política de Privacidade), na identidade do site público. */
 export function LegalPage({ doc }: { doc: LegalDoc }) {
   const other = LEGAL_IDS.find((id) => id !== doc.id)!;
   return (
-    <div className="rk-site">
+    <div className={siteClass}>
       <a href="#conteudo" className="rk-skip">Ir para o conteúdo</a>
       <SiteHeader orderHref="/cliente" nav={false} />
 
