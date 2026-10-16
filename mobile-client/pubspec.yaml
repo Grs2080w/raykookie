@@ -82,6 +82,10 @@ flutter:
     - family: Fraunces
       fonts:
         - asset: assets/fonts/Fraunces.ttf
+    # Fonte de título do app do cliente (a mesma do site); licença OFL
+    - family: YoungSerif
+      fonts:
+        - asset: assets/fonts/YoungSerif-Regular.ttf
 
 flutter_launcher_icons:
   android: true

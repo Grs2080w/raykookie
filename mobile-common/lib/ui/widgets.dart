@@ -397,11 +397,22 @@ class PhotoTile extends StatelessWidget {
   final double radius;
   @override
   Widget build(BuildContext context) {
-    final (a, b) = artColors[kind] ?? artColors['bancada']!;
-    final art = Container(
-      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(a), Color(b)])),
-      child: Center(child: FractionallySizedBox(heightFactor: 0.62, child: SvgPicture.string(artSvg(kind)))),
-    );
+    final c = context.c;
+    final Widget art;
+    if (c.brandArt) {
+      // App do cliente: o símbolo do cookie (com a mordida) sobre um tom do doce, igual ao site
+      final tone = switch (kind) { 'cookie' => const Color(0xFFECC9A2), 'brownie' => const Color(0xFF4A2618), _ => c.pinkTint };
+      art = Container(
+        color: tone,
+        child: Center(child: FractionallySizedBox(widthFactor: 0.3, child: Transform.rotate(angle: -0.14, child: SvgPicture.asset('assets/brand/raykookie-simbolo-cookie.svg')))),
+      );
+    } else {
+      final (a, b) = artColors[kind] ?? artColors['bancada']!;
+      art = Container(
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(a), Color(b)])),
+        child: Center(child: FractionallySizedBox(heightFactor: 0.62, child: SvgPicture.string(artSvg(kind)))),
+      );
+    }
     Widget inner = url == null
         ? art
         : Image.network(url!, headers: headers, fit: BoxFit.cover, errorBuilder: (_, _, _) => art, loadingBuilder: (_, child, p) => p == null ? child : art);
