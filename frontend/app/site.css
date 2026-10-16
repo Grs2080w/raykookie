@@ -317,6 +317,27 @@
 .rk-app__about a { color: var(--rosa-text); }
 @media (min-width: 48rem) { .rk-app__card { grid-template-columns: auto minmax(0, 1fr) auto; } .rk-app__btn { grid-column: auto; justify-self: end; } }
 
+/* Termos e Privacidade: leitura confortável, uma coluna */
+.rk-legal { max-width: 48rem; }
+.rk-legal__tabs { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-6); }
+.rk-legal__tabs a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--s-4); border-radius: var(--r-pill); background: var(--sand); font-weight: 600; text-decoration: none; }
+.rk-legal__tabs a:hover { background: var(--sand-deep); }
+.rk-legal__tabs a[aria-current='page'] { background: var(--cacau); color: var(--cream); }
+.rk-legal h1 { font-size: var(--fs-2xl); }
+.rk-legal__summary { margin-top: var(--s-4); font-size: var(--fs-md); color: var(--cacau-soft); }
+.rk-legal__updated { margin-top: var(--s-2); font-size: var(--fs-sm); color: var(--cacau-mute); }
+.rk-legal__toc { margin-top: var(--s-6); padding: var(--s-5); border-radius: var(--r-lg); background: var(--sand); }
+.rk-legal__toc h2 { font: 700 var(--fs-base)/1.4 var(--font-text); letter-spacing: 0; }
+.rk-legal__toc ol { margin: var(--s-3) 0 0; padding-left: var(--s-5); display: grid; gap: var(--s-1); }
+.rk-legal__toc a { display: inline-flex; align-items: center; min-height: 2.25rem; color: var(--rosa-text); text-underline-offset: 0.25em; }
+.rk-legal__body { display: grid; gap: var(--s-7); margin-top: var(--s-7); }
+.rk-legal__body section { display: grid; gap: var(--s-3); }
+.rk-legal__body h2 { font-size: var(--fs-xl); }
+.rk-legal__body p, .rk-legal__body li { max-width: var(--measure); line-height: 1.7; }
+.rk-legal__body ul { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); }
+.rk-legal__body li::marker { color: var(--rosa); }
+.rk-legal__more { margin-top: var(--s-8); color: var(--cacau-soft); }
+
 /* ── 7. Movimento: uma sequência de entrada no hero e a revelação suave das fotos ao rolar. Conteúdo visível por padrão. */
 @media (prefers-reduced-motion: no-preference) {
   .rk-in { animation: rk-rise 0.8s var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
