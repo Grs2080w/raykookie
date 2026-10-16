@@ -1,3 +1,4 @@
+import '@/app/site.css';
 import { ArrowRight, CalendarClock, Heart, ShoppingBag, Star, Wheat } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -160,7 +161,7 @@ export default async function Landing() {
           <p className="text-sm font-bold uppercase tracking-wider text-pink-strong">Cardápio</p>
           <h2 className="font-display mt-2 text-3xl font-semibold md:text-4xl">O que tem para hoje (e para o seu dia)</h2>
           <div className="mt-4"><ShareMenu /></div>
-          <MenuList menu={menu} from="home" />
+          <div className="rk-site" style={{ background: 'transparent', minHeight: 0 }}><MenuList menu={menu} from="home" /></div>
         </section>
 
         {/* Depoimentos */}
