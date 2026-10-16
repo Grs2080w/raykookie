@@ -72,9 +72,10 @@
 }
 .rk-site *, .rk-site *::before, .rk-site *::after { box-sizing: border-box; }
 .rk-site img, .rk-site video { max-width: 100%; display: block; }
-.rk-site h1, .rk-site h2, .rk-site h3 { font-family: var(--font-display); font-weight: 400; line-height: var(--lh-display); letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
-.rk-site p { margin: 0; text-wrap: pretty; }
-.rk-site a { color: inherit; }
+/* resets com :where() (especificidade 0): as classes dos componentes sempre vencem */
+:where(.rk-site) :where(h1, h2, h3) { font-family: var(--font-display); font-weight: 400; line-height: var(--lh-display); letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+:where(.rk-site) :where(p) { margin: 0; text-wrap: pretty; }
+:where(.rk-site) :where(a) { color: inherit; }
 .rk-site ::selection { background: var(--rosa); color: var(--cacau); }
 .rk-site :focus-visible { outline: 3px solid var(--rosa-cta); outline-offset: 3px; border-radius: var(--r-sm); }
 .rk-dark :focus-visible { outline-color: var(--rosa-on-dark); }
@@ -191,5 +192,139 @@
 .rk-menuhead p { font-size: var(--fs-md); color: var(--cacau-soft); max-width: 40ch; }
 .rk-share { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 2.75rem; padding: 0 var(--s-4); border: 0; border-radius: var(--r-pill); background: var(--sand); color: var(--cacau); font: 600 0.9375rem/1 var(--font-text); cursor: pointer; transition: background-color 0.2s; }
 .rk-share:hover { background: var(--sand-deep); }
+
+/* ── 6. Home ───────────────────────────────────────────────────────────────── */
+:where(.rk-site main h2) { font-size: var(--fs-2xl); }
+.rk-btn--lg { min-height: 3.5rem; padding: 0 var(--s-6); font-size: var(--fs-md); }
+
+/* Apresentação: o cookie do logo atrás, uma foto em arco (a boca do forno) e uma foto menor por cima */
+.rk-hero { padding-block: var(--s-6) var(--s-8); overflow: clip; }
+.rk-hero__grid { display: grid; gap: var(--s-7); }
+.rk-hero__copy { display: grid; gap: var(--s-4); align-content: center; justify-items: start; }
+.rk-hero h1 { font-size: var(--fs-hero); max-width: 14ch; letter-spacing: -0.02em; }
+.rk-hero__lede { max-width: 34ch; font-size: var(--fs-md); color: var(--cacau-soft); }
+.rk-hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-top: var(--s-2); }
+.rk-hero__note { font-size: var(--fs-sm); color: var(--cacau-mute); }
+.rk-hero__media { position: relative; width: min(100%, 34rem); aspect-ratio: 1 / 1.1; margin-inline: auto 0; }
+.rk-hero__mark { position: absolute; z-index: 0; right: -6%; bottom: -4%; width: 50%; height: auto; transform: rotate(125deg); } /* gira o cookie para a mordida ficar à vista, abaixo do arco */
+.rk-arch { margin: 0; overflow: hidden; background: var(--sand); aspect-ratio: 3 / 4; border-radius: 50% 50% var(--r-md) var(--r-md) / 37.5% 37.5% var(--r-md) var(--r-md); }
+.rk-arch img { width: 100%; height: 100%; object-fit: cover; }
+.rk-hero__main { position: absolute; z-index: 1; top: 0; right: 0; width: 74%; }
+.rk-hero__small { position: absolute; z-index: 2; left: 0; bottom: 0; width: 40%; aspect-ratio: 4 / 5; margin: 0; overflow: hidden; border-radius: var(--r-lg); box-shadow: 0 0 0 6px var(--cream); }
+.rk-hero__small img { width: 100%; height: 100%; object-fit: cover; }
+@media (min-width: 56rem) {
+  .rk-hero { padding-block: var(--s-8) var(--s-9); }
+  .rk-hero__grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: var(--s-8); align-items: center; }
+  .rk-hero__lede { font-size: var(--fs-lg); }
+}
+
+/* Faixa dos três diferenciais: só texto, sobre chocolate */
+.rk-band ul { list-style: none; margin-block: 0; padding-block: var(--s-7); display: grid; gap: var(--s-6); }
+.rk-band h2 { font-size: var(--fs-lg); color: var(--choco-ink); }
+.rk-band p { margin-top: var(--s-2); max-width: 32ch; color: var(--choco-mute); }
+@media (min-width: 48rem) { .rk-band ul { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-7); } }
+
+/* Como pedir: três passos numa sequência de verdade (números têm função aqui) */
+.rk-steps .rk-wrap { display: grid; gap: var(--s-7); }
+.rk-steps__head { display: grid; gap: var(--s-4); justify-items: start; align-content: start; }
+.rk-steps__head p { max-width: 42ch; font-size: var(--fs-md); color: var(--choco-mute); }
+.rk-steps__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-6); counter-reset: step; }
+.rk-steps__list li { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); grid-template-areas: 'n t' 'n p'; column-gap: var(--s-4); row-gap: var(--s-1); counter-increment: step; }
+.rk-steps__list li::before { content: counter(step); grid-area: n; font: 400 var(--fs-2xl)/1 var(--font-display); color: var(--rosa-on-dark); }
+.rk-steps__list h3 { grid-area: t; font-size: var(--fs-lg); color: var(--choco-ink); }
+.rk-steps__list p { grid-area: p; color: var(--choco-mute); max-width: 44ch; }
+@media (min-width: 56rem) { .rk-steps .rk-wrap { grid-template-columns: 5fr 6fr; gap: var(--s-9); align-items: center; } }
+
+/* Nossa história */
+.rk-story { display: grid; gap: var(--s-7); align-items: center; }
+.rk-story .rk-arch { width: 100%; max-width: 24rem; }
+.rk-story__text { display: grid; gap: var(--s-4); }
+.rk-story__text p { max-width: var(--measure); font-size: var(--fs-md); color: var(--cacau-soft); }
+@media (min-width: 56rem) { .rk-story { grid-template-columns: 5fr 6fr; gap: var(--s-9); } .rk-story .rk-arch { max-width: 26rem; } }
+
+/* Galeria: funciona de 1 a 9 fotos (em linha até 4; a partir de 5, um mosaico com a primeira grande) */
+.rk-gallery-section { background: var(--sand); }
+.rk-gallery-section h2 { max-width: 18ch; margin-bottom: var(--s-6); }
+.rk-gallery { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rk-gallery li { display: flex; }
+.rk-gallery figure { position: relative; flex: 1; margin: 0; overflow: hidden; aspect-ratio: 1; border-radius: var(--r-lg); background: var(--sand-deep); }
+.rk-gallery img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s var(--ease); }
+.rk-gallery figcaption { position: absolute; inset: auto 0 0; padding: var(--s-6) var(--s-3) var(--s-3); background: linear-gradient(to top, rgb(42 22 15 / 0.72), transparent); color: var(--paper); font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; }
+.rk-gallery[data-layout='mosaic'] li:first-child, .rk-gallery[data-n='3'] li:first-child { grid-column: 1 / -1; }
+.rk-gallery[data-layout='mosaic'] li:first-child figure, .rk-gallery[data-n='3'] li:first-child figure { aspect-ratio: 4 / 3; }
+.rk-gallery[data-n='1'] { grid-template-columns: minmax(0, 28rem); }
+@media (hover: hover) { .rk-gallery li:hover img { transform: scale(1.05); } }
+@media (min-width: 48rem) {
+  .rk-gallery { gap: var(--s-5); }
+  .rk-gallery[data-layout='row'] { grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); }
+  .rk-gallery[data-n='2'] { --n: 2; } .rk-gallery[data-n='3'] { --n: 3; } .rk-gallery[data-n='4'] { --n: 4; }
+  .rk-gallery[data-layout='row'] figure, .rk-gallery[data-n='3'] li:first-child figure { aspect-ratio: 4 / 5; }
+  .rk-gallery[data-n='3'] li:first-child { grid-column: auto; }
+  .rk-gallery[data-layout='mosaic'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rk-gallery[data-layout='mosaic'] li:first-child { grid-column: span 2; grid-row: span 2; }
+  .rk-gallery[data-layout='mosaic'] li:first-child figure { aspect-ratio: auto; }
+}
+
+/* Depoimentos: um em destaque, os outros ao lado (não três cartões iguais) */
+.rk-reviews { display: grid; gap: var(--s-4); margin-top: var(--s-6); }
+.rk-review { display: grid; gap: var(--s-3); align-content: start; margin: 0; padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); }
+.rk-review--lead { background: var(--rosa-tint); align-content: space-between; gap: var(--s-5); padding: var(--s-6) var(--s-5); }
+.rk-review blockquote { margin: 0; font-size: var(--fs-md); }
+.rk-review--lead blockquote { font: 400 var(--fs-xl)/1.25 var(--font-display); text-wrap: balance; }
+.rk-review figcaption { display: grid; font-size: var(--fs-sm); color: var(--cacau-soft); }
+.rk-review figcaption strong { font-size: var(--fs-base); color: var(--cacau); }
+.rk-stars { display: flex; gap: 0.125rem; color: var(--rosa-cta); }
+@media (min-width: 56rem) {
+  .rk-reviews { grid-template-columns: 1.3fr 1fr; gap: var(--s-5); }
+  .rk-review--lead { grid-row: span 2; padding: var(--s-7) var(--s-6); }
+}
+
+/* Feedback e Instagram */
+.rk-voice { background: var(--sand); }
+.rk-voice__grid { display: grid; gap: var(--s-5); align-items: start; }
+@media (min-width: 56rem) { .rk-voice__grid { grid-template-columns: 1.1fr 1fr; gap: var(--s-7); } }
+.rk-form { display: grid; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); }
+.rk-form h2 { font-size: var(--fs-xl); }
+.rk-form p { color: var(--cacau-soft); }
+.rk-form .rk-form__label { font-size: var(--fs-sm); font-weight: 600; color: var(--cacau); }
+.rk-form button[type='submit'] { border-radius: var(--r-pill); box-shadow: none; }
+.rk-ig { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4); align-items: center; padding: var(--s-5); border-radius: var(--r-lg); text-decoration: none; transition: transform 0.3s var(--ease); }
+.rk-ig__mark { width: 4rem; height: auto; }
+.rk-ig__text { display: grid; gap: var(--s-1); color: var(--choco-mute); }
+.rk-ig__handle { display: inline-flex; align-items: center; gap: var(--s-2); font: 400 var(--fs-lg)/1.2 var(--font-display); color: var(--choco-ink); overflow-wrap: anywhere; }
+.rk-ig__go { grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--s-5); border-radius: var(--r-pill); background: var(--paper); color: var(--cacau); font-weight: 700; }
+@media (hover: hover) { .rk-ig:hover { transform: translateY(-3px); } }
+
+/* App: bloco compacto, detalhes técnicos recolhidos */
+.rk-app { display: grid; gap: var(--s-6); }
+.rk-app__card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4); align-items: center; padding: var(--s-5); border-radius: var(--r-lg); background: var(--sand); max-width: 48rem; }
+.rk-app__icon { width: 3.5rem; height: 3.5rem; border-radius: var(--r-md); }
+.rk-app__text h2 { font-size: var(--fs-lg); }
+.rk-app__text p { margin-top: var(--s-1); font-size: var(--fs-sm); color: var(--cacau-soft); }
+.rk-app__btn, .rk-app__soon, .rk-app__tech { grid-column: 1 / -1; }
+.rk-app__btn { justify-self: start; }
+.rk-app__soon { font-size: var(--fs-sm); color: var(--cacau-soft); }
+.rk-app__tech { font-size: var(--fs-sm); color: var(--cacau-soft); }
+.rk-app__tech summary { display: flex; align-items: center; min-height: 2.75rem; font-weight: 600; cursor: pointer; }
+.rk-app__tech dl { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); margin: var(--s-2) 0 var(--s-3); }
+.rk-app__tech dl div { display: inline-flex; gap: var(--s-2); }
+.rk-app__tech dt { color: var(--cacau-mute); }
+.rk-app__tech dd { margin: 0; font-weight: 600; color: var(--cacau); }
+.rk-app__tech ol { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-1); }
+.rk-app__sha { margin-top: var(--s-3); overflow-wrap: anywhere; font: 0.8125rem/1.5 ui-monospace, 'SFMono-Regular', Menlo, monospace; color: var(--cacau-mute); }
+.rk-app__about { display: grid; gap: var(--s-3); max-width: var(--measure); font-size: var(--fs-sm); color: var(--cacau-soft); }
+.rk-app__about h3 { font-size: var(--fs-md); color: var(--cacau); }
+.rk-app__about a { color: var(--rosa-text); }
+@media (min-width: 48rem) { .rk-app__card { grid-template-columns: auto minmax(0, 1fr) auto; } .rk-app__btn { grid-column: auto; justify-self: end; } }
+
+/* ── 7. Movimento: uma sequência de entrada no hero e a revelação suave das fotos ao rolar. Conteúdo visível por padrão. */
+@media (prefers-reduced-motion: no-preference) {
+  .rk-in { animation: rk-rise 0.8s var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
+  @supports (animation-timeline: view()) {
+    .rk-reveal { animation: rk-rise-view linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+  }
+}
+@keyframes rk-rise { from { opacity: 0; transform: translateY(20px); } }
+@keyframes rk-rise-view { from { opacity: 0; transform: translateY(32px) scale(0.98); } }
 
 @media (prefers-reduced-motion: reduce) { .rk-site { scroll-behavior: auto; } }

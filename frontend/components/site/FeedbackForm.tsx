@@ -21,7 +21,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
           onClick={() => onChange(n)}
           className="p-1"
         >
-          <Star size={30} className={n <= value ? 'text-[#f0a020]' : 'text-line'} fill={n <= value ? 'currentColor' : 'none'} strokeWidth={n <= value ? 0 : 1.5} />
+          <Star size={32} className={n <= value ? 'text-pink' : 'text-line'} fill={n <= value ? 'currentColor' : 'none'} strokeWidth={n <= value ? 0 : 2} />
         </button>
       ))}
     </div>
@@ -69,18 +69,18 @@ export function FeedbackForm() {
 
   if (sent) {
     return (
-      <div className="rounded-3xl bg-white p-6 text-center shadow-card">
-        <p className="font-bold">Obrigado pelo feedback! 💛</p>
-        <p className="mt-1 text-sm text-muted">Sua opinião ajuda a gente a melhorar sempre.</p>
+      <div className="rk-form rk-form--done" role="status">
+        <h2>Obrigado pelo feedback!</h2>
+        <p>Sua opinião ajuda a gente a melhorar sempre.</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4 rounded-3xl bg-white p-6 shadow-card">
+    <form onSubmit={submit} className="rk-form">
       <div>
-        <p className="font-bold">O que você achou?</p>
-        <p className="text-sm text-muted">Conte como foi sua experiência com a Raykookie.</p>
+        <h2>O que você achou?</h2>
+        <p>Conte como foi sua experiência com a Raykookie.</p>
       </div>
       <StarPicker value={rating} onChange={setRating} />
       <Textarea
@@ -91,18 +91,18 @@ export function FeedbackForm() {
         rows={3}
       />
       <div>
-        <p className="text-sm font-medium">Fotos (opcional, até {MAX_FEEDBACK_PHOTOS})</p>
+        <p className="rk-form__label">Fotos (opcional, até {MAX_FEEDBACK_PHOTOS})</p>
         <ul className="mt-2 flex flex-wrap gap-2">
           {photos.map((p, i) => (
             <li key={p.url} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.url} alt={`Foto ${i + 1}`} className="size-20 rounded-xl border border-line object-cover" />
-              <button type="button" aria-label={`Remover foto ${i + 1}`} onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="absolute -right-2 -top-2 grid size-8 place-items-center rounded-full bg-bad text-white"><Trash2 size={14} /></button>
+              <img src={p.url} alt={`Foto ${i + 1}`} className="size-20 rounded-xl object-cover" />
+              <button type="button" aria-label={`Remover foto ${i + 1}`} onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="absolute -right-2 -top-2 grid size-11 place-items-center rounded-full bg-ink text-on-pink"><Trash2 size={15} /></button>
             </li>
           ))}
           {photos.length < MAX_FEEDBACK_PHOTOS && (
             <li>
-              <label className="grid size-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-line text-muted hover:border-pink">
+              <label className="grid size-20 cursor-pointer place-items-center rounded-xl bg-surface-2 text-muted transition hover:bg-line has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-pink">
                 <Camera size={22} /><span className="sr-only">Adicionar foto</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" multiple capture="environment" className="sr-only" onChange={(e) => { void addFiles(e.target.files); e.target.value = ''; }} />
               </label>
