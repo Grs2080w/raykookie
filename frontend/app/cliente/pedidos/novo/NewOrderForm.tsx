@@ -47,9 +47,14 @@ function Choice({ name, value, checked, onChange, title, hint }: { name: string;
   );
 }
 
-export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, minDate }: { customer: Customer; menu: Menu; pickup: { label: string; address: string; instructions: string }; initialItem?: string; backHref?: string; minDate: string }) {
+export function NewOrderForm({ customer, menu, pickup, initialItem, initialLines, backHref, minDate }: { customer: Customer; menu: Menu; pickup: { label: string; address: string; instructions: string }; initialItem?: string; initialLines?: Record<string, number>; backHref?: string; minDate: string }) {
   const router = useRouter();
-  const [qty, setQty] = useState<Record<string, number>>(() => (initialItem && menu.items.some((m) => m.id === initialItem) ? { [initialItem]: 1 } : {}));
+  const [qty, setQty] = useState<Record<string, number>>(() => {
+    const known = new Set(menu.items.map((m) => m.id));
+    const box = Object.fromEntries(Object.entries(initialLines ?? {}).filter(([id]) => known.has(id)));
+    if (Object.keys(box).length) return box;
+    return initialItem && known.has(initialItem) ? { [initialItem]: 1 } : {};
+  });
   const [f, setF] = useState({
     contact_name: customer.name, phone: formatPhone(customer.phone), fulfillment: customer.street ? 'entrega' : 'retirada',
     cep: formatCep(customer.cep), street: customer.street, number: customer.number, complement: customer.complement, district: customer.district, city: customer.city,
@@ -70,7 +75,8 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
   };
   useEffect(() => {
     track('checkout_step', { detail: 'items' });
-    if (initialItem && menu.items.some((m) => m.id === initialItem)) track('cart_add', { item_id: initialItem, qty: 1 });
+    if (Object.keys(qty).length) { for (const [id, n] of Object.entries(qty)) track('cart_add', { item_id: id, qty: n }); }
+    else if (initialItem && menu.items.some((m) => m.id === initialItem)) track('cart_add', { item_id: initialItem, qty: 1 });
   // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir o formulário
   }, []);
   const paymentMethods = PAYMENT_METHODS.filter((p) => p.id !== 'cartao' || cardCfg?.cardEnabled);

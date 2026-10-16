@@ -1,247 +1,218 @@
-import { ArrowRight, CalendarClock, Heart, ShoppingBag, Star, Wheat } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Logo } from '@/components/Logo';
-import { Photo, type PhotoKind } from '@/components/site/Photo';
-import { money } from '@/lib/format';
-import { leadDaysLabel, photoKind } from '@shared/shop';
-import { apiPublic } from '@/lib/server-api';
+import '@fontsource/archivo-black/index.css';
+import './landing.css';
 import { AppDownload } from '@/components/AppDownload';
-import { MobileOrderBar } from '@/components/site/MobileOrderBar';
-import { MenuList } from '@/components/site/MenuList';
-import { TrackingToggle } from '@/components/site/TrackingToggle';
-import { InstagramCard } from '@/components/site/InstagramCard';
+import { Logo } from '@/components/Logo';
+import { BoxBuilder } from '@/components/site/landing/BoxBuilder';
+import { HowItWorks, type Stage } from '@/components/site/landing/HowItWorks';
+import { Reveal } from '@/components/site/landing/Reveal';
 import { FeedbackForm } from '@/components/site/FeedbackForm';
-import { ShareMenu } from '@/components/ShareMenu';
+import { TrackingToggle } from '@/components/site/TrackingToggle';
+import { biteVars } from '@/lib/bite';
+import { todayBR } from '@/lib/dates';
+import { apiPublic } from '@/lib/server-api';
+import { LEAD_DAYS, leadDaysLabel } from '@shared/shop';
+import { addDays } from '@shared/text';
 import type { AppReleases, Menu } from '@shared/types';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Raykookie · Confeitaria feita à mão' },
-  description: 'Cookies, tortas, brownies e bolos feitos à mão, sob encomenda. Escolha no cardápio e faça seu pedido online.',
+  title: { absolute: 'Raykookie · Cookies e brownies feitos à mão' },
+  description: 'Cookies, brownies e bits de brownie assados em fornadas pequenas, sob encomenda. Monte sua caixa no cardápio e peça online.',
   alternates: { canonical: '/' },
 };
 
 const PEDIR = '/cliente';
 // o cardápio vem das receitas do painel; a página é refeita a cada 30 s
-export const dynamic = 'force-dynamic'; // o cardápio é buscado do backend (cache de 30 s no fetch)
+export const dynamic = 'force-dynamic';
 
-const GALLERY_SLOTS: { kind: PhotoKind; label: string; tall?: boolean }[] = [
-  { kind: 'cookie', label: 'Cookies recém-saídos do forno', tall: true },
-  { kind: 'bolo', label: 'Bolo decorado para festa' },
-  { kind: 'brownie', label: 'Brownies com casquinha crocante' },
-  { kind: 'torta', label: 'Torta de limão maçaricada', tall: true },
-  { kind: 'embalagem', label: 'Caixa de presente' },
-  { kind: 'bancada', label: 'Nossa bancada de trabalho' },
+const MARQUEE = ['cookies', 'brownies', 'bits de brownie', 'combos', 'feito à mão', 'sob encomenda'];
+
+// Só fotos reais da casa (public/fotos e as do cardápio). Sem foto de banco de imagem.
+const STAGES: Stage[] = [
+  { name: 'Escolha', text: `Monte a caixa pelo cardápio. Peça com ${leadDaysLabel()}: a fornada é feita para o seu pedido.`, photo: '/fotos/brownie-destaque.jpg', alt: 'Brownies com cobertura de chocolate sobre uma grade' },
+  { name: 'Entre', text: 'Com o Google ou com e-mail e senha. É rápido e guarda seus dados para o próximo pedido.', photo: '/fotos/cookie-destaque.jpg', alt: 'Dois cookies sobre papel de cookies' },
+  { name: 'Pague', text: 'Pix copia e cola ao finalizar, cartão de crédito ou dinheiro na entrega.', photo: '/fotos/bolo-destaque.jpg', alt: 'Cookie com fios de chocolate sobre papel' },
+  { name: 'Receba', text: 'Retire sem taxa ou receba em casa. Acompanhe cada etapa pelo app; só chamamos no WhatsApp se for preciso.', photo: '/fotos/bancada-destaque.jpg', alt: 'Brownies sobre a grade de resfriar' },
 ];
 
-/** Pega uma foto real do cardápio para essa categoria (nunca repete a mesma foto na página); sem foto real, fica a ilustração. */
-function pickPhoto(menu: Menu, kind: PhotoKind, used: Set<string>): { src?: string; label?: string } {
-  const m = menu.items.find((i) => i.image && !used.has(i.image) && photoKind(i) === kind);
-  if (!m?.image) return {};
-  used.add(m.image);
-  return { src: m.image, label: m.name };
-}
-
-const REVIEWS = [
-  { name: 'Mariana S.', text: 'O bolo chegou lindo e estava ainda mais gostoso do que parecia. Todo mundo na festa pediu o contato!', when: 'Aniversário de 30 anos' },
-  { name: 'Carlos e Ana', text: 'Pedimos a caixa de brownies de presente e foi sucesso. Embalagem caprichada, entrega pontual.', when: 'Presente de casamento' },
-  { name: 'Patrícia L.', text: 'Os cookies de Ninho com Nutella viciam. Já virou tradição de sexta-feira aqui em casa.', when: 'Cliente frequente' },
+// Parede de sabores: palavras dos itens do cardápio; a cada quatro células, uma foto real.
+const WALL: ({ word: string; cap: string; long?: boolean } | { photo: string; alt: string })[] = [
+  { word: 'Nutella', cap: 'cookie e brownie' },
+  { photo: '/fotos/cookie-destaque.jpg', alt: 'Cookies com gotas de chocolate' },
+  { word: 'Ninho', cap: 'brownie' },
+  { word: 'Kinder', cap: 'cookie' },
+  { word: 'Kit Kat', cap: 'cookie' },
+  { word: 'Baunilha', cap: 'cookie tradicional', long: true },
+  { photo: '/fotos/brownie-destaque.jpg', alt: 'Brownies de chocolate sobre a grade' },
+  { word: 'Brigadeiro', cap: 'brownie', long: true },
+  { word: 'Bits', cap: 'de brownie' },
+  { photo: '/fotos/bolo-destaque.jpg', alt: 'Cookie com cobertura de chocolate' },
+  { word: 'Combos', cap: 'a partir de R$ 21,50' },
+  { word: 'Branco', cap: 'chocolate branco' },
 ];
-
-const STEPS = [
-  { n: '1', t: 'Entre ou crie sua conta', d: 'Com o Google ou com e-mail e senha.' },
-  { n: '2', t: 'Escolha do cardápio', d: 'Monte o pedido e diga quando quer receber.' },
-  { n: '3', t: 'Receba ou retire', d: 'Acompanhe tudo pelo app. Só chamamos no WhatsApp se for necessário.' },
-];
-
-function Stars() {
-  return <span className="flex gap-0.5 text-[#f0a020]" aria-label="5 de 5 estrelas">{[0, 1, 2, 3, 4].map((i) => <Star key={i} size={16} fill="currentColor" strokeWidth={0} />)}</span>;
-}
-
-const cta = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-pink px-6 text-base font-bold text-on-pink shadow-[0_10px_24px_-10px_var(--pink)] transition hover:bg-pink-strong active:scale-[0.98]';
+const PALETTE = ['p1', 'p2', 'p3', 'p4'];
 
 export default async function Landing() {
   const [menu, releases] = await Promise.all([
     apiPublic<Menu>('/api/menu').then((m) => m ?? { items: [], groups: [] }),
     apiPublic<AppReleases>('/api/downloads', 15).then((r) => r ?? {}),
   ]);
-  // Fotos reais do cardápio no lugar das ilustrações/placeholders, sem repetir a mesma foto na página.
-  const usedPhotos = new Set<string>();
-  const heroBolo = pickPhoto(menu, 'bolo', usedPhotos);
-  const heroCookie = pickPhoto(menu, 'cookie', usedPhotos);
-  const heroBrownie = pickPhoto(menu, 'brownie', usedPhotos);
-  // sem foto própria no cardápio ainda: usa as fotos de vitrine já capturadas, em vez de deixar sem foto nenhuma
-  heroBolo.src ??= '/fotos/bolo-destaque.jpg';
-  heroCookie.src ??= '/fotos/cookie-destaque.jpg';
-  heroBrownie.src ??= '/fotos/brownie-destaque.jpg';
-  const GALLERY = GALLERY_SLOTS.map((s) => ({ ...s, ...pickPhoto(menu, s.kind, usedPhotos) }));
+  const earliest = new Date(`${addDays(todayBR(), LEAD_DAYS)}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const lowest = menu.items.length ? Math.min(...menu.items.map((i) => i.price)) : 0;
+
   return (
-    <div className="brand-scope min-h-dvh overflow-x-clip pb-24 md:pb-0">
-      {/* Cabeçalho */}
-      <header className="sticky top-0 z-40 border-b border-line bg-rk-claro/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 md:px-8">
-          <Link href="/" aria-label="Raykookie, início">
-            <Logo variant="compacta" tone="claro" imgClassName="h-10 md:hidden" />
-            <Logo tone="claro" imgClassName="hidden h-9 md:block" />
-          </Link>
-          <nav className="hidden items-center gap-7 text-[15px] font-semibold md:flex" aria-label="Seções">
-            <a href="#sobre" className="hover:text-pink-strong">Sobre</a>
-            <a href="#cardapio" className="hover:text-pink-strong">Cardápio</a>
-            <a href="#depoimentos" className="hover:text-pink-strong">Depoimentos</a>
-          </nav>
-          <Link href={PEDIR} className="hidden min-h-11 items-center gap-2 rounded-xl bg-pink px-4 text-[15px] md:inline-flex font-bold text-on-pink hover:bg-pink-strong"><ShoppingBag size={17} />Fazer pedido</Link>
-        </div>
+    <div className="rk" style={biteVars()}>
+      <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('rk-js')" }} />
+      <Reveal />
+
+      {/* ── Cabeçalho */}
+      <header className="rk-bar wrap">
+        <Link href="/" aria-label="Raykookie, início">
+          <Logo variant="compacta" tone="claro" imgClassName="h-10 md:hidden" />
+          <Logo tone="claro" imgClassName="hidden h-9 md:block" />
+        </Link>
+        <nav aria-label="Seções" className="hidden md:flex">
+          <a href="#cardapio">Cardápio</a>
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#sobre">Sobre</a>
+          <a href="#app">App</a>
+        </nav>
+        <Link href={PEDIR} className="btn">Fazer pedido</Link>
       </header>
 
       <main>
-        {/* Apresentação */}
-        <section className="bg-rk-claro">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-12 pt-8 md:grid-cols-2 md:items-center md:gap-14 md:px-8 md:py-20">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-pink-strong shadow-card"><Heart size={15} fill="currentColor" />Sob encomenda, com carinho</p>
-              <h1 className="font-display mt-4 text-[40px] font-semibold leading-[1.05] md:text-6xl">Confeitaria feita à mão, do forno para a sua mesa.</h1>
-              <p className="mt-4 max-w-md text-lg text-muted">Cookies, tortas, brownies e bolos preparados em pequenas fornadas, com ingredientes selecionados e muito cuidado em cada detalhe.</p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link id="cta-hero" href={PEDIR} className={cta}>Fazer pedido <ArrowRight size={19} /></Link>
-                <a href="#cardapio" className="inline-flex min-h-12 items-center justify-center rounded-2xl border-2 border-rk-escuro/15 bg-white px-6 text-base font-bold hover:border-rk-escuro/40">Ver cardápio</a>
+        {/* ── Hero: o disco do cookie entra pela direita e leva as mordidas */}
+        <section className="hero">
+          <div className="hero-disc disc" aria-hidden />
+          <div className="hero-photo shutter">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="disc-photo whole"><img src="/fotos/cookie-destaque.jpg" alt="Dois cookies com gotas e fios de chocolate sobre papel de cookies" width={1050} height={1400} /></div>
+          </div>
+          <div className="hero-copy wrap">
+            <h1 className="display">Cookie<br />feito à mão</h1>
+            <p className="hero-lede">Cookies e brownies assados em fornadas pequenas, só sob encomenda{lowest ? `, a partir de R$ ${lowest.toFixed(2).replace('.', ',')}` : ''}.</p>
+            <div className="hero-actions">
+              <Link id="cta-hero" href={PEDIR} className="bite-btn">Fazer<br />pedido</Link>
+              <a href="#cardapio" className="link">Ver o cardápio</a>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Banda */}
+        <div className="band" aria-hidden>
+          <div className="band-track display">
+            {[0, 1].flatMap((k) => MARQUEE.flatMap((w) => [<span key={`${k}${w}`}>{w}</span>, <i key={`${k}${w}d`} className="band-dot bite" />]))}
+          </div>
+        </div>
+
+        {/* ── Cardápio e caixa (interativo) */}
+        <BoxBuilder menu={menu} delivery={earliest} />
+
+        {/* ── Como funciona */}
+        <section id="como-funciona" className="how wrap" aria-labelledby="como-titulo">
+          <div className="how-intro">
+            <h2 id="como-titulo" className="display" data-reveal>Do forno até você</h2>
+            <p data-reveal style={{ '--i': 1 } as React.CSSProperties}>Quatro passos, sem complicação. Toque numa etapa para ver o que acontece nela.</p>
+          </div>
+          <HowItWorks stages={STAGES} />
+        </section>
+
+        {/* ── Sobre */}
+        <section id="sobre" className="about" aria-labelledby="sobre-titulo">
+          <div className="about-left">
+            <h2 id="sobre-titulo" className="display" data-reveal>Começou numa cozinha de casa</h2>
+            <div className="about-photo" data-reveal="scale">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="disc-photo bite"><img src="/fotos/bancada-destaque.jpg" alt="Brownies recém-assados esfriando na grade" width={1050} height={1400} loading="lazy" /></div>
+            </div>
+          </div>
+          <div className="about-right">
+            <div data-reveal>
+              <h3>Uma receita de cookie</h3>
+              <p>A Raykookie nasceu com uma receita de cookie e a vontade de adoçar o dia de quem a gente gosta. Continua assim: receitas testadas até ficarem certas, uma fornada de cada vez.</p>
+            </div>
+            <div data-reveal style={{ '--i': 1 } as React.CSSProperties}>
+              <h3>Só sob encomenda</h3>
+              <p>Por isso tudo chega fresquinho. Escolha o que quer, diga o dia e o resto é com a gente.</p>
+            </div>
+            <div data-reveal style={{ '--i': 2 } as React.CSSProperties}><Link href={PEDIR} className="btn">Fazer pedido</Link></div>
+          </div>
+        </section>
+
+        {/* ── Parede de sabores */}
+        <section className="wall" aria-label="Sabores" id="sabores">
+          {WALL.map((t, i) =>
+            'photo' in t ? (
+              <div key={t.photo} className="tile" data-reveal="scale" style={{ '--i': i % 4 } as React.CSSProperties}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={t.photo} alt={t.alt} width={525} height={525} loading="lazy" />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3" aria-hidden={false}>
-              <Photo kind="bolo" src={heroBolo.src} label={heroBolo.label ?? 'Bolo decorado'} className="row-span-2 min-h-64" />
-              <Photo kind="cookie" src={heroCookie.src} label={heroCookie.label ?? 'Cookies'} className="aspect-square" />
-              <Photo kind="brownie" src={heroBrownie.src} label={heroBrownie.label ?? 'Brownies'} className="aspect-square" />
-            </div>
+            ) : (
+              <a key={t.word} href="#cardapio" className={`tile ${PALETTE[i % 4]}`} data-reveal="scale" style={{ '--i': i % 4 } as React.CSSProperties}>
+                <span className={`word display${t.long ? ' long' : ''}`}>{t.word}</span>
+                <span className="cap">{t.cap}</span>
+              </a>
+            ),
+          )}
+        </section>
+
+        {/* ── App */}
+        <section id="app" className="app wrap">
+          <div className="app-text">
+            <h2 className="display" data-reveal>Seu pedido no bolso</h2>
+            <p data-reveal style={{ '--i': 1 } as React.CSSProperties}>O Raykookie é o site e o aplicativo da nossa confeitaria. Você vê o cardápio, faz encomendas de cookies e brownies, paga por Pix e acompanha cada etapa do pedido, do preparo até a entrega ou a retirada. Também é por ali que cancela um pedido, pede devolução e cuida dos seus dados.</p>
+            <p data-reveal style={{ '--i': 2 } as React.CSSProperties}>Para entrar, use e-mail e senha ou o login com Google. O Google serve só para identificar você: usamos seu nome e e-mail para criar a conta e preencher o pedido. Não publicamos nada em seu nome, não acessamos outros dados da sua conta Google e não vendemos suas informações. Saiba mais na <Link href="/privacidade" className="link">Política de Privacidade</Link> e nos <Link href="/termos" className="link">Termos de Serviço</Link>.</p>
+          </div>
+          <div data-reveal style={{ '--i': 1 } as React.CSSProperties}>
+            <AppDownload flat release={releases.client} icon="/app/icone-cliente.png" title="Baixe o app Raykookie" description="Veja o cardápio e faça seus pedidos pelo celular, com o acompanhamento de cada encomenda." />
           </div>
         </section>
 
-        {/* Diferenciais */}
-        <section className="border-y border-line bg-white">
-          <ul className="mx-auto grid max-w-6xl gap-5 px-4 py-7 sm:grid-cols-3 md:px-8">
-            {[
-              { i: Heart, t: 'Feito à mão', d: 'Cada receita é preparada do zero, sem pressa.' },
-              { i: Wheat, t: 'Ingredientes selecionados', d: 'Chocolate de verdade, manteiga e frutas frescas.' },
-              { i: CalendarClock, t: 'Sob encomenda', d: `Peça com pelo menos ${leadDaysLabel()}.` },
-            ].map(({ i: Icon, t, d }) => (
-              <li key={t} className="flex items-start gap-3.5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-pink-tint text-pink-strong"><Icon size={22} /></span>
-                <div><p className="font-bold">{t}</p><p className="text-sm text-muted">{d}</p></div>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Sobre */}
-        <section id="sobre" className="scroll-mt-20 mx-auto grid max-w-6xl gap-8 px-4 py-14 md:grid-cols-2 md:items-center md:gap-14 md:px-8 md:py-20">
-          <Photo kind="bancada" src="/fotos/bancada-destaque.jpg" label="Nossa bancada de trabalho" className="aspect-[4/3]" />
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-pink-strong">Nossa história</p>
-            <h2 className="font-display mt-2 text-3xl font-semibold md:text-4xl">Doces simples, feitos com capricho.</h2>
-            <p className="mt-4 text-muted">A Raykookie nasceu na cozinha de casa, com uma receita de cookie e a vontade de adoçar o dia de quem a gente gosta. Hoje continuamos assim: fornadas pequenas, receitas que testamos até ficarem perfeitas e atenção a cada pedido.</p>
-            <p className="mt-3 text-muted">Trabalhamos só sob encomenda, para que tudo chegue fresquinho. Escolha o que você quer, diga o dia e o resto é com a gente.</p>
+        {/* ── Conversa */}
+        <section id="feedback" className="talk wrap">
+          <div className="talk-text">
+            <h2 className="display" data-reveal>Provou? Conta pra gente</h2>
+            <p data-reveal style={{ '--i': 1 } as React.CSSProperties}>Sua opinião, e a foto se quiser, ajuda a melhorar a próxima fornada.</p>
+            <a href="https://www.instagram.com/raykookies" target="_blank" rel="noreferrer noopener" className="ig" data-reveal style={{ '--i': 2 } as React.CSSProperties}>
+              <span className="disc bite" aria-hidden /><span>Siga @raykookies no Instagram</span>
+            </a>
           </div>
+          <div data-reveal style={{ '--i': 1 } as React.CSSProperties}><FeedbackForm /></div>
         </section>
 
-        {/* Galeria */}
-        <section aria-labelledby="galeria" className="bg-rk-claro py-14 md:py-20">
-          <div className="mx-auto max-w-6xl px-4 md:px-8">
-            <h2 id="galeria" className="font-display text-3xl font-semibold md:text-4xl">Um gostinho do que fazemos</h2>
+        {/* ── Fecho: o cookie volta */}
+        <section className="close" aria-labelledby="fecho-titulo" style={{ marginTop: 'var(--gap-section)' }}>
+          <div className="close-photo disc-photo bite" data-reveal="scale">
+            <video data-drift src="/media/forno.webm" poster="/media/forno-poster.jpg" autoPlay muted loop playsInline preload="metadata" aria-label="Cookies assando no forno" width={854} height={480} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <ul className="mx-auto mt-6 flex max-w-6xl snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-8 [&::-webkit-scrollbar]:hidden">
-            {GALLERY.map((g) => (
-              <li key={g.kind} className={`w-[72%] shrink-0 snap-center sm:w-[44%] md:w-auto ${g.tall ? 'md:row-span-2' : ''}`}>
-                <Photo kind={g.kind} src={g.src} label={g.label} className={g.tall ? 'aspect-[3/4] md:h-full md:min-h-96' : 'aspect-[4/3]'} />
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Cardápio: vem das receitas do painel (só foto, nome e preço) */}
-        <section id="cardapio" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-20">
-          <p className="text-sm font-bold uppercase tracking-wider text-pink-strong">Cardápio</p>
-          <h2 className="font-display mt-2 text-3xl font-semibold md:text-4xl">O que tem para hoje (e para o seu dia)</h2>
-          <div className="mt-4"><ShareMenu /></div>
-          <MenuList menu={menu} from="home" />
-        </section>
-
-        {/* Depoimentos */}
-        <section id="depoimentos" className="scroll-mt-20 bg-rk-claro py-14 md:py-20">
-          <div className="mx-auto max-w-6xl px-4 md:px-8">
-            <h2 className="font-display text-3xl font-semibold md:text-4xl">Quem já provou, recomenda</h2>
-            <ul className="mt-6 grid gap-4 md:grid-cols-3">
-              {REVIEWS.map((r) => (
-                <li key={r.name} className="rounded-3xl bg-white p-5 shadow-card">
-                  <Stars />
-                  <blockquote className="mt-3 text-[15px]">“{r.text}”</blockquote>
-                  <p className="mt-4 font-bold">{r.name}</p>
-                  <p className="text-sm text-muted">{r.when}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* Feedback */}
-        <section id="feedback" className="scroll-mt-20 mx-auto max-w-2xl px-4 py-10 md:px-8 md:py-12">
-          <FeedbackForm />
-        </section>
-
-        {/* Instagram */}
-        <section id="instagram" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-12">
-          <InstagramCard />
-        </section>
-
-        {/* App para baixar */}
-        <section id="app" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-16">
-          <AppDownload
-            release={releases.client} icon="/app/icone-cliente.png" title="Baixe o app Raykookie"
-            description="Veja o cardápio e faça seus pedidos pelo celular, com o acompanhamento de cada encomenda."
-          />
-        </section>
-
-        {/* Sobre o app: finalidade do app e uso do login com Google (exigido na verificação do Google) */}
-        <section id="sobre-o-app" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-16">
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">Sobre o app Raykookie</h2>
-          <div className="mt-4 grid gap-6 text-[15px] md:grid-cols-2 md:text-base">
-            <p>O Raykookie é o site e o aplicativo da nossa confeitaria. Com ele você vê o cardápio, faz encomendas de cookies, tortas, brownies e bolos, paga por Pix e acompanha cada etapa do pedido, do preparo até a entrega ou a retirada. Também é por ali que você pode cancelar um pedido, pedir devolução e cuidar dos seus dados.</p>
-            <p>Para entrar, você pode criar uma conta com e-mail e senha ou usar o login com Google. O Google serve só para identificar você: usamos seu nome e seu e-mail para criar a conta e preencher o pedido. Não publicamos nada em seu nome, não acessamos outros dados da sua conta Google e não vendemos suas informações. Saiba mais na <Link href="/privacidade" className="font-semibold text-pink-strong underline">Política de Privacidade</Link> e nos <Link href="/termos" className="font-semibold text-pink-strong underline">Termos de Serviço</Link>.</p>
-          </div>
-        </section>
-
-        {/* Pedidos */}
-        <section id="pedido" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-20">
-          <div className="overflow-hidden rounded-[2rem] bg-rk-escuro p-6 text-white md:grid md:grid-cols-[1.1fr_1fr] md:items-center md:gap-10 md:p-12">
-            <div>
-              <h2 className="font-display text-3xl font-semibold leading-tight md:text-5xl">Faça sua encomenda</h2>
-              <p className="mt-3 max-w-md text-white/75">Em poucos minutos o pedido está feito, e você acompanha todo o andamento pelo app, na sua conta.</p>
-              <Link href={PEDIR} className={`${cta} mt-6 w-full md:w-auto`}>Fazer pedido <ArrowRight size={19} /></Link>
-            </div>
-            <ol className="mt-8 grid gap-4 md:mt-0">
-              {STEPS.map((s) => (
-                <li key={s.n} className="flex items-start gap-4 rounded-2xl bg-white/8 p-4">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-pink font-bold text-on-pink">{s.n}</span>
-                  <div><p className="font-bold">{s.t}</p><p className="text-sm text-white/70">{s.d}</p></div>
-                </li>
-              ))}
-            </ol>
+          <div className="close-text">
+            <h2 id="fecho-titulo" className="display" data-reveal>Seu cookie está no forno</h2>
+            <p data-reveal style={{ '--i': 1 } as React.CSSProperties}>Quase. Falta você pedir.</p>
+            <p className="fact" data-reveal style={{ '--i': 2 } as React.CSSProperties}>Peça com {leadDaysLabel()}</p>
+            <Link href={PEDIR} className="btn btn-ink" data-reveal style={{ '--i': 3 } as React.CSSProperties}>Fazer pedido</Link>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-line bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-10 text-center md:flex-row md:justify-between md:px-8">
-          <Logo tone="claro" imgClassName="h-9" />
-          <p className="text-sm text-muted">Confeitaria feita à mão · Encomendas com {leadDaysLabel()}.</p>
-          <nav aria-label="Documentos legais" className="flex gap-1 text-sm font-semibold">
-            <Link href="/termos" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Termos de Serviço</Link>
-            <Link href="/privacidade" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Privacidade</Link>
-            <Link href="/excluir-conta" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Excluir conta</Link>
-            <TrackingToggle className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong" />
-          </nav>
+      {/* ── Rodapé: a marca grande */}
+      <footer className="foot">
+        <div className="foot-mark">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/raykookie-principal-fundo-escuro.svg" alt="raykookie" width={2000} height={380} />
+        </div>
+        <div className="foot-cols">
+          <nav aria-label="Pedidos"><h3>Pedidos</h3><ul><li><a href="#cardapio">Cardápio</a></li><li><a href="#caixa">Sua caixa</a></li><li><a href="#como-funciona">Como funciona</a></li></ul></nav>
+          <nav aria-label="A casa"><h3>A casa</h3><ul><li><a href="#sobre">Sobre</a></li><li><a href="#sabores">Sabores</a></li><li><a href="#app">App</a></li></ul></nav>
+          <nav aria-label="Documentos legais"><h3>Legal</h3><ul><li><Link href="/termos">Termos de Serviço</Link></li><li><Link href="/privacidade">Privacidade</Link></li><li><Link href="/excluir-conta">Excluir conta</Link></li><li><TrackingToggle /></li></ul></nav>
+          <div><h3>Contato</h3><ul><li><a href="https://www.instagram.com/raykookies" target="_blank" rel="noreferrer noopener">@raykookies</a></li><li><Link href="/cliente">Área do cliente</Link></li></ul></div>
+        </div>
+        <div className="foot-end">
+          <p>© {new Date().getFullYear()} Raykookie · Confeitaria feita à mão. Vídeo do forno: “Baking cookies”, CC0, via <a className="link" href="https://commons.wikimedia.org/wiki/File:Baking_cookies.ogv" target="_blank" rel="noreferrer noopener">Wikimedia Commons</a>, não é da Raykookie.</p>
+          <Link href={PEDIR} className="btn">Fazer pedido</Link>
         </div>
       </footer>
 
-      {/* Botão fixo no celular */}
-      <MobileOrderBar href={PEDIR} targetId="cta-hero" className={cta} />
     </div>
   );
 }
