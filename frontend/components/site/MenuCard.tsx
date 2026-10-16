@@ -7,10 +7,10 @@ import { menuTagLabel } from '@shared/menu-tags';
 import type { MenuItem } from '@shared/types';
 
 /** Foto do item (sempre 4:3, como vem do painel) ou, sem foto, o placeholder da marca: o símbolo do cookie sobre um tom do doce. */
-function Media({ item }: { item: MenuItem }) {
+function Media({ item, eager }: { item: MenuItem; eager?: boolean }) {
   if (item.image) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={item.image} alt="" width={400} height={300} loading="lazy" decoding="async" />;
+    return <img src={item.image} alt="" width={400} height={300} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} decoding="async" />;
   }
   return (
     <span className="rk-ph" data-tone={placeholderTone(item)} aria-hidden>
@@ -24,8 +24,9 @@ function Media({ item }: { item: MenuItem }) {
  * Cartão de um item do cardápio. "Pedir" leva ao novo pedido com o item na URL (`item`) e a origem (`from`): sem sessão,
  * o login devolve a pessoa para exatamente essa página. O link cobre o cartão inteiro (área de toque grande); o botão é o rótulo.
  */
-export function MenuCard({ item, from }: { item: MenuItem; from: 'cardapio' | 'home' }) {
+export function MenuCard({ item, from, eager }: { item: MenuItem; from: 'cardapio' | 'home'; eager?: boolean }) {
   const name = niceName(item.name);
+  const Name = from === 'home' ? 'h4' : 'h3'; // um nível abaixo do título da categoria
   const weight = weightLabel(item.weight_g);
   // Características: "Vegetariano", "Sem lactose"… viram um chip cada; os "Contém …" se juntam em um só ("Contém soja e ovos")
   const diet = (item.tags ?? []).filter((t) => !t.startsWith('contem_')).map(menuTagLabel);
@@ -34,9 +35,9 @@ export function MenuCard({ item, from }: { item: MenuItem; from: 'cardapio' | 'h
   const savings = item.combo && item.combo.savings > 0 ? item.combo : null;
   return (
     <TrackedItem itemId={item.id} surface={from === 'home' ? 'landing' : 'cardapio'} className="rk-card">
-      <div className="rk-card__media"><Media item={item} /></div>
+      <div className="rk-card__media"><Media item={item} eager={eager} /></div>
       <div className="rk-card__body">
-        <h4 className="rk-card__name">{name}</h4>
+        <Name className="rk-card__name">{name}</Name>
         {weight && <p className="rk-card__meta">{weight} cada</p>}
         {item.combo && (
           <ul className="rk-card__parts" aria-label="O que vem no combo">

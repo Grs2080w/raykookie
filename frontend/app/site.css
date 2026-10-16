@@ -27,7 +27,7 @@
 
   /* tipografia */
   --font-display: var(--font-site-display), ui-serif, Georgia, serif; /* Young Serif, vem de lib/site-font.ts */
-  --font-text: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-text: var(--font-site-text), ui-sans-serif, system-ui, sans-serif; /* Figtree, vem de lib/site-font.ts */
   --fs-sm: 0.875rem;
   --fs-base: 1rem;
   --fs-md: 1.125rem;
@@ -126,7 +126,7 @@
   position: sticky; top: var(--header-h); z-index: 30; display: flex; gap: var(--s-2); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity;
   margin-inline: calc(var(--gutter) * -1); padding: var(--s-2) var(--gutter); min-height: var(--chips-h); align-items: center; background: var(--cream);
   /* a faixa sangra até as bordas da tela (sombra com espalhamento recortada na horizontal) e leva um fio embaixo */
-  box-shadow: 0 1px 0 var(--sand-deep), 0 0 0 100vmax var(--cream); clip-path: inset(0 -100vmax -1px -100vmax);
+  box-shadow: 0 -1px 0 100vmax var(--cream), 0 0 0 100vmax var(--sand-deep); clip-path: inset(0 -100vmax -1px -100vmax); /* o creme (1px mais alto) cobre tudo, menos o fio de baixo */
 }
 .rk-chips::-webkit-scrollbar { display: none; }
 .rk-chips a {
@@ -137,7 +137,7 @@
 .rk-chips a[aria-current='true'] { background: var(--cacau); color: var(--cream); }
 
 .rk-group { padding-top: var(--s-7); scroll-margin-top: calc(var(--header-h) + var(--chips-h)); }
-.rk-group h3 { font-size: var(--fs-xl); margin-bottom: var(--s-5); }
+.rk-group > :is(h2, h3) { font-size: var(--fs-xl); margin-bottom: var(--s-5); }
 .rk-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .rk-grid[data-kind='combos'] { gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); }
 @media (min-width: 48rem) { .rk-grid { gap: var(--s-5); grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -151,7 +151,7 @@
 .rk-ph { display: grid; place-items: center; width: 100%; height: 100%; background: var(--rosa-tint); }
 .rk-ph[data-tone='cookie'] { background: var(--caramelo); }
 .rk-ph[data-tone='brownie'] { background: var(--brownie); }
-.rk-ph img { width: 34%; height: auto; object-fit: contain; transform: rotate(-8deg); }
+.rk-ph img { width: 28%; height: auto; object-fit: contain; transform: rotate(-8deg); }
 .rk-card__body { display: flex; flex: 1; flex-direction: column; gap: var(--s-2); padding: var(--s-3); }
 .rk-card__name { margin: 0; font: 400 var(--fs-md)/1.2 var(--font-display); text-wrap: balance; }
 .rk-card__meta { font-size: var(--fs-sm); line-height: 1.4; color: var(--cacau-mute); }

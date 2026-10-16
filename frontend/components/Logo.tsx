@@ -6,10 +6,14 @@ import clsx from 'clsx';
 // "sobre-rosa" é para fundo rosa da marca.
 type Props = { variant?: 'principal' | 'compacta' | 'simbolo'; tone?: 'auto' | 'claro' | 'escuro' | 'sobre-rosa'; className?: string; imgClassName?: string };
 
+// Tamanho de origem de cada versão (a proporção reserva o espaço antes do SVG carregar: sem salto de layout)
+const SIZE = { principal: [2082, 398], compacta: [1442, 625], simbolo: [512, 512] } as const;
+
 export function Logo({ variant = 'principal', tone = 'auto', className, imgClassName = 'h-9' }: Props) {
+  const [width, height] = SIZE[variant];
   const img = (file: string, extra?: string) => (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={`/brand/raykookie-${file}.svg`} alt="raykookie" draggable={false} className={clsx('w-auto max-w-none', imgClassName, extra)} />
+    <img src={`/brand/raykookie-${file}.svg`} alt="raykookie" width={width} height={height} draggable={false} className={clsx('w-auto max-w-none', imgClassName, extra)} />
   );
   if (variant === 'simbolo') return <span className={clsx('inline-flex', className)}>{img('simbolo-cookie')}</span>;
   if (tone !== 'auto') return <span className={clsx('inline-flex', className)}>{img(`${variant}-${tone === 'claro' ? 'fundo-claro' : tone === 'escuro' ? 'fundo-escuro' : 'sobre-rosa'}`)}</span>;

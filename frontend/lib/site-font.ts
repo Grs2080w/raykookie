@@ -10,5 +10,15 @@ const display = localFont({
   fallback: ['ui-serif', 'Georgia', 'serif'],
 });
 
-/** Classe da raiz do site público: ativa o escopo `.rk-site` e entrega a fonte de título. */
-export const siteClass = `rk-site ${display.variable}`;
+/** Fonte de texto e preços (Figtree variável, subset latin): mesma face do app, mas com a reserva ajustada para páginas longas (termos) não pularem na troca. */
+const text = localFont({
+  src: '../node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2',
+  weight: '300 900',
+  display: 'swap',
+  variable: '--font-site-text',
+  adjustFontFallback: 'Arial',
+  fallback: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+});
+
+/** Classe da raiz do site público: ativa o escopo `.rk-site` e entrega as duas fontes. */
+export const siteClass = `rk-site ${display.variable} ${text.variable}`;
