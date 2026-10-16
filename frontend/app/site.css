@@ -4,7 +4,8 @@
  * Direção: confeitaria artesanal contemporânea. Fundo de massa crua (creme quente), tinta de cacau, o rosa da marca como destaque.
  */
 /* ── 1. Tokens ─────────────────────────────────────────────────────────────── */
-.rk-site {
+/* Os tokens valem também na raiz quando a página é do site/cliente: o aviso (toast) e o fundo ao esticar a rolagem ficam na mesma identidade. */
+.rk-site, :root:has(.rk-site) {
   /* cor · papéis */
   --cream: #fbf3ea;          /* fundo da página (massa crua) */
   --paper: #fffaf4;          /* superfícies elevadas: cartões, formulário */
@@ -57,7 +58,7 @@
   /* Os tokens compartilhados com Button/Input/Toast (área do cliente) apontam para a identidade do site só aqui dentro. */
   --bg: var(--cream); --surface: var(--paper); --surface-2: var(--sand); --ink: var(--cacau); --muted: var(--cacau-mute);
   --line: var(--sand-deep); --pink: var(--rosa-cta); --pink-strong: var(--rosa-text); --pink-tint: var(--rosa-tint); --on-pink: var(--paper);
-  --shadow: var(--shadow-lift);
+  --shadow: 0 1px 2px rgb(58 29 18 / 0.06), 0 10px 24px -14px rgb(58 29 18 / 0.28); /* só para o que flutua (aviso, gaveta); cartões em repouso não usam */
   color-scheme: light;
 }
 @media (min-width: 48rem) { .rk-site { --gutter: var(--s-6); --header-h: 4.5rem; } }
@@ -69,11 +70,14 @@
   scroll-behavior: smooth;
 }
 .rk-site *, .rk-site *::before, .rk-site *::after { box-sizing: border-box; }
-.rk-site img, .rk-site video { max-width: 100%; display: block; }
-/* resets com :where() (especificidade 0): as classes dos componentes sempre vencem */
-:where(.rk-site) :where(h1, h2, h3) { font-family: var(--font-display); font-weight: 400; line-height: var(--lh-display); letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
-:where(.rk-site) :where(p) { margin: 0; text-wrap: pretty; }
-:where(.rk-site) :where(a) { color: inherit; }
+/* Resets na camada `base` (a mesma do Tailwind, que vem antes dos utilitários): nossas classes (sem camada) e os utilitários
+ * dos componentes compartilhados (mt-*, text-xl, hidden…) sempre vencem. Sem camada, um reset venceria até um `mt-4`. */
+@layer base {
+  .rk-site img, .rk-site video { max-width: 100%; display: block; }
+  .rk-site :where(h1, h2, h3) { font-family: var(--font-display); font-weight: 400; line-height: var(--lh-display); letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+  .rk-site :where(p) { margin: 0; text-wrap: pretty; }
+  .rk-site :where(a) { color: inherit; }
+}
 .rk-site ::selection { background: var(--rosa); color: var(--cacau); }
 .rk-site :focus-visible { outline: 3px solid var(--rosa-cta); outline-offset: 3px; border-radius: var(--r-sm); }
 .rk-dark :focus-visible { outline-color: var(--rosa-on-dark); }
@@ -192,7 +196,7 @@
 .rk-share:hover { background: var(--sand-deep); }
 
 /* ── 6. Home ───────────────────────────────────────────────────────────────── */
-:where(.rk-site main h2) { font-size: var(--fs-2xl); }
+@layer base { .rk-site main :where(h2) { font-size: var(--fs-2xl); } }
 .rk-btn--lg { min-height: 3.5rem; padding: 0 var(--s-6); font-size: var(--fs-md); }
 
 /* Apresentação: o cookie do logo atrás, uma foto em arco (a boca do forno) e uma foto menor por cima */
@@ -335,6 +339,37 @@
 .rk-legal__body ul { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); }
 .rk-legal__body li::marker { color: var(--rosa); }
 .rk-legal__more { margin-top: var(--s-8); color: var(--cacau-soft); }
+
+/* ── 6b. Área do cliente (/cliente, /pagar, excluir conta, 404) ─────────────────
+ * Estas telas usam os componentes compartilhados com o painel (Button, Card, Field…), que são escritos com utilitários do Tailwind.
+ * Aqui, dentro de .rk-site, eles ganham a cara do site: título em serifa, botão pílula, cartão em repouso sem sombra.
+ * (CSS sem camada vence os utilitários, então basta o seletor.) */
+.rk-wrap--narrow { max-width: 44rem; }
+.rk-client { padding-block: var(--s-6) 7rem; display: block; }
+.rk-header__links { display: flex; align-items: center; gap: var(--s-1); min-width: 0; font-weight: 600; }
+.rk-header__links > a, .rk-header__links > button { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--s-3); border-radius: var(--r-pill); text-decoration: none; transition: background-color 0.2s; }
+.rk-header__links > a:hover, .rk-header__links > button:hover { background: var(--sand); }
+.rk-header__name { display: none; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cacau-soft); padding-right: var(--s-2); }
+@media (min-width: 40rem) { .rk-header__name { display: block; } }
+
+.rk-site .font-display { font-family: var(--font-display); font-weight: 400; font-variation-settings: normal; letter-spacing: -0.01em; line-height: 1.1; }
+.rk-site .shadow-card { box-shadow: none; }
+.rk-site .bg-rk-claro { background-color: var(--sand); }
+.rk-site :is(button, a).bg-pink { border-radius: var(--r-pill); box-shadow: none; }
+.rk-site :is(button, a).bg-pink-tint { border-radius: var(--r-pill); }
+.rk-site :is(button, a).min-h-12.rounded-xl { border-radius: var(--r-pill); } /* botões grandes (cancelar, devolução, baixar dados, pagar) */
+.rk-site .bg-white:not(img, iframe) { background-color: var(--paper); } /* QR code do Pix e iframe do banco continuam brancos */
+.rk-site .border-line { border-color: var(--sand-deep); }
+.rk-site input, .rk-site select, .rk-site textarea { font-family: inherit; }
+.rk-notfound { display: grid; gap: var(--s-3); justify-items: start; min-height: 60dvh; align-content: center; }
+.rk-notfound__code { font: 400 clamp(5rem, 3rem + 12vw, 9rem)/1 var(--font-display); color: var(--rosa); }
+.rk-notfound h1 { font-size: var(--fs-2xl); }
+.rk-notfound p:not(.rk-notfound__code) { color: var(--cacau-soft); font-size: var(--fs-md); margin-bottom: var(--s-3); }
+.rk-legal__body ol { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); }
+.rk-legal__body ol li::marker { color: var(--rosa-text); font-weight: 700; }
+.rk-thumb { display: block; overflow: hidden; border-radius: var(--r-md); background: var(--sand); }
+.rk-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rk-thumb .rk-ph img { width: 44%; height: auto; object-fit: contain; }
 
 /* ── 7. Movimento: uma sequência de entrada no hero e a revelação suave das fotos ao rolar. Conteúdo visível por padrão. */
 @media (prefers-reduced-motion: no-preference) {

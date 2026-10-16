@@ -12,7 +12,7 @@ const NAV = [
 ];
 
 /** Cabeçalho do site público: logo, atalhos das seções (só em telas largas) e o botão de pedir. */
-export function SiteHeader({ orderHref, nav = true }: { orderHref: string; nav?: boolean }) {
+export function SiteHeader({ orderHref, nav = true }: { orderHref?: string; nav?: boolean }) {
   return (
     <header className="rk-header">
       <div className="rk-wrap">
@@ -22,7 +22,7 @@ export function SiteHeader({ orderHref, nav = true }: { orderHref: string; nav?:
             {NAV.map((n) => <a key={n.href} href={n.href}>{n.label}</a>)}
           </nav>
         )}
-        <Link href={orderHref} className="rk-btn rk-btn--sm">Fazer pedido</Link>
+        {orderHref && <Link href={orderHref} className="rk-btn rk-btn--sm">Fazer pedido</Link>}
       </div>
     </header>
   );

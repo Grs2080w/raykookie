@@ -14,7 +14,7 @@ export type MyDataT = {
   request_types: { id: string; label: string }[]; deadline_days: number;
 };
 
-const card = 'mt-6 rounded-2xl border border-line bg-white p-5';
+const card = 'mt-6 rounded-3xl border border-line bg-surface p-5';
 const maskCep = (v: string) => { const d = v.replace(/\D/g, '').slice(0, 8); return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
 
 export function MyData({ data }: { data: MyDataT }) {
@@ -39,7 +39,7 @@ export function MyData({ data }: { data: MyDataT }) {
   return (
     <div>
       <section className={card} aria-labelledby="d-conta">
-        <h2 id="d-conta" className="font-bold">O que guardamos sobre você</h2>
+        <h2 id="d-conta" className="font-display text-xl">O que guardamos sobre você</h2>
         <dl className="mt-3 grid gap-x-6 gap-y-1 text-[15px] sm:grid-cols-2">
           <div><dt className="inline text-muted">E-mail: </dt><dd className="inline">{data.email}</dd></div>
           <div><dt className="inline text-muted">Login: </dt><dd className="inline">{[data.has_password && 'e-mail e senha', data.has_google && 'Google'].filter(Boolean).join(' e ')}</dd></div>
@@ -53,7 +53,7 @@ export function MyData({ data }: { data: MyDataT }) {
       </section>
 
       <section className={card} aria-labelledby="d-corrigir">
-        <h2 id="d-corrigir" className="font-bold">Corrigir meus dados</h2>
+        <h2 id="d-corrigir" className="font-display text-xl">Corrigir meus dados</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Nome">{(id) => <Input id={id} value={f.name} onChange={set('name')} maxLength={80} autoComplete="name" />}</Field>
           <Field label="Telefone">{(id) => <Input id={id} value={f.phone} onChange={set('phone')} inputMode="tel" autoComplete="tel" />}</Field>
@@ -69,7 +69,7 @@ export function MyData({ data }: { data: MyDataT }) {
       </section>
 
       <section className={card} aria-labelledby="d-share">
-        <h2 id="d-share" className="font-bold">Com quem compartilhamos</h2>
+        <h2 id="d-share" className="font-display text-xl">Com quem compartilhamos</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-[15px] marker:text-pink">
           <li><b>Mercado Pago:</b> processa o pagamento por Pix (valor, seu e-mail e primeiro nome).</li>
           <li><b>Google:</b> login com a conta Google, só se você escolher essa opção (nome e e-mail), e as notificações do aplicativo (Firebase Cloud Messaging: identificador do aparelho e texto do aviso).</li>
@@ -88,7 +88,7 @@ export function MyData({ data }: { data: MyDataT }) {
       </section>
 
       <section className={card} aria-labelledby="d-req">
-        <h2 id="d-req" className="font-bold">Fazer uma solicitação sobre meus dados</h2>
+        <h2 id="d-req" className="font-display text-xl">Fazer uma solicitação sobre meus dados</h2>
         <p className="mt-1 text-sm text-muted">Anonimização, bloqueio ou eliminação de dados, revogação de consentimento ou qualquer outra dúvida. Respondemos em até {data.deadline_days} dias.</p>
         <div className="mt-3 grid gap-3">
           <Field label="Tipo">{(id) => <Select id={id} value={reqType} onChange={(e) => setReqType(e.target.value)}>{data.request_types.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</Select>}</Field>
@@ -109,7 +109,7 @@ export function MyData({ data }: { data: MyDataT }) {
       </section>
 
       <section className="mt-6 rounded-2xl border border-bad/30 bg-bad/5 p-5" aria-labelledby="d-del">
-        <h2 id="d-del" className="font-bold text-bad">Excluir minha conta</h2>
+        <h2 id="d-del" className="font-display text-xl text-bad">Excluir minha conta</h2>
         <p className="mt-1 text-sm">Apagamos seu nome, e-mail, telefone, endereço e login. O registro dos pedidos e pagamentos é mantido, sem identificar você, porque a lei exige. Não dá para desfazer.</p>
         {data.open_orders > 0
           ? <p className="mt-2 text-sm font-semibold">Você tem {data.open_orders} pedido(s) em andamento. Depois que forem entregues (ou cancelados), é só voltar aqui.</p>

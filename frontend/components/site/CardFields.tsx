@@ -37,7 +37,8 @@ function loadMpScript(): Promise<void> {
 
 const fieldStyle = {
   style: {
-    base: { fontSize: '15px', color: '#2a2320', fontFamily: 'inherit', '::placeholder': { color: '#9c938d' } },
+    // cores do site: cacau (texto), cacau claro (placeholder) e o vermelho de erro (iframes do Mercado Pago: não aceitam var(--…))
+    base: { fontSize: '15px', color: '#2a160f', fontFamily: 'inherit', '::placeholder': { color: '#8f7a6a' } },
     invalid: { color: '#c4432b' },
   },
 };
