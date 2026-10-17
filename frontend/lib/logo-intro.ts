@@ -35,6 +35,8 @@ export type LogoIntroOptions = {
   delay?: number;
   /** Migalhas por mordida. */
   crumbsPerBite?: number;
+  /** Entrada do biscoito (surge com fade e escala). Desligue ao repetir sobre o logo já na tela (ex.: no hover). */
+  entrance?: boolean;
   /** 'auto' respeita prefers-reduced-motion (mostra o logo pronto); 'play' anima sempre; 'skip' nunca anima. */
   reducedMotion?: 'auto' | 'play' | 'skip';
   /** Chamado quando o logo estático está na tela (hora de ir para a tela principal). */
@@ -86,7 +88,7 @@ function crumbPath(size: number) {
  * Devolve um handle com `finished`, `skip()` e `destroy()`.
  */
 export function playLogoIntroAnimation(container: HTMLElement, options: LogoIntroOptions = {}): LogoIntroHandle {
-  const { delay = 450, crumbsPerBite = 8, reducedMotion = 'auto', onComplete } = options;
+  const { delay = 450, crumbsPerBite = 8, entrance = true, reducedMotion = 'auto', onComplete } = options;
   const label = 'Raykookie';
   let done = false;
   let resolveFinished!: () => void;
@@ -111,7 +113,8 @@ export function playLogoIntroAnimation(container: HTMLElement, options: LogoIntr
   const svg = el('svg', { viewBox: '0 0 100 100', width: '100%', height: '100%', overflow: 'visible', role: 'img', 'aria-label': label });
   const mask = el('mask', { id: maskId, maskUnits: 'userSpaceOnUse', x: -60, y: -60, width: 220, height: 220 });
   mask.append(el('rect', { x: -60, y: -60, width: 220, height: 220, fill: '#fff' }));
-  const cuts = bites.map((b) => el('circle', { cx: b.cx, cy: b.cy, r: 0, fill: '#000' }));
+  // com entrada, as mordidas começam fechadas (biscoito inteiro); sem entrada (repetição sobre o logo), começam abertas e se fecham
+  const cuts = bites.map((b) => el('circle', { cx: b.cx, cy: b.cy, r: entrance ? 0 : b.r, fill: '#000' }));
   mask.append(...cuts);
   const defs = el('defs');
   defs.append(mask);
@@ -123,17 +126,21 @@ export function playLogoIntroAnimation(container: HTMLElement, options: LogoIntr
   container.replaceChildren(svg);
 
   // ── 2. Proxies: o anime.js anima estes números e o onUpdate escreve atributos SVG
-  const intro = { s: 0.9, o: 0 };
+  const intro = entrance ? { s: 0.9, o: 0 } : { s: 1, o: 1 };
   const shake = { a: 0, x: 0 };
-  const cutR = bites.map(() => ({ r: 0 }));
+  const cutR = bites.map((b) => ({ r: entrance ? 0 : b.r }));
   const drawBody = () => body.setAttribute('transform', `translate(${shake.x.toFixed(3)} 0) rotate(${shake.a.toFixed(3)} 50 50) translate(50 50) scale(${intro.s.toFixed(4)}) translate(-50 -50)`);
   const drawOpacity = () => body.setAttribute('opacity', intro.o.toFixed(3));
 
   // ── 3. Linha do tempo única
   const tl = createTimeline({ autoplay: true, onComplete: finish });
 
-  // entrada: o biscoito inteiro surge (rápido e macio)
-  tl.add(intro, { s: 1, o: 1, duration: 420, ease: 'outExpo', onUpdate: () => { drawBody(); drawOpacity(); } }, 0);
+  // entrada: o biscoito inteiro surge (rápido e macio); sem entrada, ele já está na tela inteiro
+  drawBody();
+  drawOpacity();
+  if (entrance) tl.add(intro, { s: 1, o: 1, duration: 420, ease: 'outExpo', onUpdate: () => { drawBody(); drawOpacity(); } }, 0);
+  // repetição: o biscoito "se refaz" (as mordidas fecham) antes de tremer de novo, em vez de pular para inteiro
+  else bites.forEach((_, i) => tl.add(cutR[i], { r: 0, duration: 260, ease: 'inOutQuad', onUpdate: () => cuts[i].setAttribute('r', cutR[i].r.toFixed(3)) }, i * 40));
 
   // tremor: oscilações curtas que perdem força, e assentam com um elástico
   const wiggle: { to: number; duration: number; ease: string }[] = [];
