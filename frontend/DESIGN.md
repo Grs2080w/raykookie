@@ -30,5 +30,8 @@ Moldura em arco (topo semicircular) para a foto principal: lembra a boca do forn
 ## Sem foto
 Placeholder de marca: bloco 4:3 com o símbolo-cookie do logo sobre um tom do doce (caramelo para cookie, brownie para brownie, rosa suave para os demais).
 
+## Splash do logo
+`lib/logo-intro.ts` (`playLogoIntroAnimation(contêiner, opções)`) e o componente `components/LogoIntro.tsx`, com anime.js v4 numa linha do tempo única: o biscoito rosa entra inteiro, treme (oscilações que perdem força e assentam com `outElastic`), leva as três mordidas do símbolo com `outBack` (círculos de máscara: disco r46 em 50,50 menos 74,6 r12 · 92,18 r16 · 98,38 r11) e solta migalhas douradas/terrosas de cada mordida (impulso, pulinho, gravidade, giro, fade `outQuad`). No fim troca a cena pelo path oficial do símbolo: o estado final é o próprio logo, sem transform, máscara ou migalha. Movimento reduzido mostra direto o logo.
+
 ## Movimento
 Entrada do hero ao carregar (uma sequência), revelação das fotos por clip-path ao rolar (`animation-timeline: view()`, sem JS e com conteúdo visível por padrão) e hover nos cartões. `prefers-reduced-motion` desliga tudo.
