@@ -138,7 +138,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                     ),
                     Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: c.surface2, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: c.surface2, borderRadius: BorderRadius.circular(99)),
                       child: Row(children: [
                         for (final (label, create) in [('Já tenho conta', false), ('Criar conta', true)])
                           Expanded(
@@ -146,8 +146,8 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                               onTap: () => setState(() => _create = create),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 180), height: 44, alignment: Alignment.center,
-                                decoration: BoxDecoration(color: _create == create ? c.pinkTint : Colors.transparent, borderRadius: BorderRadius.circular(12)),
-                                child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: _create == create ? c.ink : c.muted)),
+                                decoration: BoxDecoration(color: _create == create ? c.ink : Colors.transparent, borderRadius: BorderRadius.circular(99)),
+                                child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: _create == create ? c.bg : c.muted)),
                               ),
                             ),
                           ),

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/form';
 import type { ShopOrder } from '@shared/types';
 import { dateBR, money } from '@/lib/format';
+import { niceName } from '@/lib/menu-view';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { CancelOrder } from '@/components/CancelOrder';
 import { PixCopy } from '@/components/PixCopy';
@@ -55,7 +56,7 @@ export function OrderCard({ o, links }: { o: ShopOrder; links: OrderLinks }) {
       <ul className="mt-4 divide-y divide-line border-y border-line text-[15px]">
         {o.items.map((i) => (
           <li key={i.id} className="flex items-baseline justify-between gap-3 py-2">
-            <span><span className="tnum font-semibold">{i.qty}×</span> {i.name}</span>
+            <span><span className="tnum font-semibold">{i.qty}×</span> {niceName(i.name)}</span>
             <span className="tnum text-muted">{money(i.qty * i.unit_price)}</span>
           </li>
         ))}

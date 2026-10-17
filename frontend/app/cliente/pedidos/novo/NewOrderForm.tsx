@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { EmptyState } from '@/components/PageHeader';
-import { Photo } from '@/components/site/Photo';
+import { ItemThumb } from '@/components/site/ItemThumb';
+import { niceName, presentGroups } from '@/lib/menu-view';
 import { CardFields, type CardFieldsHandle } from '@/components/site/CardFields';
 import { useThreeDs } from '@/components/site/ThreeDsDialog';
 import { usePaymentConfig } from '@/lib/payment-config';
@@ -18,7 +19,7 @@ import { couponReason } from '@shared/engagement';
 import type { Customer, Menu } from '@shared/types';
 import { money } from '@/lib/format';
 import {
-  cartTotal, formatCep, formatPhone, FULFILLMENT, LEAD_DAYS, leadDaysLabel, MAX_QTY, onlyDigits, PAYMENT_METHODS, parseShopOrder, photoKind,
+  cartTotal, formatCep, formatPhone, FULFILLMENT, LEAD_DAYS, leadDaysLabel, MAX_QTY, onlyDigits, PAYMENT_METHODS, parseShopOrder,
   TIME_WINDOWS,
 } from '@shared/shop';
 import { addDays } from '@shared/text';
@@ -49,6 +50,7 @@ function Choice({ name, value, checked, onChange, title, hint }: { name: string;
 
 export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, minDate }: { customer: Customer; menu: Menu; pickup: { label: string; address: string; instructions: string }; initialItem?: string; backHref?: string; minDate: string }) {
   const router = useRouter();
+  const groups = presentGroups(menu); // só apresentação: nomes de categoria coerentes com o conteúdo (ver lib/menu-view.ts)
   const [qty, setQty] = useState<Record<string, number>>(() => (initialItem && menu.items.some((m) => m.id === initialItem) ? { [initialItem]: 1 } : {}));
   const [f, setF] = useState({
     contact_name: customer.name, phone: formatPhone(customer.phone), fulfillment: customer.street ? 'entrega' : 'retirada',
@@ -157,27 +159,27 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
       <p className="text-muted">Monte seu pedido em 5 passos rápidos.</p>
 
       <Section n={1} title="O que você quer?" hint="Toque em + para adicionar ao pedido.">
-        {menu.groups.map((g) => (
-          <div key={g.id} className="mb-5">
-            {menu.groups.length > 1 && <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-pink-strong">{g.name}</h3>}
+        {groups.map((g) => (
+          <div key={g.id} className="mb-6">
+            {groups.length > 1 && <h3 className="mb-2.5 font-display text-lg">{g.name}</h3>}
             <ul className="flex flex-col gap-2.5">
               {g.items.map((m) => {
                 const n = qty[m.id] ?? 0;
                 return (
-                  <li key={m.id} className={clsx('flex items-center gap-3 rounded-2xl border-2 bg-surface p-2.5 transition', n > 0 ? 'border-pink' : 'border-line')}>
-                    <Photo kind={photoKind(m)} src={m.image} label={m.name} className="size-16 shrink-0" rounded="rounded-xl" />
+                  <li key={m.id} className={clsx('flex items-center gap-3 rounded-3xl border-2 bg-surface p-2.5 transition', n > 0 ? 'border-pink' : 'border-line')}>
+                    <ItemThumb item={m} className="size-16 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold leading-snug">{m.name}</p>
+                      <p className="font-bold leading-snug">{niceName(m.name)}</p>
                       <p className="tnum text-sm font-semibold">{money(m.price)}{weightLabel(m.weight_g) && <span className="font-normal text-muted"> · {weightLabel(m.weight_g)} cada</span>}</p>
                     </div>
                     <div className="flex items-center gap-1">
                       {n > 0 && (
                         <>
-                          <button type="button" onClick={() => step(m.id, -1)} aria-label={`Diminuir ${m.name}`} className="grid size-11 place-items-center rounded-xl border border-line bg-white active:scale-95"><Minus size={18} /></button>
+                          <button type="button" onClick={() => step(m.id, -1)} aria-label={`Diminuir ${niceName(m.name)}`} className="grid size-11 place-items-center rounded-full border border-line bg-surface active:scale-95"><Minus size={18} /></button>
                           <span className="tnum w-7 text-center text-lg font-bold" aria-live="polite">{n}</span>
                         </>
                       )}
-                      <button type="button" onClick={() => step(m.id, 1)} aria-label={`Adicionar ${m.name}`} className="grid size-11 place-items-center rounded-xl bg-pink text-on-pink active:scale-95"><Plus size={20} /></button>
+                      <button type="button" onClick={() => step(m.id, 1)} aria-label={`Adicionar ${niceName(m.name)}`} className="grid size-11 place-items-center rounded-full bg-pink text-on-pink active:scale-95"><Plus size={20} /></button>
                     </div>
                   </li>
                 );
@@ -278,7 +280,7 @@ export function NewOrderForm({ customer, menu, pickup, initialItem, backHref, mi
       </p>
 
       {/* Barra fixa: total e botão sempre ao alcance do polegar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-4">
           <div className="min-w-0">
             <p className="text-xs text-muted">{count === 0 ? 'Nenhum item' : `${count} ${count === 1 ? 'item' : 'itens'}`}</p>

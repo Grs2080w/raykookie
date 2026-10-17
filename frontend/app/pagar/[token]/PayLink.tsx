@@ -101,9 +101,6 @@ export function PayLink({ token, view, children }: { token: string; view: PayLin
       {view.state === 'aberto' && view.pix && (
         <PixCopy renewUrl={`${url}/pix`} refundNote={false} code={view.pix.code} qr={view.pix.qr_base64} expiresIn={view.pix.expires_in} expired={view.pix.expired} />
       )}
-      {view.state === 'aberto' && view.pix && (
-        <PixCopy renewUrl={`${url}/pix`} refundNote={false} code={view.pix.code} qr={view.pix.qr_base64} expiresIn={view.pix.expires_in} expired={view.pix.expired} />
-      )}
       {children}
       {error && <p role="alert" className="text-sm font-semibold text-bad">{error}</p>}
     {threeDs.dialog}

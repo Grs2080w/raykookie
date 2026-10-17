@@ -189,11 +189,22 @@ class MenuItem {
 
 /// Conteúdo de um combo do cardápio: o resumo ("4 Cookie + 2 Brownie"), o preço avulso e quanto economiza.
 class MenuCombo {
-  MenuCombo({required this.contents, required this.fullPrice, required this.savings});
+  MenuCombo({required this.contents, required this.fullPrice, required this.savings, this.parts = const []});
   final String contents;
   final double fullPrice, savings;
-  factory MenuCombo.fromJson(Map<String, dynamic> j) =>
-      MenuCombo(contents: _s(j['contents']), fullPrice: _d(j['full_price']), savings: _d(j['savings']));
+
+  /// Cada produto do combo com a quantidade, na ordem do cardápio ("1 Cookie de nutella"). Vazio em servidores antigos.
+  final List<ComboPart> parts;
+  factory MenuCombo.fromJson(Map<String, dynamic> j) => MenuCombo(
+        contents: _s(j['contents']), fullPrice: _d(j['full_price']), savings: _d(j['savings']),
+        parts: j['parts'] is List ? [for (final p in j['parts'] as List) if (p is Map) ComboPart(name: _s(p['name']), qty: _i(p['qty']) ?? 1)] : const [],
+      );
+}
+
+class ComboPart {
+  const ComboPart({required this.name, required this.qty});
+  final String name;
+  final int qty;
 }
 
 class MenuGroup {

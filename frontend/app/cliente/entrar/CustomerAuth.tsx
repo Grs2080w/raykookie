@@ -55,16 +55,16 @@ export function CustomerAuth({ next, erro, googleEnabled }: { next: string; erro
 
       <Card className="mt-6 p-5">
         {googleEnabled ? (
-          <a href={`/api/cliente/google?next=${encodeURIComponent(next)}`} className="flex min-h-12 items-center justify-center gap-3 rounded-2xl border-2 border-line bg-white font-bold transition hover:border-muted/50 active:scale-[0.98]"><GoogleG />Continuar com o Google</a>
+          <a href={`/api/cliente/google?next=${encodeURIComponent(next)}`} className="flex min-h-12 items-center justify-center gap-3 rounded-full border-2 border-line bg-surface font-bold transition hover:border-muted/50 active:scale-[0.98]"><GoogleG />Continuar com o Google</a>
         ) : (
-          <button type="button" onClick={() => toast.warn(ERROS['google-indisponivel'])} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-2xl border-2 border-line bg-white font-bold transition hover:border-muted/50 active:scale-[0.98]"><GoogleG />Continuar com o Google</button>
+          <button type="button" onClick={() => toast.warn(ERROS['google-indisponivel'])} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-full border-2 border-line bg-surface font-bold transition hover:border-muted/50 active:scale-[0.98]"><GoogleG />Continuar com o Google</button>
         )}
         <div className="my-5 flex items-center gap-3 text-sm text-muted"><span className="h-px flex-1 bg-line" />ou com e-mail<span className="h-px flex-1 bg-line" /></div>
 
-        <div role="tablist" className="mb-5 grid grid-cols-2 rounded-2xl bg-surface-2 p-1">
+        <div role="tablist" className="mb-5 grid grid-cols-2 rounded-full bg-surface-2 p-1">
           {(['entrar', 'criar'] as const).map((m) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
-              className={clsx('min-h-11 rounded-xl text-[15px] font-bold transition', mode === m ? 'bg-white shadow-card' : 'text-muted')}>{m === 'entrar' ? 'Já tenho conta' : 'Criar conta'}</button>
+              className={clsx('min-h-11 rounded-full text-[15px] font-bold transition', mode === m ? 'bg-ink text-bg' : 'text-muted')}>{m === 'entrar' ? 'Já tenho conta' : 'Criar conta'}</button>
           ))}
         </div>
 

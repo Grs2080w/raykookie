@@ -20,6 +20,7 @@ import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
 import 'card_brands.dart';
 import 'card_fields.dart';
+import 'menu_view.dart';
 import 'three_ds_challenge.dart';
 
 class NewOrderScreen extends StatelessWidget {
@@ -355,7 +356,7 @@ class _OrderFormState extends State<_OrderForm> {
       child: AppCard(
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('SEU PEDIDO', style: TextStyle(color: c.muted, fontWeight: FontWeight.w800, fontSize: 12.5, letterSpacing: 1)),
+          Text('Seu pedido', style: display(context, size: 20)),
           const SizedBox(height: 8),
           for (final (m, n) in lines)
             Padding(
@@ -416,7 +417,8 @@ class _OrderFormState extends State<_OrderForm> {
     final api = context.read<Session>().customerApi;
     final total = cartTotal(_cart, widget.menu.items);
     final count = _cart.values.fold<int>(0, (s, v) => s + v);
-    final multi = widget.menu.groups.length > 1;
+    final groups = presentGroups(widget.menu); // só apresentação: nomes de categoria coerentes com o conteúdo
+    final multi = groups.length > 1;
     return PopScope(
       canPop: _stepIdx == 0,
       onPopInvokedWithResult: (didPop, _) {
@@ -431,8 +433,8 @@ class _OrderFormState extends State<_OrderForm> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _progress(),
               _section(1, 'O que você quer?', hint: 'Toque em + para adicionar ao pedido.', children: [
-                for (final g in widget.menu.groups) ...[
-                  if (multi) Padding(padding: const EdgeInsets.only(top: 6, bottom: 8), child: Text(g.name.toUpperCase(), style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w800, fontSize: 12.5, letterSpacing: 1))),
+                for (final g in groups) ...[
+                  if (multi) Padding(padding: const EdgeInsets.only(top: 10, bottom: 10), child: Text(g.name, style: display(context, size: 20))),
                   for (final m in g.items) _menuRow(m, api),
                 ],
               ]),
@@ -575,18 +577,18 @@ class _OrderFormState extends State<_OrderForm> {
         PhotoTile(kind: photoKind(m.name, m.category), url: m.image == null ? null : api.absolute(m.image!), size: 64, radius: 14),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(m.name, style: const TextStyle(fontWeight: FontWeight.w800, height: 1.2)),
-          Text(money(m.price), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(niceName(m.name), style: display(context, size: 16.5, height: 1.2)),
+          Text(money(m.price), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
           if (weightLabel(m.weightG).isNotEmpty) Text('${weightLabel(m.weightG)} cada', style: TextStyle(color: c.muted, fontSize: 13)),
           if (m.tags.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: 4),
               child: Wrap(spacing: 4, runSpacing: 4, children: [
-                for (final t in m.tags)
+                for (final t in tagChips(m.tags))
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(color: c.pinkTint, borderRadius: BorderRadius.circular(99)),
-                    child: Text(menuTagLabel(t), style: TextStyle(color: c.pinkStrong, fontWeight: FontWeight.w700, fontSize: 10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+                    decoration: BoxDecoration(color: c.surface2, borderRadius: BorderRadius.circular(12)),
+                    child: Text(t, style: TextStyle(color: c.muted, fontWeight: FontWeight.w600, fontSize: 11)),
                   ),
               ]),
             ),

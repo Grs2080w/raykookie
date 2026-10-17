@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 
 /// Cores do app (mesmos tokens do CSS do web). `context.c` devolve as cores do tema atual.
+/// Os campos opcionais ([displayFamily], [brandArt], [rosa], [choco]) existem para o app do cliente ter a cara do site
+/// (título em serifa, placeholder de marca); o app do dono segue com os padrões e não muda.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
     required this.bg, required this.surface, required this.surface2, required this.ink, required this.muted, required this.line,
     required this.pink, required this.pinkStrong, required this.pinkTint, required this.onPink, required this.ok, required this.warn, required this.bad,
+    this.displayFamily = 'Fraunces', this.brandArt = false, this.rosa = const Color(0xFFE94B8A), this.choco = const Color(0xFF3A1D12),
   });
   final Color bg, surface, surface2, ink, muted, line, pink, pinkStrong, pinkTint, onPink, ok, warn, bad;
+
+  /// Fonte dos títulos (`display()`): Fraunces no app do dono, Young Serif no app do cliente.
+  final String displayFamily;
+
+  /// Sem foto, mostra o placeholder da marca (símbolo do cookie sobre um tom do doce) em vez das ilustrações.
+  final bool brandArt;
+
+  /// Rosa da marca para preenchimento e decoração (não serve como cor de texto: pouco contraste no creme).
+  final Color rosa;
+
+  /// Chocolate: fundo das seções escuras.
+  final Color choco;
 
   /// Painel da confeiteira, tema claro.
   static const light = AppColors(
@@ -23,14 +38,23 @@ class AppColors extends ThemeExtension<AppColors> {
     ok: Color(0xFF47C98D), warn: Color(0xFFE3B04B), bad: Color(0xFFFF7482),
   );
 
-  /// Loja e área do cliente: sempre clara, com o rosa da marca raykookie.
+  /// App do cliente, tema claro: a identidade do site (creme, cacau e o rosa da marca). Mesmos valores do `site.css`.
   static const brand = AppColors(
-    bg: Color(0xFFFFF8FA), surface: Color(0xFFFFFFFF), surface2: Color(0xFFF8EEF2), ink: Color(0xFF2A1B22), muted: Color(0xFF7A6670),
-    line: Color(0xFFF1DEE6), pink: Color(0xFFE94B8A), pinkStrong: Color(0xFFB81F63), pinkTint: Color(0xFFFCE6EF), onPink: Color(0xFF2A1B22),
-    ok: Color(0xFF1F8F5F), warn: Color(0xFFB7791F), bad: Color(0xFFD13B4B),
+    bg: Color(0xFFFBF3EA), surface: Color(0xFFFFFAF4), surface2: Color(0xFFF4E6D8), ink: Color(0xFF2A160F), muted: Color(0xFF76604F),
+    line: Color(0xFFE7D3BF), pink: Color(0xFFD42A76), pinkStrong: Color(0xFFA81857), pinkTint: Color(0xFFFBDDE8), onPink: Color(0xFFFFFAF4),
+    ok: Color(0xFF1F8F5F), warn: Color(0xFFA06A12), bad: Color(0xFFC0303F),
+    displayFamily: 'YoungSerif', brandArt: true,
   );
-  static const rkRosaClaro = Color(0xFFFCE6EF);
-  static const rkEscuro = Color(0xFF2A1B22);
+
+  /// App do cliente, tema escuro: o mesmo mundo, à noite (chocolate no lugar do creme).
+  static const brandDark = AppColors(
+    bg: Color(0xFF1E100A), surface: Color(0xFF2A1710), surface2: Color(0xFF36201A), ink: Color(0xFFFBF3EA), muted: Color(0xFFCDB6A6),
+    line: Color(0xFF4A2E22), pink: Color(0xFFFF82B0), pinkStrong: Color(0xFFFF9EC3), pinkTint: Color(0xFF4A1E32), onPink: Color(0xFF2A160F),
+    ok: Color(0xFF47C98D), warn: Color(0xFFE3B04B), bad: Color(0xFFFF7482),
+    displayFamily: 'YoungSerif', brandArt: true, choco: Color(0xFF120905),
+  );
+  static const rkRosaClaro = Color(0xFFFBDDE8);
+  static const rkEscuro = Color(0xFF3A1D12);
 
   @override
   AppColors copyWith() => this;
@@ -45,18 +69,25 @@ extension AppColorsX on BuildContext {
 const _sans = 'Figtree';
 const displayFamily = 'Fraunces';
 
-TextStyle display(BuildContext context, {double size = 28, FontWeight weight = FontWeight.w600, Color? color, double height = 1.1}) => TextStyle(
-      fontFamily: displayFamily, fontSize: size, fontWeight: weight, height: height, letterSpacing: -0.4, color: color ?? context.c.ink,
-      fontVariations: [FontVariation('opsz', size.clamp(9, 144).toDouble()), const FontVariation('SOFT', 50)],
-    );
+/// Estilo dos títulos. No app do cliente a fonte é a Young Serif (peso único, sem variações); no do dono, a Fraunces.
+TextStyle display(BuildContext context, {double size = 28, FontWeight weight = FontWeight.w600, Color? color, double height = 1.1}) {
+  final c = context.c;
+  final serif = c.displayFamily != displayFamily;
+  return TextStyle(
+    fontFamily: c.displayFamily, fontSize: size, fontWeight: serif ? FontWeight.w400 : weight, height: height, letterSpacing: serif ? -0.2 : -0.4, color: color ?? c.ink,
+    fontVariations: serif ? null : [FontVariation('opsz', size.clamp(9, 144).toDouble()), const FontVariation('SOFT', 50)],
+  );
+}
 
-/// [radius] é o arredondamento de botões e campos; [buttonHeight], a altura mínima dos botões (a loja usa botões maiores).
-ThemeData buildTheme(AppColors c, Brightness brightness, {double radius = 14, double buttonHeight = 48}) {
+/// [radius] é o arredondamento de campos e cartões; [buttonRadius], o dos botões (padrão: igual a [radius]; o app do cliente usa pílula);
+/// [buttonHeight], a altura mínima dos botões (a loja usa botões maiores).
+ThemeData buildTheme(AppColors c, Brightness brightness, {double radius = 14, double buttonHeight = 48, double? buttonRadius}) {
   final scheme = ColorScheme.fromSeed(seedColor: c.pink, brightness: brightness).copyWith(
     primary: c.pink, onPrimary: c.onPink, secondary: c.pinkStrong, surface: c.surface, onSurface: c.ink, error: c.bad, outline: c.line,
     surfaceContainerHighest: c.surface2,
   );
   final r = BorderRadius.circular(radius);
+  final br = BorderRadius.circular(buttonRadius ?? radius);
   OutlineInputBorder border(Color col, [double w = 1]) => OutlineInputBorder(borderRadius: r, borderSide: BorderSide(color: col, width: w));
   return ThemeData(
     useMaterial3: true,
@@ -77,13 +108,13 @@ ThemeData buildTheme(AppColors c, Brightness brightness, {double radius = 14, do
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: c.pink, foregroundColor: c.onPink, minimumSize: Size(48, buttonHeight),
-        shape: RoundedRectangleBorder(borderRadius: r), textStyle: const TextStyle(fontFamily: _sans, fontWeight: FontWeight.w700, fontSize: 16),
+        shape: RoundedRectangleBorder(borderRadius: br), textStyle: const TextStyle(fontFamily: _sans, fontWeight: FontWeight.w700, fontSize: 16),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: c.ink, minimumSize: Size(48, buttonHeight), side: BorderSide(color: c.line, width: 1.5),
-        shape: RoundedRectangleBorder(borderRadius: r), textStyle: const TextStyle(fontFamily: _sans, fontWeight: FontWeight.w700, fontSize: 16),
+        shape: RoundedRectangleBorder(borderRadius: br), textStyle: const TextStyle(fontFamily: _sans, fontWeight: FontWeight.w700, fontSize: 16),
       ),
     ),
     textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: c.pinkStrong, textStyle: const TextStyle(fontFamily: _sans, fontWeight: FontWeight.w700))),

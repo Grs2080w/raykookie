@@ -5,17 +5,20 @@ import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
+// Cara do site: botões em pílula, campos e cartões arredondados, títulos em Young Serif.
 final brandTheme = buildTheme(
   AppColors.brand,
   Brightness.light,
-  radius: 18,
+  radius: 16,
+  buttonRadius: 99,
   buttonHeight: 52,
 );
 
 final brandDarkTheme = buildTheme(
-  AppColors.dark,
+  AppColors.brandDark,
   Brightness.dark,
-  radius: 18,
+  radius: 16,
+  buttonRadius: 99,
   buttonHeight: 52,
 );
 
@@ -59,14 +62,14 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
     title: title != null
         ? Text(
             title!,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            style: display(context, size: 20),
           )
         : GestureDetector(
             onLongPress: onLogoLongPress,
             behavior: HitTestBehavior.opaque,
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 6),
-              child: RkLogo(variant: 'compacta', height: 40),
+              child: RkLogo(variant: 'principal', height: 28),
             ),
           ),
     actions: [...actions, const SizedBox(width: 8)],

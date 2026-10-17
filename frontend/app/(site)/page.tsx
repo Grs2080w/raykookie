@@ -1,18 +1,16 @@
-import { ArrowRight, CalendarClock, Heart, ShoppingBag, Star, Wheat } from 'lucide-react';
+import { Star } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Logo } from '@/components/Logo';
-import { Photo, type PhotoKind } from '@/components/site/Photo';
-import { money } from '@/lib/format';
-import { leadDaysLabel, photoKind } from '@shared/shop';
-import { apiPublic } from '@/lib/server-api';
-import { AppDownload } from '@/components/AppDownload';
-import { MobileOrderBar } from '@/components/site/MobileOrderBar';
-import { MenuList } from '@/components/site/MenuList';
-import { TrackingToggle } from '@/components/site/TrackingToggle';
-import { InstagramCard } from '@/components/site/InstagramCard';
 import { FeedbackForm } from '@/components/site/FeedbackForm';
+import { InstagramCard } from '@/components/site/InstagramCard';
+import { MenuList } from '@/components/site/MenuList';
+import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome';
+import { SiteApp } from '@/components/site/SiteApp';
 import { ShareMenu } from '@/components/ShareMenu';
+import { niceName } from '@/lib/menu-view';
+import { siteClass } from '@/lib/site-font';
+import { apiPublic } from '@/lib/server-api';
+import { leadDaysLabel } from '@shared/shop';
 import type { AppReleases, Menu } from '@shared/types';
 
 export const metadata: Metadata = {
@@ -25,223 +23,185 @@ const PEDIR = '/cliente';
 // o cardápio vem das receitas do painel; a página é refeita a cada 30 s
 export const dynamic = 'force-dynamic'; // o cardápio é buscado do backend (cache de 30 s no fetch)
 
-const GALLERY_SLOTS: { kind: PhotoKind; label: string; tall?: boolean }[] = [
-  { kind: 'cookie', label: 'Cookies recém-saídos do forno', tall: true },
-  { kind: 'bolo', label: 'Bolo decorado para festa' },
-  { kind: 'brownie', label: 'Brownies com casquinha crocante' },
-  { kind: 'torta', label: 'Torta de limão maçaricada', tall: true },
-  { kind: 'embalagem', label: 'Caixa de presente' },
-  { kind: 'bancada', label: 'Nossa bancada de trabalho' },
+const DIFERENCIAIS = [
+  { t: 'Feito à mão', d: 'Cada receita é preparada do zero, sem pressa.' },
+  { t: 'Ingredientes selecionados', d: 'Chocolate de verdade, manteiga e frutas frescas.' },
+  { t: 'Sob encomenda', d: `Peça com pelo menos ${leadDaysLabel()}.` },
 ];
 
-/** Pega uma foto real do cardápio para essa categoria (nunca repete a mesma foto na página); sem foto real, fica a ilustração. */
-function pickPhoto(menu: Menu, kind: PhotoKind, used: Set<string>): { src?: string; label?: string } {
-  const m = menu.items.find((i) => i.image && !used.has(i.image) && photoKind(i) === kind);
-  if (!m?.image) return {};
-  used.add(m.image);
-  return { src: m.image, label: m.name };
-}
+const STEPS = [
+  { t: 'Entre ou crie sua conta', d: 'Com o Google ou com e-mail e senha.' },
+  { t: 'Escolha do cardápio', d: 'Monte o pedido e diga quando quer receber.' },
+  { t: 'Receba ou retire', d: 'Acompanhe tudo pelo app. Só chamamos no WhatsApp se for necessário.' },
+];
 
+// Texto fixo no código (não vem do painel). Ver o relatório: precisa ser trocado por depoimentos reais.
 const REVIEWS = [
   { name: 'Mariana S.', text: 'O bolo chegou lindo e estava ainda mais gostoso do que parecia. Todo mundo na festa pediu o contato!', when: 'Aniversário de 30 anos' },
   { name: 'Carlos e Ana', text: 'Pedimos a caixa de brownies de presente e foi sucesso. Embalagem caprichada, entrega pontual.', when: 'Presente de casamento' },
   { name: 'Patrícia L.', text: 'Os cookies de Ninho com Nutella viciam. Já virou tradição de sexta-feira aqui em casa.', when: 'Cliente frequente' },
 ];
 
-const STEPS = [
-  { n: '1', t: 'Entre ou crie sua conta', d: 'Com o Google ou com e-mail e senha.' },
-  { n: '2', t: 'Escolha do cardápio', d: 'Monte o pedido e diga quando quer receber.' },
-  { n: '3', t: 'Receba ou retire', d: 'Acompanhe tudo pelo app. Só chamamos no WhatsApp se for necessário.' },
-];
+// Fotos de vitrine da casa (public/fotos). As do cardápio entram na galeria a partir do próprio cardápio.
+const SHOWCASE = { alt: 'Cookie com fios de chocolate sobre papel de cookies', src: '/fotos/bolo-destaque-800.jpg' };
 
-function Stars() {
-  return <span className="flex gap-0.5 text-[#f0a020]" aria-label="5 de 5 estrelas">{[0, 1, 2, 3, 4].map((i) => <Star key={i} size={16} fill="currentColor" strokeWidth={0} />)}</span>;
+/** Fotos distintas do cardápio, cada uma com o nome do item (prefere o item avulso ao combo que reaproveita a foto). */
+function menuPhotos(menu: Menu): { src: string; name: string }[] {
+  const seen = new Map<string, { src: string; name: string; combo: boolean }>();
+  for (const i of menu.items) {
+    if (!i.image) continue;
+    const key = i.image.split('?')[0];
+    const cur = seen.get(key);
+    if (!cur || (cur.combo && !i.combo)) seen.set(key, { src: i.image, name: niceName(i.name), combo: !!i.combo });
+  }
+  return [...seen.values()];
 }
 
-const cta = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-pink px-6 text-base font-bold text-on-pink shadow-[0_10px_24px_-10px_var(--pink)] transition hover:bg-pink-strong active:scale-[0.98]';
+function Stars() {
+  return <span className="rk-stars" role="img" aria-label="5 de 5 estrelas">{[0, 1, 2, 3, 4].map((i) => <Star key={i} size={16} fill="currentColor" strokeWidth={0} aria-hidden />)}</span>;
+}
 
 export default async function Landing() {
   const [menu, releases] = await Promise.all([
     apiPublic<Menu>('/api/menu').then((m) => m ?? { items: [], groups: [] }),
     apiPublic<AppReleases>('/api/downloads', 15).then((r) => r ?? {}),
   ]);
-  // Fotos reais do cardápio no lugar das ilustrações/placeholders, sem repetir a mesma foto na página.
-  const usedPhotos = new Set<string>();
-  const heroBolo = pickPhoto(menu, 'bolo', usedPhotos);
-  const heroCookie = pickPhoto(menu, 'cookie', usedPhotos);
-  const heroBrownie = pickPhoto(menu, 'brownie', usedPhotos);
-  // sem foto própria no cardápio ainda: usa as fotos de vitrine já capturadas, em vez de deixar sem foto nenhuma
-  heroBolo.src ??= '/fotos/bolo-destaque.jpg';
-  heroCookie.src ??= '/fotos/cookie-destaque.jpg';
-  heroBrownie.src ??= '/fotos/brownie-destaque.jpg';
-  const GALLERY = GALLERY_SLOTS.map((s) => ({ ...s, ...pickPhoto(menu, s.kind, usedPhotos) }));
+  // Galeria: a foto de vitrine grande + as fotos do cardápio. Quatro cabem em linha; cinco ou mais viram mosaico (1 grande + 4 ou + 8).
+  const all = [{ src: SHOWCASE.src, alt: SHOWCASE.alt, caption: '' }, ...menuPhotos(menu).map((p) => ({ src: p.src, alt: p.name, caption: p.name }))];
+  const take = all.length >= 9 ? 9 : all.length >= 5 ? 5 : all.length;
+  const gallery = all.slice(0, take);
+  const [lead, ...others] = REVIEWS;
+
   return (
-    <div className="brand-scope min-h-dvh overflow-x-clip pb-24 md:pb-0">
-      {/* Cabeçalho */}
-      <header className="sticky top-0 z-40 border-b border-line bg-rk-claro/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 md:px-8">
-          <Link href="/" aria-label="Raykookie, início">
-            <Logo variant="compacta" tone="claro" imgClassName="h-10 md:hidden" />
-            <Logo tone="claro" imgClassName="hidden h-9 md:block" />
-          </Link>
-          <nav className="hidden items-center gap-7 text-[15px] font-semibold md:flex" aria-label="Seções">
-            <a href="#sobre" className="hover:text-pink-strong">Sobre</a>
-            <a href="#cardapio" className="hover:text-pink-strong">Cardápio</a>
-            <a href="#depoimentos" className="hover:text-pink-strong">Depoimentos</a>
-          </nav>
-          <Link href={PEDIR} className="hidden min-h-11 items-center gap-2 rounded-xl bg-pink px-4 text-[15px] md:inline-flex font-bold text-on-pink hover:bg-pink-strong"><ShoppingBag size={17} />Fazer pedido</Link>
-        </div>
-      </header>
+    <div className={siteClass}>
+      <a href="#cardapio" className="rk-skip">Ir para o cardápio</a>
+      <SiteHeader orderHref={PEDIR} />
 
       <main>
-        {/* Apresentação */}
-        <section className="bg-rk-claro">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-12 pt-8 md:grid-cols-2 md:items-center md:gap-14 md:px-8 md:py-20">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-pink-strong shadow-card"><Heart size={15} fill="currentColor" />Sob encomenda, com carinho</p>
-              <h1 className="font-display mt-4 text-[40px] font-semibold leading-[1.05] md:text-6xl">Confeitaria feita à mão, do forno para a sua mesa.</h1>
-              <p className="mt-4 max-w-md text-lg text-muted">Cookies, tortas, brownies e bolos preparados em pequenas fornadas, com ingredientes selecionados e muito cuidado em cada detalhe.</p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link id="cta-hero" href={PEDIR} className={cta}>Fazer pedido <ArrowRight size={19} /></Link>
-                <a href="#cardapio" className="inline-flex min-h-12 items-center justify-center rounded-2xl border-2 border-rk-escuro/15 bg-white px-6 text-base font-bold hover:border-rk-escuro/40">Ver cardápio</a>
+        {/* ── Apresentação */}
+        <section className="rk-hero" aria-labelledby="hero-titulo">
+          <div className="rk-wrap rk-hero__grid">
+            <div className="rk-hero__copy">
+              <h1 id="hero-titulo">Confeitaria feita à mão, do forno para a sua mesa.</h1>
+              <p className="rk-hero__lede rk-in" style={{ '--i': 1 } as React.CSSProperties}>Cookies, tortas, brownies e bolos preparados em pequenas fornadas, com ingredientes selecionados e muito cuidado em cada detalhe.</p>
+              <div className="rk-hero__actions rk-in" style={{ '--i': 2 } as React.CSSProperties}>
+                <Link id="cta-hero" href={PEDIR} className="rk-btn rk-btn--lg">Fazer pedido</Link>
+                <a href="#cardapio" className="rk-link">Ver cardápio</a>
               </div>
+              <p className="rk-hero__note rk-in" style={{ '--i': 3 } as React.CSSProperties}>Sob encomenda: peça com {leadDaysLabel()}.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3" aria-hidden={false}>
-              <Photo kind="bolo" src={heroBolo.src} label={heroBolo.label ?? 'Bolo decorado'} className="row-span-2 min-h-64" />
-              <Photo kind="cookie" src={heroCookie.src} label={heroCookie.label ?? 'Cookies'} className="aspect-square" />
-              <Photo kind="brownie" src={heroBrownie.src} label={heroBrownie.label ?? 'Brownies'} className="aspect-square" />
+            <div className="rk-hero__media">
+              {/* o símbolo do logo (o cookie com a mordida) aparece grande atrás das fotos */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/raykookie-simbolo-cookie.svg" alt="" width={320} height={320} className="rk-hero__mark" aria-hidden />
+              <figure className="rk-arch rk-hero__main rk-in" style={{ '--i': 1 } as React.CSSProperties}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/fotos/cookie-destaque-800.jpg" srcSet="/fotos/cookie-destaque-480.jpg 480w, /fotos/cookie-destaque-800.jpg 800w" sizes="(min-width: 56rem) 400px, 70vw" alt="Dois cookies com gotas e fios de chocolate sobre papel de cookies da Raykookie" width={800} height={1067} fetchPriority="high" />
+              </figure>
+              <figure className="rk-hero__small rk-in" style={{ '--i': 3 } as React.CSSProperties}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/fotos/brownie-destaque-480.jpg" srcSet="/fotos/brownie-destaque-480.jpg 480w, /fotos/brownie-destaque-800.jpg 800w" sizes="(min-width: 56rem) 220px, 40vw" alt="Brownies de chocolate sobre uma grade de resfriar" width={480} height={640} decoding="async" />
+              </figure>
             </div>
           </div>
         </section>
 
-        {/* Diferenciais */}
-        <section className="border-y border-line bg-white">
-          <ul className="mx-auto grid max-w-6xl gap-5 px-4 py-7 sm:grid-cols-3 md:px-8">
-            {[
-              { i: Heart, t: 'Feito à mão', d: 'Cada receita é preparada do zero, sem pressa.' },
-              { i: Wheat, t: 'Ingredientes selecionados', d: 'Chocolate de verdade, manteiga e frutas frescas.' },
-              { i: CalendarClock, t: 'Sob encomenda', d: `Peça com pelo menos ${leadDaysLabel()}.` },
-            ].map(({ i: Icon, t, d }) => (
-              <li key={t} className="flex items-start gap-3.5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-pink-tint text-pink-strong"><Icon size={22} /></span>
-                <div><p className="font-bold">{t}</p><p className="text-sm text-muted">{d}</p></div>
-              </li>
-            ))}
+        {/* ── Diferenciais */}
+        <section className="rk-band rk-dark" aria-label="Como trabalhamos">
+          <ul className="rk-wrap">
+            {DIFERENCIAIS.map((d) => <li key={d.t}><h2>{d.t}</h2><p>{d.d}</p></li>)}
           </ul>
         </section>
 
-        {/* Sobre */}
-        <section id="sobre" className="scroll-mt-20 mx-auto grid max-w-6xl gap-8 px-4 py-14 md:grid-cols-2 md:items-center md:gap-14 md:px-8 md:py-20">
-          <Photo kind="bancada" src="/fotos/bancada-destaque.jpg" label="Nossa bancada de trabalho" className="aspect-[4/3]" />
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-pink-strong">Nossa história</p>
-            <h2 className="font-display mt-2 text-3xl font-semibold md:text-4xl">Doces simples, feitos com capricho.</h2>
-            <p className="mt-4 text-muted">A Raykookie nasceu na cozinha de casa, com uma receita de cookie e a vontade de adoçar o dia de quem a gente gosta. Hoje continuamos assim: fornadas pequenas, receitas que testamos até ficarem perfeitas e atenção a cada pedido.</p>
-            <p className="mt-3 text-muted">Trabalhamos só sob encomenda, para que tudo chegue fresquinho. Escolha o que você quer, diga o dia e o resto é com a gente.</p>
+        {/* ── Cardápio: vem das receitas do painel */}
+        <section id="cardapio" className="rk-wrap rk-section rk-anchor" aria-labelledby="cardapio-titulo">
+          <div className="rk-menuhead">
+            <h2 id="cardapio-titulo">Assado depois do seu pedido</h2>
+            <p>Escolha seus favoritos e peça com {leadDaysLabel()}. Cada fornada é feita para você.</p>
+            <ShareMenu className="rk-share" />
           </div>
-        </section>
-
-        {/* Galeria */}
-        <section aria-labelledby="galeria" className="bg-rk-claro py-14 md:py-20">
-          <div className="mx-auto max-w-6xl px-4 md:px-8">
-            <h2 id="galeria" className="font-display text-3xl font-semibold md:text-4xl">Um gostinho do que fazemos</h2>
-          </div>
-          <ul className="mx-auto mt-6 flex max-w-6xl snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-8 [&::-webkit-scrollbar]:hidden">
-            {GALLERY.map((g) => (
-              <li key={g.kind} className={`w-[72%] shrink-0 snap-center sm:w-[44%] md:w-auto ${g.tall ? 'md:row-span-2' : ''}`}>
-                <Photo kind={g.kind} src={g.src} label={g.label} className={g.tall ? 'aspect-[3/4] md:h-full md:min-h-96' : 'aspect-[4/3]'} />
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Cardápio: vem das receitas do painel (só foto, nome e preço) */}
-        <section id="cardapio" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-20">
-          <p className="text-sm font-bold uppercase tracking-wider text-pink-strong">Cardápio</p>
-          <h2 className="font-display mt-2 text-3xl font-semibold md:text-4xl">O que tem para hoje (e para o seu dia)</h2>
-          <div className="mt-4"><ShareMenu /></div>
           <MenuList menu={menu} from="home" />
         </section>
 
-        {/* Depoimentos */}
-        <section id="depoimentos" className="scroll-mt-20 bg-rk-claro py-14 md:py-20">
-          <div className="mx-auto max-w-6xl px-4 md:px-8">
-            <h2 className="font-display text-3xl font-semibold md:text-4xl">Quem já provou, recomenda</h2>
-            <ul className="mt-6 grid gap-4 md:grid-cols-3">
-              {REVIEWS.map((r) => (
-                <li key={r.name} className="rounded-3xl bg-white p-5 shadow-card">
-                  <Stars />
-                  <blockquote className="mt-3 text-[15px]">“{r.text}”</blockquote>
-                  <p className="mt-4 font-bold">{r.name}</p>
-                  <p className="text-sm text-muted">{r.when}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* Feedback */}
-        <section id="feedback" className="scroll-mt-20 mx-auto max-w-2xl px-4 py-10 md:px-8 md:py-12">
-          <FeedbackForm />
-        </section>
-
-        {/* Instagram */}
-        <section id="instagram" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-12">
-          <InstagramCard />
-        </section>
-
-        {/* App para baixar */}
-        <section id="app" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-16">
-          <AppDownload
-            release={releases.client} icon="/app/icone-cliente.png" title="Baixe o app Raykookie"
-            description="Veja o cardápio e faça seus pedidos pelo celular, com o acompanhamento de cada encomenda."
-          />
-        </section>
-
-        {/* Sobre o app: finalidade do app e uso do login com Google (exigido na verificação do Google) */}
-        <section id="sobre-o-app" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-16">
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">Sobre o app Raykookie</h2>
-          <div className="mt-4 grid gap-6 text-[15px] md:grid-cols-2 md:text-base">
-            <p>O Raykookie é o site e o aplicativo da nossa confeitaria. Com ele você vê o cardápio, faz encomendas de cookies, tortas, brownies e bolos, paga por Pix e acompanha cada etapa do pedido, do preparo até a entrega ou a retirada. Também é por ali que você pode cancelar um pedido, pedir devolução e cuidar dos seus dados.</p>
-            <p>Para entrar, você pode criar uma conta com e-mail e senha ou usar o login com Google. O Google serve só para identificar você: usamos seu nome e seu e-mail para criar a conta e preencher o pedido. Não publicamos nada em seu nome, não acessamos outros dados da sua conta Google e não vendemos suas informações. Saiba mais na <Link href="/privacidade" className="font-semibold text-pink-strong underline">Política de Privacidade</Link> e nos <Link href="/termos" className="font-semibold text-pink-strong underline">Termos de Serviço</Link>.</p>
-          </div>
-        </section>
-
-        {/* Pedidos */}
-        <section id="pedido" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-14 md:px-8 md:py-20">
-          <div className="overflow-hidden rounded-[2rem] bg-rk-escuro p-6 text-white md:grid md:grid-cols-[1.1fr_1fr] md:items-center md:gap-10 md:p-12">
-            <div>
-              <h2 className="font-display text-3xl font-semibold leading-tight md:text-5xl">Faça sua encomenda</h2>
-              <p className="mt-3 max-w-md text-white/75">Em poucos minutos o pedido está feito, e você acompanha todo o andamento pelo app, na sua conta.</p>
-              <Link href={PEDIR} className={`${cta} mt-6 w-full md:w-auto`}>Fazer pedido <ArrowRight size={19} /></Link>
+        {/* ── Como pedir */}
+        <section id="como-pedir" className="rk-steps rk-dark rk-section rk-anchor" aria-labelledby="pedido-titulo">
+          <div className="rk-wrap">
+            <div className="rk-steps__head">
+              <h2 id="pedido-titulo">Faça sua encomenda</h2>
+              <p>Em poucos minutos o pedido está feito, e você acompanha todo o andamento pelo app, na sua conta.</p>
+              <Link href={PEDIR} className="rk-btn rk-btn--lg">Fazer pedido</Link>
             </div>
-            <ol className="mt-8 grid gap-4 md:mt-0">
-              {STEPS.map((s) => (
-                <li key={s.n} className="flex items-start gap-4 rounded-2xl bg-white/8 p-4">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-pink font-bold text-on-pink">{s.n}</span>
-                  <div><p className="font-bold">{s.t}</p><p className="text-sm text-white/70">{s.d}</p></div>
-                </li>
-              ))}
+            <ol className="rk-steps__list">
+              {STEPS.map((s) => <li key={s.t}><h3>{s.t}</h3><p>{s.d}</p></li>)}
             </ol>
           </div>
         </section>
+
+        {/* ── História */}
+        <section id="sobre" className="rk-wrap rk-section rk-anchor rk-story" aria-labelledby="sobre-titulo">
+          <figure className="rk-arch rk-reveal">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/fotos/bancada-destaque-800.jpg" srcSet="/fotos/bancada-destaque-480.jpg 480w, /fotos/bancada-destaque-800.jpg 800w" sizes="(min-width: 56rem) 416px, 90vw" alt="Brownies recém-assados esfriando na grade da nossa bancada" width={800} height={1067} loading="lazy" decoding="async" />
+          </figure>
+          <div className="rk-story__text">
+            <h2 id="sobre-titulo">Doces simples, feitos com capricho.</h2>
+            <p>A Raykookie nasceu na cozinha de casa, com uma receita de cookie e a vontade de adoçar o dia de quem a gente gosta. Hoje continuamos assim: fornadas pequenas, receitas que testamos até ficarem perfeitas e atenção a cada pedido.</p>
+            <p>Trabalhamos só sob encomenda, para que tudo chegue fresquinho. Escolha o que você quer, diga o dia e o resto é com a gente.</p>
+          </div>
+        </section>
+
+        {/* ── Galeria */}
+        {gallery.length > 0 && (
+          <section id="galeria" className="rk-gallery-section rk-section" aria-labelledby="galeria-titulo">
+            <div className="rk-wrap">
+              <h2 id="galeria-titulo">Um gostinho do que fazemos</h2>
+              <ul className="rk-gallery" data-n={gallery.length} data-layout={gallery.length >= 5 ? 'mosaic' : 'row'}>
+                {gallery.map((g) => (
+                  <li key={g.src} className="rk-reveal">
+                    <figure>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={g.src} alt={g.alt} width={600} height={600} loading="lazy" decoding="async" />
+                      {g.caption && <figcaption>{g.caption}</figcaption>}
+                    </figure>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
+
+        {/* ── Depoimentos */}
+        <section id="depoimentos" className="rk-wrap rk-section rk-anchor" aria-labelledby="depoimentos-titulo">
+          <h2 id="depoimentos-titulo">Quem já provou, recomenda</h2>
+          <div className="rk-reviews">
+            <figure className="rk-review rk-review--lead">
+              <Stars />
+              <blockquote>“{lead.text}”</blockquote>
+              <figcaption><strong>{lead.name}</strong>{lead.when}</figcaption>
+            </figure>
+            {others.map((r) => (
+              <figure key={r.name} className="rk-review">
+                <Stars />
+                <blockquote>“{r.text}”</blockquote>
+                <figcaption><strong>{r.name}</strong>{r.when}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Feedback e Instagram */}
+        <section id="feedback" className="rk-voice rk-section rk-anchor">
+          <div className="rk-wrap rk-voice__grid">
+            <FeedbackForm />
+            <div id="instagram" className="rk-anchor"><InstagramCard /></div>
+          </div>
+        </section>
+
+        {/* ── App: bloco compacto; os detalhes técnicos ficam recolhidos */}
+        <SiteApp release={releases.client} />
       </main>
 
-      <footer className="border-t border-line bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-10 text-center md:flex-row md:justify-between md:px-8">
-          <Logo tone="claro" imgClassName="h-9" />
-          <p className="text-sm text-muted">Confeitaria feita à mão · Encomendas com {leadDaysLabel()}.</p>
-          <nav aria-label="Documentos legais" className="flex gap-1 text-sm font-semibold">
-            <Link href="/termos" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Termos de Serviço</Link>
-            <Link href="/privacidade" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Privacidade</Link>
-            <Link href="/excluir-conta" className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong">Excluir conta</Link>
-            <TrackingToggle className="inline-flex min-h-11 items-center px-3 hover:text-pink-strong" />
-          </nav>
-        </div>
-      </footer>
-
-      {/* Botão fixo no celular */}
-      <MobileOrderBar href={PEDIR} targetId="cta-hero" className={cta} />
+      <SiteFooter />
     </div>
   );
 }

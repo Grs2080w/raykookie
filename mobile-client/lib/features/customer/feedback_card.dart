@@ -101,7 +101,7 @@ class _FeedbackCardState extends State<FeedbackCard> {
                   onPressed: () => setState(() => _rating = i),
                   icon: Icon(
                     i <= _rating ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: const Color(0xFFF0A020),
+                    color: context.c.pink,
                     size: 30,
                   ),
                 ),

@@ -1,61 +1,32 @@
-import Link from 'next/link';
-import { Photo } from '@/components/site/Photo';
-import { TrackedItem } from '@/components/site/TrackedItem';
-import { money } from '@/lib/format';
-import { photoKind, weightLabel } from '@shared/shop';
-import { menuTagLabel } from '@shared/menu-tags';
+import { CategoryNav } from '@/components/site/CategoryNav';
+import { MenuCard } from '@/components/site/MenuCard';
+import { presentGroups } from '@/lib/menu-view';
 import type { Menu } from '@shared/types';
 
 /**
- * Cardápio (vem da página Cardápio do painel: foto, nome, preço, selos, ingredientes e combos). "Pedir" leva ao novo pedido com o item na URL
- * (`item`) e a origem (`from`): sem sessão, o login devolve a pessoa para exatamente essa página.
+ * Cardápio (vem da página Cardápio do painel: foto, nome, preço, selos, ingredientes e combos). Os grupos passam por
+ * `presentGroups` (só na apresentação) e cada item é um `MenuCard`; "Pedir" leva ao novo pedido com o item na URL.
  */
 export function MenuList({ menu, from }: { menu: Menu; from: 'cardapio' | 'home' }) {
-  if (menu.groups.length === 0) {
-    return <p className="mt-6 rounded-3xl border border-dashed border-line px-6 py-12 text-center text-muted">Nosso cardápio está sendo preparado. Volte em breve!</p>;
+  const groups = presentGroups(menu);
+  // na home as categorias ficam sob o h2 "Assado depois do seu pedido" (h3); em /cardapio o título da página é o h1 (h2)
+  const Group = from === 'home' ? 'h3' : 'h2';
+  if (groups.length === 0) {
+    return <p className="rk-empty">Nosso cardápio está sendo preparado. Volte em breve!</p>;
   }
   return (
-    <>
-      {menu.groups.length > 1 && (
-        <nav className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1 [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0" aria-label="Categorias do cardápio">
-          {menu.groups.map((g) => <a key={g.id} href={`#cat-${g.id}`} className="shrink-0 rounded-full border border-line bg-white px-4 py-2 text-sm font-bold hover:border-pink">{g.name}</a>)}
-        </nav>
-      )}
-      {menu.groups.map((g) => (
-        <div key={g.id} id={`cat-${g.id}`} className={`scroll-mt-24 ${menu.groups.length > 1 ? 'pt-10' : 'pt-6'}`}>
-          {menu.groups.length > 1 && <h3 className="font-display text-2xl font-semibold">{g.name}</h3>}
-          <ul className="mt-4 grid gap-3 md:grid-cols-2">
-            {g.items.map((m) => (
-              <TrackedItem key={m.id} itemId={m.id} surface={from === 'home' ? 'landing' : 'cardapio'} className="flex items-center gap-3.5 rounded-3xl border border-line bg-white p-3 shadow-card">
-                <Photo kind={photoKind(m)} src={m.image} label={m.name} className="size-24 shrink-0 sm:size-28" rounded="rounded-2xl" />
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <p className="text-lg font-bold leading-snug">{m.name}</p>
-                  {weightLabel(m.weight_g) && <p className="-mt-1 text-sm text-muted">{weightLabel(m.weight_g)} cada</p>}
-                  {!!m.tags?.length && (
-                    <ul className="-mt-1 flex flex-wrap gap-1" aria-label="Características">
-                      {m.tags.map((t) => (
-                        <li key={t} className="rounded-full bg-pink-tint px-2.5 py-0.5 text-xs font-semibold text-pink-strong">{menuTagLabel(t)}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {m.combo && (
-                    <div className="-mt-1 text-sm">
-                      <p className="font-semibold">{m.combo.contents}</p>
-                      {m.combo.savings > 0 && <p className="font-bold text-pink-strong">Economize {money(m.combo.savings)} (avulso sai {money(m.combo.full_price)})</p>}
-                    </div>
-                  )}
-                  {!!m.ingredients?.length && <p className="-mt-1 text-sm text-muted">Ingredientes: {m.ingredients.join(', ')}</p>}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-display text-2xl font-semibold tnum">{money(m.price)}</p>
-                    <Link href={`/cliente/pedidos/novo?item=${encodeURIComponent(m.id)}&from=${from}`} data-track-click className="inline-flex min-h-11 items-center rounded-xl bg-pink-tint px-4 text-sm font-bold text-pink-strong hover:brightness-95" aria-label={`Pedir ${m.name}`}>Pedir</Link>
-                  </div>
-                </div>
-              </TrackedItem>
-            ))}
+    <div className="rk-menu">
+      {groups.length > 1 && <CategoryNav groups={groups.map(({ id, name }) => ({ id, name }))} />}
+      {groups.map((g, gi) => (
+        <section key={g.id} id={`cat-${g.id}`} className="rk-group" aria-labelledby={`cat-${g.id}-t`}>
+          <Group id={`cat-${g.id}-t`}>{g.name}</Group>
+          <ul className="rk-grid" data-kind={g.items.some((i) => i.combo) ? 'combos' : 'itens'}>
+            {/* em /cardapio a primeira foto está na primeira tela e é o LCP: carrega já e com prioridade; na home o cardápio está abaixo da dobra */}
+            {g.items.map((m, i) => <MenuCard key={m.id} item={m} from={from} eager={from === 'cardapio' && gi === 0 && i === 0} />)}
           </ul>
-        </div>
+        </section>
       ))}
-      <p className="mt-8 text-sm text-muted">Precisa de outro sabor, tamanho ou decoração? Conte no campo de observações do pedido.</p>
-    </>
+      <p className="rk-menu__note">Precisa de outro sabor, tamanho ou decoração? Conte no campo de observações do pedido.</p>
+    </div>
   );
 }

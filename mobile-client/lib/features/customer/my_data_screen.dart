@@ -148,7 +148,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: context.c.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: context.c.line)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(title, style: display(context, size: 20)),
           const SizedBox(height: 8),
           ...children,
         ]),
@@ -265,7 +265,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(color: c.bad.withValues(alpha: .06), borderRadius: BorderRadius.circular(18), border: Border.all(color: c.bad.withValues(alpha: .3))),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Excluir minha conta', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: c.bad)),
+                          Text('Excluir minha conta', style: display(context, size: 20, color: c.bad)),
                           const SizedBox(height: 6),
                           const Text('Apagamos seu nome, e-mail, telefone, endereço e login. O registro dos pedidos e pagamentos é mantido, sem identificar você, porque a lei exige.'),
                           const SizedBox(height: 8),

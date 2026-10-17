@@ -220,8 +220,11 @@ void main() {
       final be = FakeBackend({'GET /api/menu': (_) => (200, menuJson)});
       await pumpApp(t, be);
       await t.scrollUntilVisible(find.text('Brigadeiro gourmet'), 400, scrollable: find.byType(Scrollable).first);
+      await t.ensureVisible(find.widgetWithText(FilledButton, 'Pedir').last); // o botão Pedir fica abaixo do nome, no fim do cartão
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
       expect(find.widgetWithText(ChoiceChip, 'Todos'), findsOneWidget);
-      expect(find.bySemanticsLabel('Pedir Brigadeiro gourmet'), findsOneWidget);
+      // cada item tem um botão "Pedir" com rótulo acessível próprio (checado no widget: a árvore de semântica só inclui o que está na janela)
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Pedir Brigadeiro gourmet'), findsOneWidget);
     });
 
     testWidgets('home: a barra "Fazer pedido" só aparece depois que o botão do topo sai da tela', (t) async {
@@ -980,7 +983,9 @@ void main() {
       });
       await pumpApp(t, be);
       await t.scrollUntilVisible(find.text('Brigadeiro gourmet'), 400, scrollable: find.byType(Scrollable).first);
-      await t.tap(find.bySemanticsLabel('Pedir Brigadeiro gourmet'));
+      await t.ensureVisible(find.widgetWithText(FilledButton, 'Pedir').last); // o botão Pedir fica abaixo do nome, no fim do cartão
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.widgetWithText(FilledButton, 'Pedir').last); // o do Brigadeiro gourmet (último item do cardápio)
       await t.pumpAndSettle(const Duration(milliseconds: 100));
       expect(find.text('Entre para fazer seu pedido'), findsOneWidget); // foi para o login
       await t.enterText(find.byType(TextField).at(0), 'joana@example.com');
