@@ -235,7 +235,7 @@ class PaymentsContractIT extends ContractTestBase {
 
         // ── 3. O webhook paga o link e o pedido vira do app.
         long linkId = ((Number) seed.value("SELECT id FROM order_pay_links WHERE token = ?", token)).longValue();
-        payment(pix, "approved", "link:" + linkId, 30.5);
+        payment(pix, "approved", "link_" + linkId, 30.5);
         assertThat(webhook(pix, UUID.randomUUID().toString(), Instant.now().getEpochSecond()).jsonPath()
                 .getBoolean("paid")).isTrue();
         Response paid = api().get("/api/pagar/" + token);
