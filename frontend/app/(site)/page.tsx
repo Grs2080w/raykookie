@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LogoIntro } from '@/components/LogoIntro';
 import { FeedbackForm } from '@/components/site/FeedbackForm';
 import { InstagramCard } from '@/components/site/InstagramCard';
 import { MenuList } from '@/components/site/MenuList';
@@ -91,17 +92,9 @@ export default async function Landing() {
               <p className="rk-hero__note rk-in" style={{ '--i': 3 } as React.CSSProperties}>Sob encomenda: peça com {leadDaysLabel()}.</p>
             </div>
             <div className="rk-hero__media">
-              {/* o símbolo do logo (o cookie com a mordida) aparece grande atrás das fotos */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/raykookie-simbolo-cookie.svg" alt="" width={320} height={320} className="rk-hero__mark" aria-hidden />
-              <figure className="rk-arch rk-hero__main rk-in" style={{ '--i': 1 } as React.CSSProperties}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fotos/cookie-destaque-800.jpg" srcSet="/fotos/cookie-destaque-480.jpg 480w, /fotos/cookie-destaque-800.jpg 800w" sizes="(min-width: 56rem) 400px, 70vw" alt="Dois cookies com gotas e fios de chocolate sobre papel de cookies da Raykookie" width={800} height={1067} fetchPriority="high" />
-              </figure>
-              <figure className="rk-hero__small rk-in" style={{ '--i': 3 } as React.CSSProperties}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fotos/brownie-destaque-480.jpg" srcSet="/fotos/brownie-destaque-480.jpg 480w, /fotos/brownie-destaque-800.jpg 800w" sizes="(min-width: 56rem) 220px, 40vw" alt="Brownies de chocolate sobre uma grade de resfriar" width={480} height={640} decoding="async" />
-              </figure>
+              {/* o biscoito do logo é mordido ao aparecer e de novo a cada hover (no celular, a cada toque) */}
+              <LogoIntro className="rk-hero__logo" playWhenVisible replayOnHover />
+
             </div>
           </div>
         </section>
