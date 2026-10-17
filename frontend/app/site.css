@@ -295,27 +295,31 @@
 .rk-ig__go { grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--s-5); border-radius: var(--r-pill); background: var(--paper); color: var(--cacau); font-weight: 700; }
 @media (hover: hover) { .rk-ig:hover { transform: translateY(-3px); } }
 
-/* App: bloco compacto, detalhes técnicos recolhidos */
-.rk-app { display: grid; gap: var(--s-6); }
-.rk-app__card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4); align-items: center; padding: var(--s-5); border-radius: var(--r-lg); background: var(--sand); max-width: 48rem; }
-.rk-app__icon { width: 3.5rem; height: 3.5rem; border-radius: var(--r-md); }
-.rk-app__text h2 { font-size: var(--fs-lg); }
-.rk-app__text p { margin-top: var(--s-1); font-size: var(--fs-sm); color: var(--cacau-soft); }
-.rk-app__btn, .rk-app__soon, .rk-app__tech { grid-column: 1 / -1; }
-.rk-app__btn { justify-self: start; }
-.rk-app__soon { font-size: var(--fs-sm); color: var(--cacau-soft); }
-.rk-app__tech { font-size: var(--fs-sm); color: var(--cacau-soft); }
-.rk-app__tech summary { display: flex; align-items: center; min-height: 2.75rem; font-weight: 600; cursor: pointer; }
-.rk-app__tech dl { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); margin: var(--s-2) 0 var(--s-3); }
+/* App: tudo centralizado. Em cima, o download (detalhes técnicos recolhidos); embaixo, "Sobre o app" num cartão */
+.rk-app { display: grid; justify-items: center; gap: var(--s-8); text-align: center; }
+.rk-app__get { display: grid; justify-items: center; gap: var(--s-4); max-width: 40rem; }
+.rk-app__icon { width: 5.5rem; height: 5.5rem; border-radius: 1.375rem; box-shadow: 0 0 0 1px var(--sand-deep), 0 12px 28px -14px rgb(58 29 18 / 0.45); }
+.rk-app__get > p { max-width: 40ch; font-size: var(--fs-md); color: var(--cacau-soft); }
+.rk-app__btn { margin-top: var(--s-2); }
+.rk-app__soon { margin-top: var(--s-2); padding: var(--s-3) var(--s-5); border-radius: var(--r-pill); background: var(--sand); font-weight: 600; }
+.rk-app__tech { width: 100%; font-size: var(--fs-sm); color: var(--cacau-soft); }
+.rk-app__tech summary { display: flex; justify-content: center; align-items: center; min-height: 2.75rem; font-weight: 600; cursor: pointer; }
+.rk-app__tech[open] summary { margin-bottom: var(--s-2); }
+.rk-app__tech dl { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2) var(--s-5); margin: 0 0 var(--s-4); }
 .rk-app__tech dl div { display: inline-flex; gap: var(--s-2); }
 .rk-app__tech dt { color: var(--cacau-mute); }
 .rk-app__tech dd { margin: 0; font-weight: 600; color: var(--cacau); }
-.rk-app__tech ol { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-1); }
+/* as instruções são uma lista numerada: ficam alinhadas à esquerda, num bloco centralizado */
+.rk-app__tech ol { max-width: 34rem; margin: 0 auto; padding-left: var(--s-5); display: grid; gap: var(--s-1); list-style: decimal; text-align: left; }
 .rk-app__sha { margin-top: var(--s-3); overflow-wrap: anywhere; font: 0.8125rem/1.5 ui-monospace, 'SFMono-Regular', Menlo, monospace; color: var(--cacau-mute); }
-.rk-app__about { display: grid; gap: var(--s-3); max-width: var(--measure); font-size: var(--fs-sm); color: var(--cacau-soft); }
-.rk-app__about h3 { font-size: var(--fs-md); color: var(--cacau); }
+.rk-app__about {
+  display: grid; justify-items: center; gap: var(--s-4); width: 100%; max-width: 50rem; padding: var(--s-7) var(--s-5);
+  border-radius: var(--r-lg); background: var(--paper); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sand-deep) 70%, transparent);
+}
+.rk-app__about h3 { font-size: var(--fs-xl); color: var(--cacau); }
+.rk-app__about p { max-width: var(--measure); font-size: var(--fs-md); color: var(--cacau-soft); text-wrap: pretty; }
 .rk-app__about a { color: var(--rosa-text); }
-@media (min-width: 48rem) { .rk-app__card { grid-template-columns: auto minmax(0, 1fr) auto; } .rk-app__btn { grid-column: auto; justify-self: end; } }
+@media (min-width: 48rem) { .rk-app__about { padding: var(--s-8) var(--s-7); } }
 
 /* Termos e Privacidade: leitura confortável, uma coluna */
 .rk-legal { max-width: 48rem; }

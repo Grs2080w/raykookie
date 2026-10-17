@@ -6,22 +6,20 @@ const size = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1).replace(
 const dateBR = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
 /**
- * App Android no rodapé da home: um bloco compacto com o botão de baixar; versão, build, tamanho, SHA-256 e instruções
- * ficam recolhidos. Logo abaixo, o texto "Sobre o app" (finalidade do app e uso do login com Google, exigido na
- * verificação do Google) continua visível, só que discreto.
+ * App Android no fim da home, centralizado: ícone, título e o botão de baixar; versão, build, tamanho, SHA-256 e
+ * instruções ficam recolhidos. Logo abaixo, "Sobre o app" (finalidade do app e uso do login com Google, exigido na
+ * verificação do Google) num cartão próprio, com título no peso das outras seções.
  */
 export function SiteApp({ release }: { release?: AppRelease }) {
   return (
     <section id="app" className="rk-app rk-wrap rk-section rk-anchor" aria-labelledby="app-titulo">
-      <div className="rk-app__card">
+      <div className="rk-app__get">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/app/icone-cliente.png" alt="" width={56} height={56} loading="lazy" className="rk-app__icon" />
-        <div className="rk-app__text">
-          <h2 id="app-titulo">Baixe o app Raykookie</h2>
-          <p>Veja o cardápio e faça seus pedidos pelo celular, com o acompanhamento de cada encomenda.</p>
-        </div>
+        <img src="/app/icone-cliente.png" alt="" width={88} height={88} loading="lazy" className="rk-app__icon" />
+        <h2 id="app-titulo">Baixe o app Raykookie</h2>
+        <p>Veja o cardápio e faça seus pedidos pelo celular, com o acompanhamento de cada encomenda.</p>
         {release ? (
-          <a href={release.url} download className="rk-btn rk-app__btn"><Download size={19} aria-hidden />Baixar para Android</a>
+          <a href={release.url} download className="rk-btn rk-btn--lg rk-app__btn"><Download size={20} aria-hidden />Baixar para Android</a>
         ) : (
           <p className="rk-app__soon">O aplicativo ainda não foi publicado. Em breve por aqui.</p>
         )}
@@ -43,11 +41,11 @@ export function SiteApp({ release }: { release?: AppRelease }) {
         )}
       </div>
 
-      <div id="sobre-o-app" className="rk-app__about rk-anchor">
+      <article id="sobre-o-app" className="rk-app__about rk-anchor">
         <h3>Sobre o app Raykookie</h3>
         <p>O Raykookie é o site e o aplicativo da nossa confeitaria. Com ele você vê o cardápio, faz encomendas de cookies, tortas, brownies e bolos, paga por Pix e acompanha cada etapa do pedido, do preparo até a entrega ou a retirada. Também é por ali que você pode cancelar um pedido, pedir devolução e cuidar dos seus dados.</p>
         <p>Para entrar, você pode criar uma conta com e-mail e senha ou usar o login com Google. O Google serve só para identificar você: usamos seu nome e seu e-mail para criar a conta e preencher o pedido. Não publicamos nada em seu nome, não acessamos outros dados da sua conta Google e não vendemos suas informações. Saiba mais na <Link href="/privacidade" className="rk-link">Política de Privacidade</Link> e nos <Link href="/termos" className="rk-link">Termos de Serviço</Link>.</p>
-      </div>
+      </article>
     </section>
   );
 }
