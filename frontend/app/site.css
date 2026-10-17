@@ -199,7 +199,7 @@
 @layer base { .rk-site main :where(h2) { font-size: var(--fs-2xl); } }
 .rk-btn--lg { min-height: 3.5rem; padding: 0 var(--s-6); font-size: var(--fs-md); }
 
-/* Apresentação: o cookie do logo atrás, uma foto em arco (a boca do forno) e uma foto menor por cima */
+/* Apresentação: título à esquerda e, à direita, o biscoito do logo sendo mordido */
 .rk-hero { padding-block: var(--s-6) var(--s-8); overflow: clip; }
 .rk-hero__grid { display: grid; gap: var(--s-7); }
 .rk-hero__copy { display: grid; gap: var(--s-4); align-content: center; justify-items: start; }
@@ -207,13 +207,34 @@
 .rk-hero__lede { max-width: 34ch; font-size: var(--fs-md); color: var(--cacau-soft); }
 .rk-hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-top: var(--s-2); }
 .rk-hero__note { font-size: var(--fs-sm); color: var(--cacau-mute); }
-.rk-hero__media { position: relative; width: min(100%, 34rem); aspect-ratio: 1 / 1.1; margin-inline: auto 0; }
-.rk-hero__mark { position: absolute; z-index: 0; right: -6%; bottom: -4%; width: 50%; height: auto; transform: rotate(125deg); } /* gira o cookie para a mordida ficar à vista, abaixo do arco */
+.rk-hero__media { display: grid; place-items: center; }
+/* O biscoito do logo é mordido três vezes e termina como o símbolo da marca (BiteCookie.tsx). O repouso do CSS já é o logo pronto. */
+.rk-bite { display: block; width: min(100%, 30rem); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rk-bite svg { display: block; width: 100%; height: 100%; overflow: visible; transition: transform 0.5s var(--ease); }
+.rk-bite:active svg { transform: scale(0.97); transition-duration: 0.1s; }
+.rk-bite__chips, .rk-bite__crumb { opacity: 0; }
+@media (hover: hover) { .rk-bite:hover svg { transform: rotate(-4deg) scale(1.02); } }
+@media (prefers-reduced-motion: no-preference) {
+  /* cada mordida é um círculo de máscara que cresce a partir da borda do biscoito */
+  .rk-bite__cut { transform-box: fill-box; transform-origin: center; animation: rk-bite-cut 0.26s var(--ease) calc(var(--first) + var(--gap) * var(--i)) both; }
+  /* o biscoito leva um tranco a cada mordida */
+  .rk-bite__body {
+    transform-box: fill-box; transform-origin: center;
+    animation: rk-chomp 0.32s var(--ease) var(--first) both, rk-chomp 0.32s var(--ease) calc(var(--first) + var(--gap)) both, rk-chomp 0.32s var(--ease) calc(var(--first) + var(--gap) * 2) both;
+  }
+  .rk-bite__crumb { animation: rk-crumb 1s cubic-bezier(0.2, 0.65, 0.3, 1) calc(var(--first) + var(--gap) * var(--i) + 0.05s) both; }
+  .rk-bite__chips { animation: rk-chips-out 0.5s ease-in-out var(--chips-out) both; }
+}
+/* esperando a vista: biscoito inteiro e parado até a pessoa chegar nele */
+.rk-bite[data-wait] .rk-bite__cut { animation: none; transform: scale(0); }
+.rk-bite[data-wait] .rk-bite__body, .rk-bite[data-wait] .rk-bite__crumb { animation: none; }
+.rk-bite[data-wait] .rk-bite__chips { animation: none; opacity: 1; }
+@keyframes rk-bite-cut { from { transform: scale(0); } }
+@keyframes rk-chomp { 0%, 100% { transform: none; } 35% { transform: translate(-1.8px, 1.5px) rotate(-2.2deg); } }
+@keyframes rk-crumb { 0% { opacity: 0; transform: translate(0, 0) scale(1); } 8% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); } }
+@keyframes rk-chips-out { from { opacity: 1; } }
 .rk-arch { margin: 0; overflow: hidden; background: var(--sand); aspect-ratio: 3 / 4; border-radius: 50% 50% var(--r-md) var(--r-md) / 37.5% 37.5% var(--r-md) var(--r-md); }
 .rk-arch img { width: 100%; height: 100%; object-fit: cover; }
-.rk-hero__main { position: absolute; z-index: 1; top: 0; right: 0; width: 74%; }
-.rk-hero__small { position: absolute; z-index: 2; left: 0; bottom: 0; width: 40%; aspect-ratio: 4 / 5; margin: 0; overflow: hidden; border-radius: var(--r-lg); box-shadow: 0 0 0 6px var(--cream); }
-.rk-hero__small img { width: 100%; height: 100%; object-fit: cover; }
 @media (min-width: 56rem) {
   .rk-hero { padding-block: var(--s-8) var(--s-9); }
   .rk-hero__grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: var(--s-8); align-items: center; }

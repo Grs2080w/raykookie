@@ -30,5 +30,8 @@ Moldura em arco (topo semicircular) para a foto principal: lembra a boca do forn
 ## Sem foto
 Placeholder de marca: bloco 4:3 com o símbolo-cookie do logo sobre um tom do doce (caramelo para cookie, brownie para brownie, rosa suave para os demais).
 
+## Momento da marca
+No hero, o biscoito do logo é mordido três vezes e termina como o símbolo (só o biscoito rosa). `BiteCookie.tsx`: a forma final é `disco r46 − 3 círculos` (centros 74,6 r12 · 92,18 r16 · 98,38 r11, a geometria de `raykookie-simbolo-cookie.svg`); cada mordida é um círculo de máscara que cresce a partir da borda, com um tranco no biscoito e farelos; as gotas (rosa-framboesa) somem no fim. Tudo é CSS (transform/opacity) e o repouso já é o logo pronto (sem JS ou com movimento reduzido aparece o logo). Se nasce fora da tela, espera inteiro e morde ao ser visto. Tocar morde de novo.
+
 ## Movimento
 Entrada do hero ao carregar (uma sequência), revelação das fotos por clip-path ao rolar (`animation-timeline: view()`, sem JS e com conteúdo visível por padrão) e hover nos cartões. `prefers-reduced-motion` desliga tudo.
