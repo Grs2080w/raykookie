@@ -229,7 +229,7 @@ class PayLinkIT extends PaymentsItSupport {
         // ── 2. O corpo enviado e o que foi gravado.
         JsonPath body = new JsonPath(MP.findAll(postRequestedFor(urlEqualTo("/v1/payments"))).getFirst()
                 .getBodyAsString());
-        assertThat(body.getString("external_reference")).isEqualTo("link:" + s.link());
+        assertThat(body.getString("external_reference")).isEqualTo("link_" + s.link());
         assertThat(body.getDouble("transaction_amount")).isEqualTo(50.0);
         assertThat(body.getString("payer.email")).isEqualTo("pagamentos@loja.teste");
         assertThat(body.getString("payer.first_name")).isEqualTo("Ana");
@@ -254,7 +254,7 @@ class PayLinkIT extends PaymentsItSupport {
         // ── 1. Pendente: cancela e gera outro.
         Seeded s = withPix(null);
         expire(s.link());
-        payment(Long.parseLong(s.mp()), "pending", "link:" + s.link(), 80);
+        payment(Long.parseLong(s.mp()), "pending", "link_" + s.link(), 80);
         MP.stubFor(put(urlEqualTo("/v1/payments/" + s.mp())).willReturn(json("{}")));
         long renewed = paymentId();
         nextPix(renewed);
@@ -267,7 +267,7 @@ class PayLinkIT extends PaymentsItSupport {
         // ── 2. Pago no último instante.
         Seeded paid = withPix(null);
         expire(paid.link());
-        payment(Long.parseLong(paid.mp()), "approved", "link:" + paid.link(), 80);
+        payment(Long.parseLong(paid.mp()), "approved", "link_" + paid.link(), 80);
         assertThat(links.pix(paid.token())).isEqualTo(Map.of("ok", true, "state", "paid"));
         assertThat(value("SELECT payment FROM orders WHERE id = :id", paid.order())).isEqualTo("pago");
     }
@@ -330,7 +330,7 @@ class PayLinkIT extends PaymentsItSupport {
         // ── 3. Antigo aprovado com valor menor: não paga e gera o novo.
         Seeded less = withPix(8000L);
         expire(less.link());
-        payment(Long.parseLong(less.mp()), "approved", "link:" + less.link(), 79);
+        payment(Long.parseLong(less.mp()), "approved", "link_" + less.link(), 79);
         nextPix(paymentId());
         assertThat(links.pix(less.token())).containsEntry("state", "renewed");
         assertThat(value("SELECT payment FROM orders WHERE id = :id", less.order())).isEqualTo("pendente");

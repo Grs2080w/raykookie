@@ -232,8 +232,10 @@ public class WebhookUseCase {
         // ── 1. Nunca confia no corpo: consulta o pagamento.
         GatewayPayment pay = gateway.getPayment(dataId);
         String ref = pay.externalReference() == null ? "" : pay.externalReference();
-        if (ref.startsWith(LinkPayments.LINK_REF)) {
-            Long linkId = number(ref.substring(LinkPayments.LINK_REF.length()));
+        String linkPrefix = ref.startsWith(LinkPayments.LINK_REF) ? LinkPayments.LINK_REF
+                : ref.startsWith(LinkPayments.LEGACY_LINK_REF) ? LinkPayments.LEGACY_LINK_REF : null;
+        if (linkPrefix != null) {
+            Long linkId = number(ref.substring(linkPrefix.length()));
             return linkId == null ? ok(pay.status()) : links.handle(pay, linkId);
         }
         Long orderId = number(ref);

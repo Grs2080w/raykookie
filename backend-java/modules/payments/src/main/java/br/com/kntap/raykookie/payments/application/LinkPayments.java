@@ -27,8 +27,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class LinkPayments {
 
-    /** Prefixo do {@code external_reference} dos pagamentos de link. */
-    public static final String LINK_REF = "link:";
+    /** Prefixo do {@code external_reference} dos pagamentos de link (a API Orders só aceita letras, números, - e _). */
+    public static final String LINK_REF = "link_";
+
+    /** Prefixo antigo, dos pagamentos criados antes da API Orders: o webhook ainda precisa reconhecê-lo. */
+    public static final String LEGACY_LINK_REF = "link:";
 
     /** Log. */
     private static final Logger LOG = LoggerFactory.getLogger(LinkPayments.class);
