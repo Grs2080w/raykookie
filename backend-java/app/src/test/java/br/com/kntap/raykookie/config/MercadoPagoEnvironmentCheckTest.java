@@ -73,7 +73,7 @@ class MercadoPagoEnvironmentCheckTest {
      */
     private static RaykookieProperties card(String apiBase) {
         Mp mp = new Mp("APP_USR-token", "APP_USR-chave publica", "segredo", apiBase, Duration.ofMinutes(10));
-        return new RaykookieProperties("https://raykookie.kntap.com.br", "true", "rayka", "false",
+        return new RaykookieProperties("https://raykookie.com.br", "true", "rayka", "false",
                 "0123456789abcdef0123456789abcdef", "downloads", "true", "true", 60, null, null, null, mp,
                 new Google(null, null));
     }

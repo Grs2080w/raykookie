@@ -27,7 +27,7 @@ management:
 # Variáveis do .env (as mesmas do Node, ver .env.example) → rayka.*, conferidas por RaykookieProperties.
 # O banco vem de DATABASE_URL (postgres://…), convertido para rayka.db.* na subida.
 rayka:
-  site-url: ${SITE_URL:https://raykookie.kntap.com.br}
+  site-url: ${SITE_URL:https://raykookie.com.br}
   cookie-secure: ${COOKIE_SECURE:false}
   # Única conta que entra no painel (G24); o servidor não sobe se ela não existir em users.
   shop-owner: ${SHOP_OWNER:rayka}

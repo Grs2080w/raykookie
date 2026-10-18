@@ -162,7 +162,7 @@ outro. Nenhum deles aceita qualquer resposta abaixo de 500 como sucesso.
 
 **Veredito: confirmada.**
 
-- `curl https://raykookie-api.kntap.com.br/api/payment-config` devolveu `{"cardEnabled":false,"publicKey":null}` em 2026-10-08.
+- `curl https://api.raykookie.com.br/api/payment-config` devolveu `{"cardEnabled":false,"publicKey":null}` em 2026-10-08.
 - `docker inspect raykookie-api` (só os nomes): `MP_ACCESS_TOKEN`, `MP_CLIENT_ID`, `MP_CLIENT_SECRET`,
   `MP_WEBHOOK_SECRET`. **Não há `MP_PUBLIC_KEY`.**
 - No código, `mpCardConfigured()` exige `MP_ACCESS_TOKEN` e `MP_PUBLIC_KEY`. Como ele é falso, `payment-config`

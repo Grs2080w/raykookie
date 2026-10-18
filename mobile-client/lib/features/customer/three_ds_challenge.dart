@@ -45,7 +45,7 @@ class _ThreeDsChallengePageState extends State<ThreeDsChallengePage> {
       ..addJavaScriptChannel('Challenge', onMessageReceived: (m) {
         if (m.message == 'COMPLETE' && mounted) Navigator.of(context).pop();
       })
-      ..loadHtmlString(threeDsHtml(widget.url), baseUrl: 'https://raykookie.kntap.com.br');
+      ..loadHtmlString(threeDsHtml(widget.url), baseUrl: 'https://raykookie.com.br');
   }
 
   @override

@@ -12,16 +12,16 @@ A verificação anterior foi recusada por 4 motivos. O que o código já resolve
 ## Console do Google (APIs e serviços → Tela de consentimento OAuth)
 - Nome do app: `Raykookie`
 - Logotipo: o mesmo da página inicial
-- Página inicial: `https://raykookie.kntap.com.br/`
-- Política de privacidade: `https://raykookie.kntap.com.br/privacidade`
-- Termos de serviço: `https://raykookie.kntap.com.br/termos`
-- Domínios autorizados: `kntap.com.br`
+- Página inicial: `https://raykookie.com.br/`
+- Política de privacidade: `https://raykookie.com.br/privacidade`
+- Termos de serviço: `https://raykookie.com.br/termos`
+- Domínios autorizados: `raykookie.com.br`
 - Escopos: somente `openid`, `email` e `profile` (não sensíveis)
 - Reenviar para verificação só **depois** de 24h da confirmação no Search Console
 
 ## Conferência rápida
 ```
-curl -sI https://raykookie.kntap.com.br/ | head -1          # HTTP 200, sem redirecionar
-curl -s https://raykookie.kntap.com.br/ | grep -o "Sobre o app Raykookie"
-curl -s https://raykookie.kntap.com.br/ | grep -o "<title>[^<]*"   # Raykookie · Confeitaria feita à mão
+curl -sI https://raykookie.com.br/ | head -1          # HTTP 200, sem redirecionar
+curl -s https://raykookie.com.br/ | grep -o "Sobre o app Raykookie"
+curl -s https://raykookie.com.br/ | grep -o "<title>[^<]*"   # Raykookie · Confeitaria feita à mão
 ```

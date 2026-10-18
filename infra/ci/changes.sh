@@ -5,7 +5,7 @@
 #   - web  : backend/, frontend/, shared/ e os arquivos de serviço (infra/ci, infra/rayka.service)
 #   - api  : backend-java/ (a API de produção, implantada pelo CD)
 #   - client: mobile-client/ + mobile-common/      - server: mobile-server/ + mobile-common/
-#   - workflows/scripts do pipeline mudaram => tudo roda (o pipeline é parte do produto)
+#   - workflows/scripts do pipeline ou config/urls.json mudaram => tudo roda (as URLs entram nos builds e no container)
 set -euo pipefail
 base="${1:-}"; head="${2:-HEAD}"
 out="${GITHUB_OUTPUT:-/dev/stdout}"
@@ -22,7 +22,7 @@ hit() { # hit <regex>: algum arquivo mudado casa?
 }
 flag() { if "$@"; then echo true; else echo false; fi; }
 
-pipeline=false; hit '^(\.github/|infra/ci/)' && pipeline=true
+pipeline=false; hit '^(\.github/|infra/ci/|config/)' && pipeline=true
 web=$(flag hit '^(backend|frontend|shared)/|^infra/(rayka\.service|ci/)')
 api=$(flag hit '^backend-java/')
 client=$(flag hit '^(mobile-client|mobile-common)/')

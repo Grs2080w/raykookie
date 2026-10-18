@@ -2,7 +2,7 @@
 // e confere roteamento, saúde, manifesto de downloads e desligamento.
 //   cd backend && npm run test:e2e   (modo API + site: defina FRONTEND_DIR_UNDER_TEST=<pasta do frontend com build>)
 // Nunca conecta no banco de produção: DATABASE_URL aponta para uma porta fechada, e o ambiente do processo
-// é montado do zero (não herda o seu). Opcional, só leitura: SERVER_URL=https://raykookie-api.kntap.com.br
+// é montado do zero (não herda o seu). Opcional, só leitura: SERVER_URL=https://api.raykookie.com.br
 // roda também as checagens contra um servidor já no ar.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';

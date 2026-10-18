@@ -136,7 +136,6 @@ jobs:
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
-      API_BASE: ${{ vars.API_BASE || 'https://raykookie-api.kntap.com.br' }}
       GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
       # Medição anônima de uso do app do cliente (variável do repositório; vazia = desligada)
       ENGAGEMENT_ENABLED: ${{ vars.ENGAGEMENT_ENABLED }}
@@ -189,7 +188,8 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: |
           flutter pub get --enforce-lockfile
-          defines=(--dart-define="API_BASE=$API_BASE")
+          source "$GITHUB_WORKSPACE/infra/urls.sh" # endereços públicos: config/urls.json
+          defines=(--dart-define="API_BASE=$(url_of API_BASE)" --dart-define="SITE_BASE=$(url_of SITE_URL)")
           [ -n "$GOOGLE_SERVER_CLIENT_ID" ] && defines+=(--dart-define="GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID")
           [ "$ENGAGEMENT_ENABLED" = "true" ] && defines+=(--dart-define="ENGAGEMENT_ENABLED=true")
           flutter build apk --release --target-platform android-arm64,android-arm \
@@ -230,7 +230,6 @@ jobs:
     timeout-minutes: 15
     environment: production
     env:
-      API_BASE: ${{ vars.API_BASE || 'https://raykookie-api.kntap.com.br' }}
       # pasta que o container raykookie-api lê (bind mount -> DOWNLOADS_DIR dentro dele); não é mais /srv/rayka
       DOWNLOADS_DIR: ${{ vars.RAYKA_DOWNLOADS_DIR || '/home/g_snts/works/raykookie/downloads' }}
     steps:
@@ -250,7 +249,7 @@ jobs:
             node infra/ci/publish-prebuilt.mjs \
               --app "$(node -p "require('./$r').app")" --apk "$dir/app.apk" \
               --version "$(node -p "require('./$r').version")" --build "$(node -p "require('./$r').build")" \
-              --sha256 "$(node -p "require('./$r').sha256")" --commit "$GITHUB_SHA" --api-base "$API_BASE" \
+              --sha256 "$(node -p "require('./$r').sha256")" --commit "$GITHUB_SHA" --api-base "$(bash infra/urls.sh API_BASE)" \
               --downloads "$DOWNLOADS_DIR"
           done
       - name: Confere que a API está no ar (lê o manifesto que acabou de mudar)
