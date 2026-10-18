@@ -3,6 +3,7 @@ import './globals.css';
 import { ToastHost } from '@/components/ui/Toast';
 import { Tracker } from '@/components/Tracker';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { SITE_URL } from '@/lib/urls';
 
 // Endereço público do site: o og:image precisa ser uma URL absoluta (config/urls.json).
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ToastHost />
         <Tracker />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
