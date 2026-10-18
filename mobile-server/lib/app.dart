@@ -8,6 +8,7 @@ import 'package:raykookie_common/ui/toast.dart';
 
 import 'core/biometric.dart';
 import 'core/biometric_gate.dart';
+import 'core/pix/venda_store.dart';
 import 'core/push.dart';
 import 'router.dart';
 
@@ -18,8 +19,10 @@ class GestaoApp extends StatefulWidget {
     required this.theme,
     required this.lock,
     this.push,
+    this.venda,
     this.initialLocation = '/painel/inicio',
   });
+  final VendaStore? venda;
   final Session session;
   final BiometricLock lock;
   final ThemeController theme;
@@ -36,6 +39,7 @@ class _GestaoAppState extends State<GestaoApp> {
   );
   late final PushService _push =
       widget.push ?? PushService(session: widget.session);
+  late final VendaStore _venda = widget.venda ?? VendaStore();
 
   @override
   void initState() {
@@ -61,6 +65,7 @@ class _GestaoAppState extends State<GestaoApp> {
       ChangeNotifierProvider.value(value: widget.theme),
       ChangeNotifierProvider.value(value: widget.lock),
       ChangeNotifierProvider.value(value: _push),
+      ChangeNotifierProvider.value(value: _venda),
     ],
     child: Consumer<ThemeController>(
       builder: (context, theme, _) => MaterialApp.router(
@@ -68,7 +73,7 @@ class _GestaoAppState extends State<GestaoApp> {
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
         builder: (context, child) =>
-            BiometricGate(child: child ?? const SizedBox.shrink()),
+            BiometricGate(router: _router, child: child ?? const SizedBox.shrink()),
         scaffoldMessengerKey: messengerKey,
         theme: buildTheme(AppColors.light, Brightness.light, radius: 16, buttonHeight: 52),
         darkTheme: buildTheme(AppColors.dark, Brightness.dark, radius: 16, buttonHeight: 52),

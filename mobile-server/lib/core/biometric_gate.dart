@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
 import 'biometric.dart';
+import 'pix/venda_store.dart';
 
 /// Fica por cima do app: tela de bloqueio quando a biometria está ativada e o aviso "Quer ativar?" na primeira vez.
 class BiometricGate extends StatefulWidget {
-  const BiometricGate({super.key, required this.child});
+  const BiometricGate({super.key, required this.child, this.router});
   final Widget child;
+
+  /// Para saber em que tela está: a Venda Presencial não tranca.
+  final GoRouter? router;
   @override
   State<BiometricGate> createState() => _BiometricGateState();
 }
@@ -22,10 +27,13 @@ class _BiometricGateState extends State<BiometricGate>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _exempt = _onVenda();
+    widget.router?.routerDelegate.addListener(_onRoute);
   }
 
   @override
   void dispose() {
+    widget.router?.routerDelegate.removeListener(_onRoute);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -40,21 +48,43 @@ class _BiometricGateState extends State<BiometricGate>
     }
   }
 
+  /// A Venda Presencial abre sem biometria (só mostra cardápio e a chave Pix); sair dela volta a trancar.
+  bool _exempt = false;
+
+  bool _onVenda() {
+    final r = widget.router;
+    if (r == null) return false;
+    final path = r.routerDelegate.currentConfiguration.uri.path;
+    return (path.isEmpty ? r.routeInformationProvider.value.uri.path : path) == vendaRoute;
+  }
+
+  // o roteador avisa durante o desenho da tela; o setState espera o quadro terminar
+  void _onRoute() {
+    final on = _onVenda();
+    if (on == _exempt) return;
+    _exempt = on;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final lock = context.watch<BiometricLock>();
-    if (lock.locked && !_autoTried) {
+    final exempt = _exempt;
+    final showLock = lock.locked && !exempt;
+    if (showLock && !_autoTried) {
       _autoTried = true;
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => lock.unlock(),
       ); // já pede a digital ao abrir
     }
-    if (!lock.locked) _autoTried = false;
+    if (!showLock) _autoTried = false;
     return Stack(
       children: [
         Positioned.fill(child: widget.child),
-        if (lock.locked) const Positioned.fill(child: _LockScreen()),
-        if (!lock.locked && lock.askToEnable)
+        if (showLock) const Positioned.fill(child: _LockScreen()),
+        if (!lock.locked && lock.askToEnable && !exempt)
           const Positioned.fill(child: _EnableSheet()),
       ],
     );
