@@ -3,7 +3,7 @@
 Produção (dois deploys independentes):
 
 ```
- navegador ──▶ Vercel (frontend/, raykookie.kntap.com.br) ── /api/* (vercel.json) ──┐
+ navegador ──▶ Vercel (frontend/, raykookie.com.br) ── /api/* (vercel.json) ──┐
                                                                                     ▼
  app Flutter ─────────────────────────────▶ container Docker raykookie-api (backend/server.mjs,
                                              raykookie-api.kntap.com.br) ───▶ PostgreSQL

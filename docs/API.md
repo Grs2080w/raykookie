@@ -2,7 +2,7 @@
 
 Usada pelo frontend (site/painel) e pelo app mobile. Tudo em JSON (UTF-8). Erros: `{ "error": "mensagem em português, pronta para mostrar" }` com o status HTTP certo (400 validação, 401 sem sessão, 404, 409 conflito, 413/415 foto, 429 muitas tentativas, 5xx).
 
-Em produção é um único processo na porta `10005`: `/api/*` é esta API e o resto é o site. O navegador e o app mobile usam o mesmo endereço público (`https://raykookie.kntap.com.br/api/...`).
+Em produção é um único processo na porta `10005`: `/api/*` é esta API e o resto é o site. O navegador e o app mobile usam o mesmo endereço público (`https://raykookie.com.br/api/...`).
 
 ## Autenticação
 
@@ -55,7 +55,7 @@ Em Pix, a resposta traz `pix: { code, qr_base64 }` (copia e cola do Mercado Pago
 
 ## Webhook do Mercado Pago (`POST /api/webhooks/mercadopago`)
 
-URL cadastrada no painel (modo **produção**): `https://raykookie.kntap.com.br/api/webhooks/mercadopago` (o site repassa
+URL cadastrada no painel (modo **produção**): `https://raykookie.com.br/api/webhooks/mercadopago` (o site repassa
 para a API). A assinatura (`x-signature`) é conferida com `MP_WEBHOOK_SECRET`, que precisa ser a **assinatura secreta de
 produção** do aplicativo (o painel tem um segredo para o modo de teste e outro para produção; gerar um novo invalida o
 anterior). Assinatura errada responde 401 e deixa um aviso no log.

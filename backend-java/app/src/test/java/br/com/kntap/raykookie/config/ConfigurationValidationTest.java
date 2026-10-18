@@ -36,7 +36,7 @@ class ConfigurationValidationTest {
             assertThat(properties.pixExpiresMinutes()).isEqualTo(60);
             assertThat(properties.mp().apiBase()).isEqualTo("https://api.mercadopago.com");
             assertThat(properties.mp().webhookMaxSkew()).hasMinutes(10);
-            assertThat(properties.payerEmail()).isEqualTo("pagamentos@raykookie.kntap.com.br");
+            assertThat(properties.payerEmail()).isEqualTo("pagamentos@raykookie.com.br");
         });
     }
 
@@ -66,7 +66,7 @@ class ConfigurationValidationTest {
         "rayka.jobs-enabled=1 | JOBS_ENABLED",
         "rayka.pix-expires-minutes=30 | PIX_EXPIRES_MINUTES",
         "rayka.pix-expires-minutes=43201 | PIX_EXPIRES_MINUTES",
-        "rayka.site-url=http://raykookie.kntap.com.br | SITE_URL",
+        "rayka.site-url=http://raykookie.com.br | SITE_URL",
         "rayka.shop-owner= | SHOP_OWNER",
         "rayka.mp.api-base=ftp://x | MP_API_BASE",
     })

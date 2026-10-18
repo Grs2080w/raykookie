@@ -1,11 +1,11 @@
 // Separa o painel de gestão do site do cliente por domínio:
-//   · GESTAO_HOST (raykookie-gestao.kntap.com.br) serve só a gestão; o resto vai para o site.
+//   · GESTAO_HOST (business.raykookie.com.br) serve só a gestão; o resto vai para o site.
 //   · o domínio do site (SITE_URL) serve só o site/cliente; a gestão vai para o GESTAO_HOST.
 // Outros hosts (localhost, previews da Vercel) ficam como estão, com tudo acessível, para não atrapalhar o dev.
 import { NextResponse, type NextRequest } from 'next/server';
 
-const SITE_URL = process.env.SITE_URL || 'https://raykookie.kntap.com.br';
-const GESTAO_HOST = process.env.GESTAO_HOST || 'raykookie-gestao.kntap.com.br';
+const SITE_URL = process.env.SITE_URL || 'https://raykookie.com.br';
+const GESTAO_HOST = process.env.GESTAO_HOST || 'business.raykookie.com.br';
 const SITE_HOST = new URL(SITE_URL).host;
 
 /** Primeiro segmento das rotas do painel: o grupo (app) mais o login e o cadastro do (auth). */

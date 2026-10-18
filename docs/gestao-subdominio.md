@@ -1,12 +1,12 @@
 # Gestão em subdomínio próprio
 
-O painel de gestão mora só em `raykookie-gestao.kntap.com.br`; `raykookie.kntap.com.br` serve só o site e o cliente.
+O painel de gestão mora só em `business.raykookie.com.br`; `raykookie.com.br` serve só o site e o cliente.
 Quem decide é `frontend/middleware.ts`, pelo cabeçalho `Host`:
 
 | Host | `/` | Rotas da gestão (`/dashboard`, `/login`…) | Rotas do site (`/cardapio`, `/cliente`…) |
 |---|---|---|---|
-| `raykookie-gestao.kntap.com.br` | vai para `/dashboard` | abrem (com `noindex`) | redirecionam para o site |
-| `raykookie.kntap.com.br` | site | redirecionam para o subdomínio de gestão | abrem |
+| `business.raykookie.com.br` | vai para `/dashboard` | abrem (com `noindex`) | redirecionam para o site |
+| `raykookie.com.br` | site | redirecionam para o subdomínio de gestão | abrem |
 | `localhost`, previews da Vercel | site | abrem | abrem |
 
 Rotas do painel (primeiro segmento, lista `GESTAO_ROUTES` em `frontend/middleware.ts`): `dashboard`, `estoque`… e,
@@ -20,14 +20,14 @@ domínio antigo entra de novo.
 
 Variáveis (Vercel → *Settings → Environment Variables*, opcionais; os padrões já são estes):
 
-- `SITE_URL` = `https://raykookie.kntap.com.br`
-- `GESTAO_HOST` = `raykookie-gestao.kntap.com.br`
+- `SITE_URL` = `https://raykookie.com.br`
+- `GESTAO_HOST` = `business.raykookie.com.br`
 
 ## Configurar
 
-1. **Vercel:** projeto do frontend → *Settings → Domains → Add* → `raykookie-gestao.kntap.com.br`. A Vercel mostra o
+1. **Vercel:** projeto do frontend → *Settings → Domains → Add* → `business.raykookie.com.br`. A Vercel mostra o
    registro DNS esperado (um `CNAME` para `cname.vercel-dns.com`, ou o valor próprio do projeto que ela exibir).
-2. **Cloudflare:** DNS do `kntap.com.br` → *Add record* → tipo `CNAME`, nome `raykookie-gestao`, destino o valor que a
+2. **Cloudflare:** DNS do `raykookie.com.br` → *Add record* → tipo `CNAME`, nome `business`, destino o valor que a
    Vercel mostrou, **proxy desligado (nuvem cinza, "DNS only")**.
 3. **Vercel:** volte em *Domains*; quando o domínio ficar com o visto (certificado emitido), está no ar.
 4. **Código:** o deploy da Vercel sai da branch ligada ao projeto (normalmente `main`). Faça o merge do PR; antes, o

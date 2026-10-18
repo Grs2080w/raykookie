@@ -51,7 +51,7 @@ public class PaymentSettings {
             @Value("${rayka.mp.webhook-secret-test:}") String webhookTestSecret,
             @Value("${rayka.mp.webhook-max-skew:10m}") Duration webhookMaxSkew,
             @Value("${rayka.pix-expires-minutes:60}") int pixMinutes,
-            @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl,
+            @Value("${rayka.site-url:https://raykookie.com.br}") String siteUrl,
             @Value("${rayka.pay-link-payer-email:}") String payerEmail) {
 
         // ── 1. Mercado Pago: token e segredos das notificações (produção e teste).

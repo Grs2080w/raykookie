@@ -86,7 +86,7 @@ public class GoogleClient implements GoogleAccounts {
      */
     public GoogleClient(@Value("${rayka.google.client-id:}") String clientId,
             @Value("${rayka.google.client-secret:}") String clientSecret,
-            @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl, Endpoints endpoints, Clock clock)
+            @Value("${rayka.site-url:https://raykookie.com.br}") String siteUrl, Endpoints endpoints, Clock clock)
             throws MalformedURLException {
 
         // ── 1. Configuração.

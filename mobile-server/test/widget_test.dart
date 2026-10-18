@@ -158,7 +158,7 @@ void main() {
       sharePlatform = (p) async => shared = p.text;
       addTearDown(() => sharePlatform = orig);
       final be = await open(t, [order(5)], extra: {
-        'POST /api/orders/5/pagamento': (_) => (200, {'url': 'https://raykookie.kntap.com.br/pagar/abc', 'amount': 30.0}),
+        'POST /api/orders/5/pagamento': (_) => (200, {'url': 'https://raykookie.com.br/pagar/abc', 'amount': 30.0}),
       });
       await t.tap(find.text(share));
       await t.pumpAndSettle(const Duration(milliseconds: 100));
@@ -168,7 +168,7 @@ void main() {
       await t.tap(find.widgetWithText(FilledButton, 'Compartilhar link'));
       await t.pumpAndSettle(const Duration(milliseconds: 100));
       expect(be.bodies['POST /api/orders/5/pagamento'], {'amount': '30,00'});
-      expect(shared, allOf(contains('pedido #12'), contains('30,00'), contains('https://raykookie.kntap.com.br/pagar/abc')));
+      expect(shared, allOf(contains('pedido #12'), contains('30,00'), contains('https://raykookie.com.br/pagar/abc')));
     });
 
     testWidgets('total com meio centavo (0,5 x 45,99 = 22,995): o valor pré-preenchido é aceito', (t) async {
@@ -176,7 +176,7 @@ void main() {
       sharePlatform = (p) async {};
       addTearDown(() => sharePlatform = orig);
       final be = await open(t, [order(5, qty: 0.5, price: 45.99)], extra: {
-        'POST /api/orders/5/pagamento': (_) => (200, {'url': 'https://raykookie.kntap.com.br/pagar/abc', 'amount': 23.0}),
+        'POST /api/orders/5/pagamento': (_) => (200, {'url': 'https://raykookie.com.br/pagar/abc', 'amount': 23.0}),
       });
       await t.tap(find.text(share));
       await t.pumpAndSettle(const Duration(milliseconds: 100));

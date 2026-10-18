@@ -7,7 +7,7 @@ class AppConfig {
   static const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'https://raykookie-api.kntap.com.br');
 
   /// Endereço público do site (páginas como /cardapio) — pode ser diferente do apiBase (que é só a API).
-  static const siteBase = String.fromEnvironment('SITE_BASE', defaultValue: 'https://raykookie.kntap.com.br');
+  static const siteBase = String.fromEnvironment('SITE_BASE', defaultValue: 'https://raykookie.com.br');
 
   static const _googleServerClientIdEnv = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
   /// Só para teste: sobrepõe googleServerClientId (que normalmente só se define em build, via --dart-define).

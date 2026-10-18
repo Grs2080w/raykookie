@@ -22,7 +22,7 @@ Versão: `version: X.Y.Z+N` no `pubspec.yaml` (aparece no login e na aba **Mais*
 
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE=https://raykookie.kntap.com.br
+flutter run --dart-define=API_BASE=https://raykookie.com.br
 flutter run --dart-define=API_BASE=http://10.0.2.2:10005     # PC local, no emulador Android
 ```
 

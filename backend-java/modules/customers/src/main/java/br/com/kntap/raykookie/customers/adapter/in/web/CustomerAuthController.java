@@ -84,7 +84,7 @@ public class CustomerAuthController {
      * @param siteUrl  {@code rayka.site-url}
      */
     public CustomerAuthController(CustomerSignInUseCases signIn, GoogleAccounts google, ClientIpResolver clientIp,
-            SessionCookies cookies, @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl) {
+            SessionCookies cookies, @Value("${rayka.site-url:https://raykookie.com.br}") String siteUrl) {
         this.signIn = signIn;
         this.google = google;
         this.clientIp = clientIp;

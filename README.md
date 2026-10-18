@@ -50,7 +50,7 @@ bash infra/check.sh --fast         # só tipos e testes, sem build
 Diferente do dev (onde os dois rodam juntos via proxy do Vite/Next), em produção o front e a API são
 dois deploys independentes — mesmo padrão usado pelos outros apps deste workspace (finance, lineup, wraap, agest).
 
-- **Front** (`raykookie.kntap.com.br`): projeto Vercel `raykookie-frontend`, `rootDirectory=frontend`,
+- **Front** (`raykookie.com.br`): projeto Vercel `raykookie-frontend`, `rootDirectory=frontend`,
   deploy automático a cada push na `main` (integração Git da própria Vercel). Variáveis do projeto na Vercel:
   `BACKEND_URL=https://raykookie-api.kntap.com.br` (fetches do lado servidor) e `SITE_URL` (og:image,
   redirects). `frontend/vercel.json` reescreve `/api/*` pra API, então do ponto de vista do navegador

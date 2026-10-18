@@ -43,7 +43,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("rayka")
 public record RaykookieProperties(
-        @DefaultValue("https://raykookie.kntap.com.br") @NotBlank(message = "SITE_URL é obrigatório.")
+        @DefaultValue("https://raykookie.com.br") @NotBlank(message = "SITE_URL é obrigatório.")
         String siteUrl,
         @DefaultValue("false") @Pattern(regexp = SWITCH, message = "COOKIE_SECURE" + SWITCH_MESSAGE)
         String cookieSecure,

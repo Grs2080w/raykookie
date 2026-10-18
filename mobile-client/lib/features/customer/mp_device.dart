@@ -33,7 +33,7 @@ class _MpDeviceIdState extends State<MpDeviceId> {
     if (WebViewPlatform.instance == null) return;
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadHtmlString(_page, baseUrl: 'https://raykookie.kntap.com.br');
+      ..loadHtmlString(_page, baseUrl: 'https://raykookie.com.br');
     _poll = Timer.periodic(const Duration(milliseconds: 500), (_) => _read());
   }
 

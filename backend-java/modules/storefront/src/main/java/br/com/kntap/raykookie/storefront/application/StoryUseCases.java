@@ -35,7 +35,7 @@ public class StoryUseCases {
      * @param siteUrl    endereço público do site ({@code SITE_URL})
      */
     public StoryUseCases(StorefrontService storefront, CatalogApi catalog, ShopOwner shopOwner,
-            @Value("${rayka.site-url:https://raykookie.kntap.com.br}") String siteUrl) {
+            @Value("${rayka.site-url:https://raykookie.com.br}") String siteUrl) {
         this.storefront = storefront;
         this.catalog = catalog;
         this.shopOwner = shopOwner;

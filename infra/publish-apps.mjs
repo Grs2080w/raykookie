@@ -27,7 +27,7 @@ const opt = (n, d) => (args.find((a) => a.startsWith(`--${n}=`)) ?? '').split('=
 const which = args.find((a) => !a.startsWith('--')) ?? 'all';
 const targets = which === 'all' ? Object.keys(APPS) : [which];
 if (targets.some((t) => !APPS[t])) { console.error('Uso: node infra/publish-apps.mjs [client|server|all] [--force] [--bump=patch|minor|major] [--api-base=URL] [--dry-run]'); process.exit(2); }
-const apiBase = opt('api-base', 'https://raykookie.kntap.com.br');
+const apiBase = opt('api-base', 'https://raykookie.com.br');
 const bump = opt('bump', '');
 // ID do cliente OAuth "Web" do Google (público; o app o usa como serverClientId). Vem do ambiente ou do GOOGLE_CLIENT_ID do backend/.env.
 function readGoogleWebClientId() {
