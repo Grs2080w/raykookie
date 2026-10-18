@@ -12,6 +12,7 @@ import { niceName } from '@/lib/menu-view';
 import { siteClass } from '@/lib/site-font';
 import { apiPublic } from '@/lib/server-api';
 import { leadDaysLabel } from '@shared/shop';
+import { SITE_URL } from '@/lib/urls';
 import type { AppReleases, Menu } from '@shared/types';
 
 export const metadata: Metadata = {
@@ -73,8 +74,22 @@ export default async function Landing() {
   const gallery = all.slice(0, take);
   const [lead, ...others] = REVIEWS;
 
+  // Dados estruturados (schema.org): ajudam o Google a entender que é uma confeitaria e a ligar o cardápio.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'WebSite', '@id': `${SITE_URL}/#site`, url: SITE_URL, name: 'Raykookie', inLanguage: 'pt-BR' },
+      {
+        '@type': 'Bakery', '@id': `${SITE_URL}/#loja`, name: 'Raykookie', url: SITE_URL, image: `${SITE_URL}/og-image.png`,
+        description: 'Confeitaria feita à mão: cookies, tortas, brownies e bolos sob encomenda.',
+        sameAs: ['https://www.instagram.com/raykookies'], hasMenu: `${SITE_URL}/cardapio`, currenciesAccepted: 'BRL', paymentAccepted: 'Pix, cartão de crédito, cartão de débito',
+      },
+    ],
+  };
+
   return (
     <div className={siteClass}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <a href="#cardapio" className="rk-skip">Ir para o cardápio</a>
       <SiteHeader orderHref={PEDIR} />
 

@@ -5,6 +5,7 @@ import { siteClass } from '@/lib/site-font';
 
 export const metadata: Metadata = {
   title: 'Excluir minha conta',
+  alternates: { canonical: '/excluir-conta' },
   description: 'Como excluir sua conta Raykookie e o que acontece com os seus dados.',
 };
 
