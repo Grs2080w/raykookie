@@ -3,8 +3,9 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type { Customer, User } from '@shared/types';
+import { API_BASE } from '@/lib/urls';
 
-const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:10005';
+const BACKEND = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? API_BASE : 'http://127.0.0.1:10005');
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }

@@ -52,11 +52,12 @@ dois deploys independentes — mesmo padrão usado pelos outros apps deste works
 
 - **Front** (`raykookie.com.br`): projeto Vercel `raykookie-frontend`, `rootDirectory=frontend`,
   deploy automático a cada push na `main` (integração Git da própria Vercel). Variáveis do projeto na Vercel:
-  `BACKEND_URL=https://raykookie-api.kntap.com.br` (fetches do lado servidor) e `SITE_URL` (og:image,
-  redirects). `frontend/vercel.json` reescreve `/api/*` pra API, então do ponto de vista do navegador
+  `BACKEND_URL` (fetches do lado servidor) e `SITE_URL` (og:image,
+  redirects) — **não precisam existir**: os endereços vêm de `config/urls.json` (ver `docs/urls.md`). O `rewrites` do
+  `frontend/next.config.mjs` repassa `/api/*` pra API, então do ponto de vista do navegador
   tudo é same-origin — sem CORS, cookie de sessão funciona igual ao monólito antigo.
 
-- **API** (`raykookie-api.kntap.com.br`): a API **Java**, num container Docker **sempre ligado** (não dorme — Pix,
+- **API** (`api.raykookie.com.br`): a API **Java**, num container Docker **sempre ligado** (não dorme — Pix,
   webhooks do Mercado Pago e as tarefas de 5 em 5 minutos precisam do processo de pé). O `reverse-host` (`rproxy`) da
   máquina liga o domínio ao **container chamado `raykookie-api` na porta 20010** (`services.toml`, `always_on = true`).
 

@@ -8,11 +8,11 @@ Versão: `version: X.Y.Z+N` no `pubspec.yaml` (aparece no rodapé da tela inicia
 
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE=https://raykookie.com.br           # produção
+flutter run --dart-define=API_BASE=https://api.raykookie.com.br         # produção
 flutter run --dart-define=API_BASE=http://10.0.2.2:10005                    # PC local, no emulador Android
 ```
 
-`API_BASE` é o endereço do **site** (a API responde em `/api`). Sem ele usa o de produção.
+`API_BASE` é o endereço da **API** e `SITE_BASE` o do site (páginas como `/cardapio`). Sem eles usa os de `config/urls.json` (os builds de release passam os dois).
 
 ## Login com Google
 

@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
+import { SITE_URL } from '@/lib/urls';
 
 // Mesmo endereço público do layout: o sitemap exige URLs absolutas.
-const site = process.env.SITE_URL || 'https://raykookie.com.br';
+const site = SITE_URL;
 
 /** Páginas públicas que o Google pode indexar (o painel, a área do cliente e o link de pagamento ficam de fora). */
 export default function sitemap(): MetadataRoute.Sitemap {

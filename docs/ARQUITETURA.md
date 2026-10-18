@@ -3,10 +3,10 @@
 Produção (dois deploys independentes):
 
 ```
- navegador ──▶ Vercel (frontend/, raykookie.com.br) ── /api/* (vercel.json) ──┐
+ navegador ──▶ Vercel (frontend/, raykookie.com.br) ── /api/* (next.config.mjs) ──┐
                                                                                     ▼
  app Flutter ─────────────────────────────▶ container Docker raykookie-api (backend/server.mjs,
-                                             raykookie-api.kntap.com.br) ───▶ PostgreSQL
+                                             api.raykookie.com.br) ───▶ PostgreSQL
 ```
 
 `backend/server.mjs` também sabe servir o build do `frontend/` no mesmo processo (`/api/*` → API, o resto → site)

@@ -18,7 +18,7 @@ de gestão a manda para o site.
 (mesmo domínio, sem CORS) e o cookie de sessão não tem `Domain`, então vale no subdomínio novo; quem estava logado no
 domínio antigo entra de novo.
 
-Variáveis (Vercel → *Settings → Environment Variables*, opcionais; os padrões já são estes):
+Os endereços vêm de `config/urls.json` (ver `docs/urls.md`). Variáveis na Vercel (opcionais; só se quiser sobrepor o arquivo):
 
 - `SITE_URL` = `https://raykookie.com.br`
 - `GESTAO_HOST` = `business.raykookie.com.br`

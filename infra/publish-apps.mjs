@@ -27,7 +27,10 @@ const opt = (n, d) => (args.find((a) => a.startsWith(`--${n}=`)) ?? '').split('=
 const which = args.find((a) => !a.startsWith('--')) ?? 'all';
 const targets = which === 'all' ? Object.keys(APPS) : [which];
 if (targets.some((t) => !APPS[t])) { console.error('Uso: node infra/publish-apps.mjs [client|server|all] [--force] [--bump=patch|minor|major] [--api-base=URL] [--dry-run]'); process.exit(2); }
-const apiBase = opt('api-base', 'https://raykookie.com.br');
+// Endereços públicos: config/urls.json (fonte única); --api-base sobrescreve só a API.
+const urls = JSON.parse(fs.readFileSync(path.join(root, 'config', 'urls.json'), 'utf8'));
+const apiBase = opt('api-base', urls.API_BASE);
+const siteBase = urls.SITE_URL;
 const bump = opt('bump', '');
 // ID do cliente OAuth "Web" do Google (público; o app o usa como serverClientId). Vem do ambiente ou do GOOGLE_CLIENT_ID do backend/.env.
 function readGoogleWebClientId() {
@@ -69,7 +72,7 @@ function walk(dir, out = []) {
 /** Hash do que entra no app (o próprio app + o pacote comum + endereço da API), ignorando só a linha `version:`. */
 function sourceHash(appDir) {
   const h = crypto.createHash('sha256');
-  h.update(`api:${apiBase}\n`);
+  h.update(`api:${apiBase}\nsite:${siteBase}\n`);
   for (const base of [appDir, path.join(root, 'mobile-common')]) {
     for (const f of walk(base)) {
       let data = fs.readFileSync(f);
@@ -119,7 +122,7 @@ for (const app of targets) {
     writeVersion(pubspec, v);
     if (!fs.existsSync(path.join(appDir, 'android', 'key.properties'))) console.warn('⚠ android/key.properties ausente: o APK será assinado com a chave de debug (não serve para atualizar apps já instalados).');
     run('flutter', ['pub', 'get'], appDir);
-    const defines = [`--dart-define=API_BASE=${apiBase}`];
+    const defines = [`--dart-define=API_BASE=${apiBase}`, `--dart-define=SITE_BASE=${siteBase}`];
     if (googleWebClientId) defines.push(`--dart-define=GOOGLE_SERVER_CLIENT_ID=${googleWebClientId}`);
     run('flutter', ['build', 'apk', '--release', '--target-platform', 'android-arm64,android-arm', ...defines], appDir);
 
