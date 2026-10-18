@@ -23,6 +23,8 @@ import 'features/admin/privacy_screen.dart';
 import 'features/admin/suppliers_screen.dart';
 import 'features/admin/refunds_screen.dart';
 import 'features/admin/stock_screen.dart';
+import 'core/pix/venda_store.dart';
+import 'features/venda/venda_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -38,6 +40,7 @@ GoRouter buildRouter(
   refreshListenable: session,
   redirect: (context, state) {
     final loc = state.matchedLocation;
+    if (loc == vendaRoute) return null; // vende e recebe sem internet e sem entrar: só mostra cardápio e a chave Pix do aparelho
     if (loc == '/' || loc == '/painel') return '/painel/inicio';
     if (loc != '/painel/entrar' && !session.isOwner) return '/painel/entrar';
     if (loc == '/painel/entrar' && session.isOwner) return '/painel/inicio';
@@ -169,6 +172,11 @@ GoRouter buildRouter(
       parentNavigatorKey: _rootKey,
       path: '/painel/privacidade',
       builder: (_, _) => const PrivacyScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: vendaRoute,
+      builder: (_, _) => const VendaScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,

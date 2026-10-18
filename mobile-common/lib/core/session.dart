@@ -70,6 +70,14 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Só lê os tokens salvos, sem falar com o servidor: abertura instantânea e que funciona sem internet.
+  /// Depois, [load] confere a sessão com o servidor em segundo plano.
+  Future<void> loadLocal() async {
+    ownerApi.token = await store.read(_kOwner);
+    customerApi.token = await store.read(_kCustomer);
+    notifyListeners();
+  }
+
   Future<void> refreshProfile() async {
     try {
       profile = CustomerProfile.fromJson(await customerApi.get('/api/cliente/me'));

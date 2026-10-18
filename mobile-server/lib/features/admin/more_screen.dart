@@ -126,6 +126,12 @@ class MoreScreen extends StatelessWidget {
           () => context.push('/painel/cardapio'),
         ),
         tile(
+          Icons.qr_code_2_rounded,
+          'Venda Presencial',
+          'Pix estático por produto, funciona sem internet',
+          () => context.push('/painel/venda-presencial'),
+        ),
+        tile(
           Icons.notifications_active_outlined,
           'Som de novos pedidos',
           push.sound.label,
