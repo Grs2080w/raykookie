@@ -50,7 +50,7 @@ jobs:
       web: ${{ steps.c.outputs.web || 'true' }} # fora de push (workflow_dispatch) não roda changes.sh: assume que mudou
       api: ${{ steps.c.outputs.api || 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: c
@@ -142,8 +142,8 @@ jobs:
       GOOGLE_SERVICES_JSON_CLIENT_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_CLIENT_BASE64 }}
       GOOGLE_SERVICES_JSON_SERVER_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_SERVER_BASE64 }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -152,7 +152,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -208,7 +208,7 @@ jobs:
                 '{app:$app,version:$version,build:$build,sha256:$sha,size:$size,commit:$commit}' > out/release.json
           cat out/release.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.app }}
           path: out/
@@ -233,11 +233,11 @@ jobs:
       # pasta que o container raykookie-api lê (bind mount -> DOWNLOADS_DIR dentro dele); não é mais /srv/rayka
       DOWNLOADS_DIR: ${{ vars.RAYKA_DOWNLOADS_DIR || '/home/g_snts/works/raykookie/downloads' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: apk-*
           path: artifacts
@@ -264,7 +264,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: apk-*
           path: artifacts
