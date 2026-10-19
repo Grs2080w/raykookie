@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.orders.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.kernel.Money;
@@ -22,8 +25,10 @@ import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Cupons: a aba Cupons da dona (criar, editar, ativar/desativar, excluir) e a conferência do cliente no último
@@ -53,6 +58,12 @@ public class CouponUseCases {
     /** Limites. */
     private final RateLimiter limiter;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
+    /** Campos do cupom que o histórico guarda. */
+    private static final List<String> TRACKED = List.of("code", "percent", "min_total", "min_inclusive", "active");
+
     /**
      * Cria os casos de uso.
      *
@@ -60,12 +71,15 @@ public class CouponUseCases {
      * @param storefront cardápio
      * @param shopOwner  a dona
      * @param limiter    limites
+     * @param audit      histórico de auditoria
      */
-    public CouponUseCases(Coupons coupons, StorefrontApi storefront, ShopOwner shopOwner, RateLimiter limiter) {
+    public CouponUseCases(Coupons coupons, StorefrontApi storefront, ShopOwner shopOwner, RateLimiter limiter,
+            AuditTrail audit) {
         this.coupons = coupons;
         this.storefront = storefront;
         this.shopOwner = shopOwner;
         this.limiter = limiter;
+        this.audit = audit;
     }
 
     /**
@@ -86,6 +100,7 @@ public class CouponUseCases {
      * @return os cupons
      * @throws ConflictException se o código já existe
      */
+    @Transactional
     public List<Map<String, Object>> create(OwnerId owner, Map<String, Object> body) {
 
         // ── 1. Código: o escolhido (conferido) ou um gerado que ainda não existe.
@@ -96,9 +111,15 @@ public class CouponUseCases {
             throw new ConflictException("Já existe um cupom com esse código.");
         }
 
-        // ── 2. Grava.
+        // ── 2. Grava o cupom e relê a lista atualizada.
         coupons.create(owner, form(code, body, true));
-        return coupons.list(owner);
+        List<Map<String, Object>> all = coupons.list(owner);
+
+        // ── 3. Auditoria.
+        Map<String, Object> created = byCode(all, code);
+        audit.record(owner, Entry.of("cupom", "criou", "coupon", created == null ? code : created.get("id"), null,
+                AuditValues.pick(created, TRACKED), "Cupom criado: " + code + " (" + percentOf(created) + "%)"));
+        return all;
     }
 
     /**
@@ -110,12 +131,36 @@ public class CouponUseCases {
      * @return os cupons
      * @throws NotFoundException se o cupom não for da dona
      */
+    @Transactional
     public List<Map<String, Object>> update(OwnerId owner, long id, Map<String, Object> body) {
+
+        // ── 1. Como o cupom está agora (o "antes" do histórico).
+        Map<String, Object> was = byId(coupons.list(owner), id);
+
+        // ── 2. Grava a edição e relê a lista atualizada.
         boolean active = !(body.get("active") instanceof Boolean flag) || flag;
         if (!coupons.update(owner, id, form("", body, active))) {
             throw new NotFoundException(NOT_FOUND);
         }
-        return coupons.list(owner);
+        List<Map<String, Object>> all = coupons.list(owner);
+
+        // ── 3. Auditoria: ligar/desligar tem ação própria; mudar desconto ou mínimo é edição.
+        Map<String, Object> now = byId(all, id);
+        boolean flipped = was != null && now != null && !Objects.equals(was.get("active"), now.get("active"));
+        boolean valuesChanged = AuditValues.changed(was, now, List.of("percent", "min_total", "min_inclusive"));
+        String code = String.valueOf(now == null ? id : now.get("code"));
+        if (flipped) {
+            boolean on = Boolean.TRUE.equals(now.get("active"));
+            audit.record(owner, Entry.of("cupom", on ? "ativou" : "desativou", "coupon", id,
+                    AuditValues.pick(was, TRACKED), AuditValues.pick(now, TRACKED),
+                    "Cupom " + code + (on ? " ativado" : " desativado")));
+        }
+        if (valuesChanged) {
+            audit.record(owner, Entry.of("cupom", "editou", "coupon", id, AuditValues.pick(was, TRACKED),
+                    AuditValues.pick(now, TRACKED), "Cupom " + code + ": desconto de " + percentOf(was) + "% para "
+                            + percentOf(now) + "%"));
+        }
+        return all;
     }
 
     /**
@@ -126,12 +171,49 @@ public class CouponUseCases {
      * @return os cupons
      * @throws ConflictException se já foi usado
      */
+    @Transactional
     public List<Map<String, Object>> delete(OwnerId owner, long id) {
         if (coupons.uses(owner, id) > 0) {
             throw new ConflictException("Este cupom já foi usado em pedidos. Desative em vez de excluir.");
         }
+        Map<String, Object> was = byId(coupons.list(owner), id);
         coupons.delete(owner, id);
+        audit.record(owner, Entry.of("cupom", "excluiu", "coupon", id, AuditValues.pick(was, TRACKED), null,
+                "Cupom excluído: " + (was == null ? "#" + id : was.get("code"))));
         return coupons.list(owner);
+    }
+
+    /**
+     * O cupom pelo id.
+     *
+     * @param all cupons da dona
+     * @param id  cupom
+     * @return a linha, ou {@code null}
+     */
+    private static Map<String, Object> byId(List<Map<String, Object>> all, long id) {
+        return all.stream().filter(c -> c.get("id") instanceof Number n && n.longValue() == id).findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * O cupom pelo código.
+     *
+     * @param all  cupons da dona
+     * @param code código
+     * @return a linha, ou {@code null}
+     */
+    private static Map<String, Object> byCode(List<Map<String, Object>> all, String code) {
+        return all.stream().filter(c -> code.equals(c.get("code"))).findFirst().orElse(null);
+    }
+
+    /**
+     * A porcentagem do cupom para frases.
+     *
+     * @param coupon linha do cupom
+     * @return o número, sem zeros à direita
+     */
+    private static String percentOf(Map<String, Object> coupon) {
+        return AuditValues.num(coupon == null ? null : coupon.get("percent"));
     }
 
     /**

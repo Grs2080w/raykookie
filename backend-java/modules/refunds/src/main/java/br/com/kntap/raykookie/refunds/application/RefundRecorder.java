@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.refunds.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.orders.api.OrdersApi;
 import br.com.kntap.raykookie.orders.api.rules.Reasons;
@@ -26,17 +29,22 @@ public class RefundRecorder {
     /** Histórico. */
     private final OrdersApi history;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria o componente.
      *
      * @param orders  pedidos
      * @param refunds devoluções
      * @param history histórico
+     * @param audit   histórico de auditoria
      */
-    public RefundRecorder(RefundOrders orders, Refunds refunds, OrdersApi history) {
+    public RefundRecorder(RefundOrders orders, Refunds refunds, OrdersApi history, AuditTrail audit) {
         this.orders = orders;
         this.refunds = refunds;
         this.history = history;
+        this.audit = audit;
     }
 
     /**
@@ -65,6 +73,12 @@ public class RefundRecorder {
         data.put("amount", NodeRows.number(amount.toDecimal()));
         data.putAll(extra);
         history.logEvent(o.id(), actor, "devolucao_aprovada", data);
+
+        // ── 3. Auditoria: dinheiro que sai.
+        audit.record(o.owner(), Entry.of("financeiro", "devolveu", "shop_order", o.id(), null,
+                Map.of("refund_id", id, "amount", amount.toDecimal(), "kind", kind, "reason", reasonCode),
+                "Devolução de R$ " + AuditValues.num(amount.toDecimal()) + " do pedido #" + o.code() + " (" + kind
+                        + ")"));
         return id;
     }
 

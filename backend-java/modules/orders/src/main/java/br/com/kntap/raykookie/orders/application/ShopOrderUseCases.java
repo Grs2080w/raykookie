@@ -1,5 +1,9 @@
 package br.com.kntap.raykookie.orders.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
+import br.com.kntap.raykookie.orders.domain.CouponRules;
 import br.com.kntap.raykookie.customers.api.CustomersApi;
 import br.com.kntap.raykookie.kernel.DomainException;
 import br.com.kntap.raykookie.kernel.StoreClock;
@@ -80,6 +84,9 @@ public class ShopOrderUseCases {
     /** Cupons da loja. */
     private final Coupons coupons;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria os casos de uso.
      *
@@ -94,10 +101,12 @@ public class ShopOrderUseCases {
      * @param charges      cobrança
      * @param clock        relógio
      * @param coupons      cupons da loja
+     * @param audit        histórico de auditoria
      */
     public ShopOrderUseCases(ShopOrders shopOrders, OrderNumbers numbers, StorefrontApi storefront,
             CustomersApi customers, ShopOwner shopOwner, RateLimiter limiter, ApplicationEventPublisher events,
-            TransactionTemplate transactions, ObjectProvider<ChargeStarter> charges, Clock clock, Coupons coupons) {
+            TransactionTemplate transactions, ObjectProvider<ChargeStarter> charges, Clock clock, Coupons coupons,
+            AuditTrail audit) {
 
         // ── 1. Pedidos, cardápio e clientes.
         this.shopOrders = shopOrders;
@@ -113,6 +122,7 @@ public class ShopOrderUseCases {
         this.charges = charges;
         this.clock = clock;
         this.coupons = coupons;
+        this.audit = audit;
     }
 
     /**
@@ -178,11 +188,45 @@ public class ShopOrderUseCases {
                     form.items().get(i), form.scheduledFor(), ShopOrderNotes.notes(form, code, i == 0), where));
         }
 
-        // ── 3. Guarda telefone e endereço para o próximo pedido.
+        // ── 3. Auditoria: o pedido e, se houve, o cupom aplicado (o desconto é o do cadastro, calculado aqui).
+        auditOrder(owner, id, code, form);
+
+        // ── 4. Guarda telefone e endereço para o próximo pedido.
         shopOrders.rememberContact(customer, form);
         String email = customers.byId(customer).map(CustomersApi.CustomerSummary::email).orElse("");
         return new ChargeStarter.NewOrder(id, code, owner, customer, email, form.contactName(), form.phone(),
                 form.total(), form.items().size());
+    }
+
+    /**
+     * Grava no histórico o pedido do cliente e o cupom aplicado.
+     *
+     * @param owner dona
+     * @param id    pedido
+     * @param code  código público
+     * @param form  pedido conferido
+     */
+    private void auditOrder(OwnerId owner, long id, int code, ShopOrderForm form) {
+
+        // ── 1. O pedido: total já com desconto, subtotal e forma de pagamento.
+        Map<String, Object> after = new LinkedHashMap<>();
+        after.put("total", form.total().toDecimal());
+        after.put("subtotal", form.subtotal().toDecimal());
+        after.put("items", form.items().size());
+        after.put("payment_method", form.paymentMethod());
+        audit.record(owner, Entry.of("pedido", "criou", "shop_order", id, null, after,
+                "Pedido #" + code + " de " + form.contactName() + ": R$ " + AuditValues.num(form.total().toDecimal())
+                        + " (" + form.paymentMethod() + ")"));
+
+        // ── 2. O cupom aplicado, se houve (o desconto é o do cadastro, calculado no servidor).
+        if (form.coupon() != null && form.coupon().couponId() > 0) {
+            CouponRules.Applied coupon = form.coupon();
+            audit.record(owner, Entry.of("cupom", "aplicou", "coupon", coupon.couponId(), null,
+                    Map.of("code", coupon.code(), "percent", coupon.percent(), "discount",
+                            coupon.discount().toDecimal(), "order", id),
+                    "Cupom " + coupon.code() + " aplicado no pedido #" + code + ": desconto de R$ "
+                            + AuditValues.num(coupon.discount().toDecimal())));
+        }
     }
 
     /**

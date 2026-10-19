@@ -33,6 +33,7 @@ Future<({VendaStore venda, BiometricLock lock, FakeBackend be})> open(
   bool locked = false,
   bool logged = true,
   FakeBiometric? bio,
+  Map<String, Handler> routes = const {},
 }) async {
   useBigPhone(t);
   SharedPreferences.setMockInitialValues({
@@ -40,7 +41,7 @@ Future<({VendaStore venda, BiometricLock lock, FakeBackend be})> open(
     if (withConfig) 'venda_pix': jsonEncode(_cfg.toJson()),
   });
   final prefs = await SharedPreferences.getInstance();
-  final be = FakeBackend({}); // qualquer chamada de rede responde 404: é como estar sem internet
+  final be = FakeBackend({...routes}); // sem rota simulada a chamada responde 404: é como estar sem internet
   final store = MemoryTokenStore();
   if (logged) await store.write('owner_token', 'tok-dono');
   if (locked) await store.write('bio_on:dona', '1');
@@ -120,6 +121,56 @@ void main() {
     expect(app.venda.config?.key, '52998224725');
     expect(app.venda.config?.city, 'SAO PAULO');
     expect((await SharedPreferences.getInstance()).getString('venda_pix'), isNotNull);
+  });
+
+  testWidgets('histórico: gerar o QR guarda o evento (sem a chave) e, sem internet, a fila espera', (t) async {
+    final app = await open(t);
+    await t.tap(find.text('Cookie Red Velvet'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
+    final queued = app.venda.pendingEvents;
+    expect(queued, hasLength(1));
+    expect(queued.single['kind'], 'qr_gerado');
+    expect(queued.single['title'], 'Cookie Red Velvet');
+    expect(queued.single['amount'], 12.5);
+    expect(app.be.calls, contains('POST /api/historico/pix-presencial')); // tentou mandar e não conseguiu (404)
+    expect((await SharedPreferences.getInstance()).getString('venda_events'), isNot(contains('52998224725')));
+  });
+
+  testWidgets('histórico: com internet a fila vai ao servidor em um lote e esvazia', (t) async {
+    final sent = <Object?>[];
+    final app = await open(t, routes: {
+      'POST /api/historico/pix-presencial': (req) {
+        sent.add(jsonDecode(req.body));
+        return (200, {'ok': true, 'saved': 1});
+      },
+    });
+    await t.tap(find.text('Cookie Red Velvet'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
+    expect(app.venda.pendingEvents, isEmpty);
+    final events = (sent.single as Map)['events'] as List;
+    expect(events.single, containsPair('kind', 'qr_gerado'));
+    expect(events.single, containsPair('title', 'Cookie Red Velvet'));
+    expect(jsonEncode(sent), isNot(contains('52998224725')));
+  });
+
+  testWidgets('histórico: salvar e remover a chave guardam só o tipo dela', (t) async {
+    final app = await open(t, withConfig: false);
+    await app.venda.saveConfig(_cfg);
+    await app.venda.clearConfig();
+    final queue = app.venda.pendingEvents;
+    expect(queue.map((e) => e['kind']), ['chave_alterada', 'chave_removida']);
+    expect(queue.map((e) => e['key_kind']), ['CPF', 'CPF']);
+    expect(jsonEncode(queue), isNot(contains('52998224725')));
+  });
+
+  testWidgets('histórico: a fila guarda no máximo 200 eventos (os mais antigos saem)', (t) async {
+    final app = await open(t);
+    for (var i = 0; i < 205; i++) {
+      await app.venda.report('qr_gerado', title: 'p$i', amount: 1);
+    }
+    final queue = app.venda.pendingEvents;
+    expect(queue, hasLength(200));
+    expect(queue.first['title'], 'p5');
   });
 
   testWidgets('primeira vez sem cópia do cardápio e sem internet: explica o que fazer', (t) async {

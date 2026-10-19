@@ -34,6 +34,10 @@
         </dependency>
         <dependency>
             <groupId>br.com.kntap.raykookie</groupId>
+            <artifactId>raykookie-audit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.kntap.raykookie</groupId>
             <artifactId>raykookie-web</artifactId>
         </dependency>
         <dependency>

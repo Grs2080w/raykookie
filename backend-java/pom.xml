@@ -19,6 +19,7 @@
         <module>platform/web</module>
         <module>platform/ratelimit</module>
         <module>platform/security</module>
+        <module>platform/audit</module>
         <module>platform/observability</module>
         <module>platform/scheduling</module>
         <module>modules/identity</module>
@@ -176,6 +177,11 @@
             <dependency>
                 <groupId>br.com.kntap.raykookie</groupId>
                 <artifactId>raykookie-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.kntap.raykookie</groupId>
+                <artifactId>raykookie-audit</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

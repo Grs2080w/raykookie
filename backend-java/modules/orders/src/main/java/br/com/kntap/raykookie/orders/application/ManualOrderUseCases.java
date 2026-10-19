@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.orders.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.kernel.NotFoundException;
 import br.com.kntap.raykookie.kernel.StoreClock;
@@ -49,6 +52,16 @@ public class ManualOrderUseCases {
     /** Relógio. */
     private final Clock clock;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
+    /** Campos da linha de pedido que o histórico guarda. */
+    private static final List<String> TRACKED = List.of("number", "customer", "product", "qty", "unit_price", "status",
+            "payment", "order_date", "delivery_date");
+
+    /** Campos que mexem no dinheiro do pedido. */
+    private static final List<String> MONEY = List.of("qty", "unit_price", "payment");
+
     /**
      * Cria os casos de uso.
      *
@@ -56,12 +69,15 @@ public class ManualOrderUseCases {
      * @param numbers       numeração
      * @param statusChanges avisos de mudança de situação
      * @param clock         relógio
+     * @param audit         histórico de auditoria
      */
-    public ManualOrderUseCases(ManualOrders orders, OrderNumbers numbers, StatusChanges statusChanges, Clock clock) {
+    public ManualOrderUseCases(ManualOrders orders, OrderNumbers numbers, StatusChanges statusChanges, Clock clock,
+            AuditTrail audit) {
         this.orders = orders;
         this.numbers = numbers;
         this.statusChanges = statusChanges;
         this.clock = clock;
+        this.audit = audit;
     }
 
     /**
@@ -85,7 +101,9 @@ public class ManualOrderUseCases {
     public Map<String, Object> create(OwnerId owner, Map<String, Object> body) {
         ManualOrderForm form = ManualOrderForm.from(body, today());
         numbers.lock(owner);
-        return orders.create(owner, numbers.next(owner), form);
+        Map<String, Object> row = orders.create(owner, numbers.next(owner), form);
+        record(owner, "criou", null, row);
+        return row;
     }
 
     /**
@@ -98,6 +116,21 @@ public class ManualOrderUseCases {
      */
     @Transactional
     public Map<String, Object> update(OwnerId owner, long id, Map<String, Object> body) {
+        Map<String, Object> was = line(owner, id);
+        Map<String, Object> row = change(owner, id, body);
+        record(owner, "editou", was, row);
+        return row;
+    }
+
+    /**
+     * Aplica a edição (troca rápida ou completa).
+     *
+     * @param owner dona
+     * @param id    linha
+     * @param body  corpo JSON
+     * @return a linha atualizada
+     */
+    private Map<String, Object> change(OwnerId owner, long id, Map<String, Object> body) {
 
         // ── 1. Pedido da loja encerrado não muda mais.
         Optional<ManualOrders.AppLine> line = orders.appLine(id, owner);
@@ -184,12 +217,51 @@ public class ManualOrderUseCases {
      * @param owner dona
      * @param id    linha
      */
+    @Transactional
     public void delete(OwnerId owner, long id) {
         if (orders.appLine(id, owner).isPresent()) {
             throw new ConflictException("Pedido do app não pode ser excluído. Use \"Cancelar pedido\" se ele não vai "
                     + "acontecer.");
         }
+        Map<String, Object> was = line(owner, id);
         orders.delete(id, owner);
+        record(owner, "excluiu", was, null);
+    }
+
+    /**
+     * A linha como está agora (o "antes" do histórico).
+     *
+     * @param owner dona
+     * @param id    linha
+     * @return a linha, ou {@code null}
+     */
+    private Map<String, Object> line(OwnerId owner, long id) {
+        return orders.list(owner).stream().filter(r -> r.get("id") instanceof Number n && n.longValue() == id)
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Grava o histórico do pedido; se o dinheiro mudou (quantidade, preço, pagamento), grava também no financeiro.
+     *
+     * @param owner  dona
+     * @param action criou, editou ou excluiu
+     * @param was    a linha de antes (ou {@code null})
+     * @param now    a linha de depois (ou {@code null})
+     */
+    private void record(OwnerId owner, String action, Map<String, Object> was, Map<String, Object> now) {
+        Map<String, Object> ref = now != null ? now : was;
+        Object id = ref == null ? "?" : ref.get("id");
+        String label = "Pedido #" + (ref == null ? id : ref.get("number")) + " de "
+                + (ref == null ? "?" : ref.get("customer"));
+        audit.record(owner, Entry.of("pedido", action, "order", id, AuditValues.pick(was, TRACKED),
+                AuditValues.pick(now, TRACKED), label + ": " + action));
+        if (now != null && AuditValues.changed(was, now, MONEY)) {
+            String paid = String.valueOf(now.get("payment"));
+            String how = was == null ? "criou" : "pago".equals(paid) ? "pagou" : "editou";
+            audit.record(owner, Entry.of("financeiro", how, "order", id, AuditValues.pick(was, MONEY),
+                    AuditValues.pick(now, MONEY), label + ": " + AuditValues.num(now.get("qty")) + " x R$ "
+                            + AuditValues.num(now.get("unit_price")) + ", pagamento " + paid));
+        }
     }
 
     /**

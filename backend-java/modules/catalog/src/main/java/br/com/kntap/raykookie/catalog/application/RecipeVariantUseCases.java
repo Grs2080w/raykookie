@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.catalog.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.catalog.application.ports.Ingredients;
 import br.com.kntap.raykookie.catalog.application.ports.RecipeVariants;
 import br.com.kntap.raykookie.catalog.application.ports.Recipes;
@@ -38,17 +41,26 @@ public class RecipeVariantUseCases {
     /** Ingredientes (para conferir os itens). */
     private final Ingredients ingredients;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
+    /** Campos da versão que o histórico guarda: tudo o que muda o custo do produto. */
+    private static final List<String> TRACKED = List.of("name", "yield_units", "prep_hours", "items", "is_default");
+
     /**
      * Cria os casos de uso.
      *
      * @param recipes     receitas
      * @param variants    versões
      * @param ingredients ingredientes
+     * @param audit       histórico de auditoria
      */
-    public RecipeVariantUseCases(Recipes recipes, RecipeVariants variants, Ingredients ingredients) {
+    public RecipeVariantUseCases(Recipes recipes, RecipeVariants variants, Ingredients ingredients,
+            AuditTrail audit) {
         this.recipes = recipes;
         this.variants = variants;
         this.ingredients = ingredients;
+        this.audit = audit;
     }
 
     /**
@@ -112,7 +124,11 @@ public class RecipeVariantUseCases {
         long id = variants.create(recipeId, name.isEmpty() ? "Receita " + (count + 1) : name,
                 number(source.get("yield_units"), 1), number(source.get("prep_hours"), 0));
         copyFrom.ifPresent(from -> variants.copyItems(from, id));
-        return withDefault(recipeId);
+        List<Map<String, Object>> all = withDefault(recipeId);
+
+        // ── 4. Auditoria.
+        record(owner, "criou", recipeId, id, null, all);
+        return all;
     }
 
     /**
@@ -132,6 +148,7 @@ public class RecipeVariantUseCases {
         requireVariant(owner, recipeId, variantId);
         VariantForm form = VariantForm.from(body);
         requireIngredients(owner, form.ingredientIds());
+        Map<String, Object> was = find(withDefault(recipeId), variantId);
 
         // ── 2. Grava; a padrão é copiada para o produto.
         variants.update(variantId, form.name(), form.yieldUnits(), form.prepHours());
@@ -139,7 +156,11 @@ public class RecipeVariantUseCases {
         if (variants.defaultOf(recipeId).filter(standard -> standard == variantId).isPresent()) {
             variants.makeDefault(recipeId, variantId);
         }
-        return withDefault(recipeId);
+        List<Map<String, Object>> all = withDefault(recipeId);
+
+        // ── 3. Auditoria.
+        record(owner, "editou", recipeId, variantId, was, all);
+        return all;
     }
 
     /**
@@ -153,12 +174,21 @@ public class RecipeVariantUseCases {
      */
     @Transactional
     public List<Map<String, Object>> delete(OwnerId owner, long recipeId, long variantId) {
+
+        // ── 1. A versão é do produto da dona e não é a padrão.
         requireVariant(owner, recipeId, variantId);
         if (variants.defaultOf(recipeId).filter(standard -> standard == variantId).isPresent()) {
             throw new InvalidInputException("Esta é a receita padrão. Escolha outra como padrão antes de excluir.");
         }
+
+        // ── 2. Exclui e registra no histórico o que existia.
+        Map<String, Object> was = find(withDefault(recipeId), variantId);
         variants.delete(variantId);
-        return withDefault(recipeId);
+        List<Map<String, Object>> all = withDefault(recipeId);
+        audit.record(owner, Entry.of("receita", "excluiu", "recipe_variant", variantId, AuditValues.pick(was, TRACKED),
+                null, "Receita " + (was == null ? "#" + variantId : was.get("name")) + " excluída do produto #"
+                        + recipeId));
+        return all;
     }
 
     /**
@@ -172,8 +202,41 @@ public class RecipeVariantUseCases {
     @Transactional
     public List<Map<String, Object>> makeDefault(OwnerId owner, long recipeId, long variantId) {
         requireVariant(owner, recipeId, variantId);
+        Map<String, Object> was = find(withDefault(recipeId), variantId);
         variants.makeDefault(recipeId, variantId);
-        return withDefault(recipeId);
+        List<Map<String, Object>> all = withDefault(recipeId);
+        record(owner, "editou", recipeId, variantId, was, all);
+        return all;
+    }
+
+    /**
+     * Grava a mudança de uma versão (nome, rendimento, preparo, ingredientes ou qual é a padrão).
+     *
+     * @param owner     dona
+     * @param action    criou ou editou
+     * @param recipeId  produto
+     * @param variantId versão
+     * @param was       a versão antes (ou {@code null})
+     * @param all       as versões do produto depois da mudança
+     */
+    private void record(OwnerId owner, String action, long recipeId, long variantId, Map<String, Object> was,
+            List<Map<String, Object>> all) {
+        Map<String, Object> now = find(all, variantId);
+        audit.record(owner, Entry.of("receita", action, "recipe_variant", variantId, AuditValues.pick(was, TRACKED),
+                AuditValues.pick(now, TRACKED), "Receita " + (now == null ? "#" + variantId : now.get("name"))
+                        + " do produto #" + recipeId + ": " + action));
+    }
+
+    /**
+     * A versão pelo id.
+     *
+     * @param all       versões do produto
+     * @param variantId versão
+     * @return a linha, ou {@code null}
+     */
+    private static Map<String, Object> find(List<Map<String, Object>> all, long variantId) {
+        return all.stream().filter(v -> v.get("id") instanceof Number n && n.longValue() == variantId).findFirst()
+                .orElse(null);
     }
 
     /**

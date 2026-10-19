@@ -43,6 +43,15 @@ public class CurrentActor {
     }
 
     /**
+     * O cliente, se a requisição tiver sessão dele.
+     *
+     * @return o id do cliente, ou vazio
+     */
+    public Optional<CustomerId> customerIfAny() {
+        return attribute(CUSTOMER, CustomerId.class);
+    }
+
+    /**
      * A dona, se a requisição tiver sessão dela.
      *
      * @return o id da dona, ou vazio

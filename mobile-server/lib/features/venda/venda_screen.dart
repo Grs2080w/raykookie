@@ -25,7 +25,11 @@ class _VendaScreenState extends State<VendaScreen> {
     super.initState();
     // renova a cópia do cardápio depois do primeiro desenho; sem internet, não muda nada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<VendaStore>().refreshMenu(context.read<Session>().ownerApi);
+      if (!mounted) return;
+      final store = context.read<VendaStore>();
+      final api = context.read<Session>().ownerApi;
+      store.refreshMenu(api);
+      store.flushEvents(api); // manda ao histórico o que foi gerado sem internet
     });
   }
 
@@ -35,6 +39,9 @@ class _VendaScreenState extends State<VendaScreen> {
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PixConfigScreen()));
       return;
     }
+    final store = context.read<VendaStore>();
+    final api = context.read<Session>().ownerApi;
+    store.report('qr_gerado', title: item.name, amount: item.price).then((_) => store.flushEvents(api));
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PixQrScreen(title: item.name, amount: item.price, config: cfg)));
   }
 

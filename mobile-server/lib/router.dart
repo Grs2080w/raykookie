@@ -12,6 +12,7 @@ import 'features/admin/dashboard_screen.dart';
 import 'features/admin/engagement_screen.dart';
 import 'features/admin/feedback_screen.dart';
 import 'features/admin/goals_screen.dart';
+import 'features/admin/history_screen.dart';
 import 'features/admin/more_screen.dart';
 import 'features/admin/owner_login_screen.dart';
 import 'features/admin/receipt_screen.dart';
@@ -172,6 +173,11 @@ GoRouter buildRouter(
       parentNavigatorKey: _rootKey,
       path: '/painel/privacidade',
       builder: (_, _) => const PrivacyScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/painel/historico',
+      builder: (_, _) => const HistoryScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,

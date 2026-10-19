@@ -63,6 +63,8 @@ GET    /api/fotos/{id}                          OWNER_OR_PUBLIC
 GET    /api/goals                               OWNER
 PUT    /api/goals                               OWNER
 GET    /api/health                              PUBLIC
+GET    /api/historico                           OWNER
+POST   /api/historico/pix-presencial            OWNER
 GET    /api/ingredients                         OWNER
 POST   /api/ingredients                         OWNER
 PATCH  /api/ingredients/{id}                    OWNER

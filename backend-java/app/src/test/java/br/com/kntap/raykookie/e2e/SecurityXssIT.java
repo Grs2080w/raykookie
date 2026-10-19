@@ -57,9 +57,13 @@ class SecurityXssIT extends AppItSupport {
             for (String path : List.of("/api/legal/{p}", "/api/story/produto/{p}", "/api/fotos/{p}")) {
                 Response response = api().urlEncodingEnabled(true).get(path, payload);
                 assertThat(response.statusCode()).as("%s %s", path, payload).isBetween(400, 499);
-                assertThat(String.valueOf(response.contentType())).as("%s %s", path, payload)
-                        .doesNotContainIgnoringCase("html");
-                assertThat(response.header("Content-Security-Policy")).contains("default-src 'none'");
+                // URL com < ou > é recusada pelo Tomcat antes do Spring, com a página genérica "400 Bad Request":
+                // pode ser HTML, mas nunca devolve o que foi enviado. Nos demais casos a resposta é JSON com CSP.
+                assertThat(response.asString()).as("%s %s", path, payload).doesNotContain("alert(")
+                        .doesNotContain("<script").doesNotContain("onerror").doesNotContain("<svg");
+                if (!String.valueOf(response.contentType()).startsWith("text/html")) {
+                    assertThat(response.header("Content-Security-Policy")).contains("default-src 'none'");
+                }
             }
             Response query = api().queryParam("q", payload).get("/api/menu");
             assertThat(query.contentType()).startsWith("application/json");

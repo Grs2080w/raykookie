@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.catalog.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.catalog.api.MenuTags;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.ports.Ingredients;
@@ -32,17 +35,27 @@ public class RecipeUseCases {
     /** Versões de receita (a padrão acompanha o formulário do produto). */
     private final RecipeVariantUseCases variants;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
+    /** Campos da receita que o histórico guarda: tudo o que muda o custo, o rendimento ou o preço. */
+    static final List<String> TRACKED = List.of("name", "category_id", "yield_units", "margin_pct", "prep_hours",
+            "unit_weight_g", "sale_price", "items");
+
     /**
      * Cria os casos de uso.
      *
      * @param recipes     receitas
      * @param ingredients ingredientes
      * @param variants    versões de receita
+     * @param audit       histórico de auditoria
      */
-    public RecipeUseCases(Recipes recipes, Ingredients ingredients, RecipeVariantUseCases variants) {
+    public RecipeUseCases(Recipes recipes, Ingredients ingredients, RecipeVariantUseCases variants,
+            AuditTrail audit) {
         this.recipes = recipes;
         this.ingredients = ingredients;
         this.variants = variants;
+        this.audit = audit;
     }
 
     /**
@@ -82,6 +95,7 @@ public class RecipeUseCases {
         }
 
         // ── 2. Grava a receita e troca os itens.
+        Map<String, Object> was = id == null ? null : current(owner, id);
         Map<String, Object> row = id == null
                 ? recipes.create(owner, form)
                 : recipes.update(owner, id, form).orElseThrow(() -> new NotFoundException(NOT_FOUND));
@@ -90,7 +104,33 @@ public class RecipeUseCases {
 
         // ── 3. A versão padrão acompanha o que foi salvo (sem versão ainda, nasce a "Receita 1").
         variants.syncDefault(recipeId, form);
+
+        // ── 4. Auditoria: a receita, e à parte o preço de venda quando ele mudou.
+        Map<String, Object> now = current(owner, recipeId);
+        audit.record(owner, Entry.of("receita", id == null ? "criou" : "editou", "recipe", recipeId,
+                AuditValues.pick(was, TRACKED), AuditValues.pick(now, TRACKED),
+                (id == null ? "Receita criada: " : "Receita editada: ") + row.get("name")));
+        if (now != null && (was == null ? now.get("sale_price") != null
+                : !AuditValues.same(was.get("sale_price"), now.get("sale_price")))) {
+            audit.record(owner, Entry.of("preco", "editou", "recipe", recipeId,
+                    AuditValues.pick(was, List.of("sale_price")), AuditValues.pick(now, List.of("sale_price")),
+                    "Preço de venda de " + row.get("name") + ": "
+                            + (was == null ? "sem preço" : AuditValues.brl(was.get("sale_price"))) + " para "
+                            + AuditValues.brl(now.get("sale_price"))));
+        }
         return row;
+    }
+
+    /**
+     * A receita como está agora, com os itens (para o "antes" e o "depois" do histórico).
+     *
+     * @param owner dona
+     * @param id    receita
+     * @return a linha, ou {@code null} se não for da dona
+     */
+    private Map<String, Object> current(OwnerId owner, long id) {
+        return recipes.list(owner).stream().filter(r -> ((Number) r.get("id")).longValue() == id).findFirst()
+                .orElse(null);
     }
 
     /**
@@ -99,8 +139,12 @@ public class RecipeUseCases {
      * @param owner dona
      * @param id    receita
      */
+    @Transactional
     public void delete(OwnerId owner, long id) {
+        Map<String, Object> was = current(owner, id);
         recipes.delete(owner, id);
+        audit.record(owner, Entry.of("receita", "excluiu", "recipe", id, AuditValues.pick(was, TRACKED), null,
+                "Receita excluída: " + (was == null ? "#" + id : was.get("name"))));
     }
 
     /**
@@ -141,14 +185,25 @@ public class RecipeUseCases {
      * @throws InvalidInputException sem nada para mudar
      * @throws NotFoundException     se a receita não for da dona
      */
+    @Transactional
     public Map<String, Object> updateMenuFlags(OwnerId owner, long id, Map<String, Object> body) {
+
+        // ── 1. Lê o que veio no corpo e recusa pedido sem nada para mudar.
         Boolean showOnMenu = body.get("show_on_menu") instanceof Boolean flag ? flag : null;
         Boolean showIngredients = body.get("show_ingredients") instanceof Boolean flag ? flag : null;
         List<String> tags = body.containsKey("tags") ? MenuTags.clean(body.get("tags")) : null;
         if (showOnMenu == null && tags == null && showIngredients == null) {
             throw new InvalidInputException("Nada para atualizar.");
         }
-        return recipes.updateMenuFlags(owner, id, showOnMenu, tags, showIngredients)
+
+        // ── 2. Grava e registra o antes e o depois no histórico.
+        List<String> flags = List.of("show_on_menu", "show_ingredients", "tags");
+        Map<String, Object> was = current(owner, id);
+        Map<String, Object> row = recipes.updateMenuFlags(owner, id, showOnMenu, tags, showIngredients)
                 .orElseThrow(() -> new NotFoundException(NOT_FOUND));
+        audit.record(owner, Entry.of("cardapio", "editou", "recipe", id, AuditValues.pick(was, flags),
+                AuditValues.pick(current(owner, id), flags), "Cardápio: ajuste de " + row.get("name")
+                        + (showOnMenu == null ? "" : showOnMenu ? " (passou a aparecer)" : " (saiu do cardápio)")));
+        return row;
     }
 }
