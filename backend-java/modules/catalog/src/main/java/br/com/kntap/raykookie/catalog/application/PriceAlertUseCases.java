@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.catalog.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.catalog.application.ports.PriceAlerts;
 import br.com.kntap.raykookie.catalog.application.ports.Recipes;
 import br.com.kntap.raykookie.kernel.NotFoundException;
@@ -22,15 +25,20 @@ public class PriceAlertUseCases {
     /** Receitas. */
     private final Recipes recipes;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria os casos de uso.
      *
      * @param alerts  alertas
      * @param recipes receitas
+     * @param audit   histórico de auditoria
      */
-    public PriceAlertUseCases(PriceAlerts alerts, Recipes recipes) {
+    public PriceAlertUseCases(PriceAlerts alerts, Recipes recipes, AuditTrail audit) {
         this.alerts = alerts;
         this.recipes = recipes;
+        this.audit = audit;
     }
 
     /**
@@ -66,8 +74,15 @@ public class PriceAlertUseCases {
         PriceAlerts.Suggestion suggestion = alerts.suggestion(owner, id)
                 .filter(found -> found.suggested() != null && found.suggested() > 0)
                 .orElseThrow(() -> new NotFoundException("Alerta não encontrado."));
+        Map<String, Object> was = recipes.list(owner).stream()
+                .filter(r -> r.get("id") instanceof Number n && n.longValue() == suggestion.recipeId()).findFirst()
+                .orElse(Map.of());
         recipes.setSalePrice(owner, suggestion.recipeId(), suggestion.suggested());
         alerts.markRead(owner, id);
+        audit.record(owner, Entry.of("preco", "aplicou", "recipe", suggestion.recipeId(),
+                AuditValues.pick(was, List.of("sale_price")), Map.of("sale_price", suggestion.suggested()),
+                "Preço sugerido aplicado em " + was.getOrDefault("name", "#" + suggestion.recipeId()) + ": "
+                        + AuditValues.brl(was.get("sale_price")) + " para " + AuditValues.brl(suggestion.suggested())));
         return Map.of("ok", true, "sale_price", NodeRows.number(suggestion.suggested()));
     }
 }

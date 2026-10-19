@@ -297,3 +297,10 @@ O site e o app dos clientes enviam eventos anônimos; a confeiteira lê os núme
 As rotas de leitura são só da dona e aceitam `from`, `to` (`AAAA-MM-DD`; padrão: últimos 30 dias; máximo 400 dias) e `platform` (opcional). O agregado é refeito a cada 5 minutos.
 
 Eventos (lista fechada): `screen_view` (`route`, `detail` = origem: `direct`, `instagram`, `whatsapp`, `search`, `other`), `menu_item_view`/`menu_item_click` (`item_id` = id da receita ou `combo-<id>`, `detail` = `landing`/`cardapio`/`home_app`), `cart_add`/`cart_remove` (`item_id`, `qty` 1 a 99), `checkout_step` (`detail`: `items`, `data`, `delivery`, `payment`, `extras`), `payment_method_select` e `order_placed` (`detail`: `pix`, `cartao`, `dinheiro`), `coupon_attempt` (`ok`, `invalid`, `min_total`, `inactive`, `used_up`; nunca o código), `checkout_submit` (`ok`, `validation`, `card_refused`, `network`, `other`), `card_3ds` (`authenticated`, `closed`, `failed`).
+
+## Histórico de auditoria (só a dona)
+
+Veja `docs/SEGURANCA.md`. Só leitura e só da dona; não existe rota para editar ou apagar o histórico.
+
+- `GET /api/historico` — `page` (1…), `per_page` (até 100; padrão 30), `from` e `to` (ISO-8601), `category`, `action`, `user` (parte do nome ou id) e `q` (busca livre). Responde `{ items, total, page, per_page, filters: { categories, actions, users } }`; cada item tem `id`, `occurred_at`, `user_id`, `user_name`, `role`, `action`, `category`, `location`, `route`, `record_type`, `record_id`, `old_value`, `new_value`, `ip` e `details`. Data inválida: 400.
+- `POST /api/historico/pix-presencial` — o app de gestão manda a fila de eventos da Venda Presencial quando volta a ter internet: `{ "events": [{ "kind": "qr_gerado", "title": "…", "amount": 12.5, "at": "…" }, { "kind": "chave_alterada", "key_kind": "CPF" }] }` (1 a 50 por chamada; `kind`: `qr_gerado`, `chave_alterada`, `chave_removida`). A chave Pix nunca é enviada. Valor negativo, zero ou acima de 999.999,99 e tipo desconhecido: 400 e nada é gravado.

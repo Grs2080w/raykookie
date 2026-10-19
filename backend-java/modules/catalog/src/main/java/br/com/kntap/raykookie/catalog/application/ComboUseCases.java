@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.catalog.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.catalog.api.MenuCombo;
 import br.com.kntap.raykookie.catalog.api.PricedRecipe;
 import br.com.kntap.raykookie.catalog.application.ports.Combos;
@@ -43,17 +46,25 @@ public class ComboUseCases {
     /** Ajustes (margem mínima). */
     private final OwnerSettings settings;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
+    /** Campos do combo que o histórico guarda. */
+    private static final List<String> TRACKED = List.of("name", "price", "show_on_menu", "items");
+
     /**
      * Cria os casos de uso.
      *
      * @param combos   combos
      * @param pricing  receitas precificadas
      * @param settings ajustes da dona
+     * @param audit    histórico de auditoria
      */
-    public ComboUseCases(Combos combos, RecipePricing pricing, OwnerSettings settings) {
+    public ComboUseCases(Combos combos, RecipePricing pricing, OwnerSettings settings, AuditTrail audit) {
         this.combos = combos;
         this.pricing = pricing;
         this.settings = settings;
+        this.audit = audit;
     }
 
     /**
@@ -104,13 +115,38 @@ public class ComboUseCases {
             throw new InvalidInputException("Algum produto do combo não foi encontrado nas suas receitas.");
         }
 
-        // ── 2. Grava.
-        if (id == null) {
-            combos.create(owner, form);
-        } else if (!combos.update(owner, id, form)) {
+        // ── 2. Grava o combo e relê a página já atualizada.
+        Map<String, Object> was = id == null ? null : comboRow(page(owner), id);
+        long saved = id == null ? combos.create(owner, form) : id;
+        if (id != null && !combos.update(owner, id, form)) {
             throw new NotFoundException(NOT_FOUND);
         }
-        return page(owner);
+        Map<String, Object> page = page(owner);
+
+        // ── 3. Auditoria: o preço do combo é o que o cliente paga.
+        Map<String, Object> now = comboRow(page, saved);
+        audit.record(owner, Entry.of("cardapio", id == null ? "criou" : "editou", "combo", saved,
+                AuditValues.pick(was, TRACKED), AuditValues.pick(now, TRACKED),
+                (id == null ? "Combo criado: " : "Combo editado: ") + (now == null ? "#" + saved : now.get("name"))
+                        + " (R$ " + AuditValues.num(now == null ? null : now.get("price")) + ")"));
+        return page;
+    }
+
+    /**
+     * O combo na página (calculada) pelo id.
+     *
+     * @param page página do cardápio
+     * @param id   combo
+     * @return a linha, ou {@code null}
+     */
+    private static Map<String, Object> comboRow(Map<String, Object> page, long id) {
+        return page.get("combos") instanceof List<?> list ? list.stream()
+                .filter(c -> c instanceof Map<?, ?> m && m.get("id") instanceof Number n && n.longValue() == id)
+                .map(c -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> row = (Map<String, Object>) c;
+                    return row;
+                }).findFirst().orElse(null) : null;
     }
 
     /**
@@ -120,8 +156,12 @@ public class ComboUseCases {
      * @param id    combo
      * @return a página atualizada
      */
+    @Transactional
     public Map<String, Object> delete(OwnerId owner, long id) {
+        Map<String, Object> was = comboRow(page(owner), id);
         combos.delete(owner, id);
+        audit.record(owner, Entry.of("cardapio", "excluiu", "combo", id, AuditValues.pick(was, TRACKED), null,
+                "Combo excluído: " + (was == null ? "#" + id : was.get("name"))));
         return page(owner);
     }
 
@@ -133,12 +173,17 @@ public class ComboUseCases {
      * @return a página atualizada
      * @throws InvalidInputException fora da faixa
      */
+    @Transactional
     public Map<String, Object> setDiscount(OwnerId owner, Map<String, Object> body) {
         double pct = NodeInput.number(body.get("discount_pct"), -1);
         if (pct < 0 || pct > MAX_DISCOUNT) {
             throw new InvalidInputException("O desconto sugerido dos combos vai de 0% a 90%.");
         }
+        double was = combos.discountPct(owner);
         combos.setDiscountPct(owner, pct);
+        audit.record(owner, Entry.of("preco", "editou", "combo_settings", owner.value(),
+                Map.of("discount_pct", was), Map.of("discount_pct", pct),
+                "Desconto sugerido dos combos: " + AuditValues.num(was) + "% para " + AuditValues.num(pct) + "%"));
         return page(owner);
     }
 

@@ -1,11 +1,14 @@
 package br.com.kntap.raykookie.orders.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
 import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.kernel.DomainException;
 import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.kernel.Money;
 import br.com.kntap.raykookie.kernel.NotFoundException;
 import br.com.kntap.raykookie.kernel.ids.CustomerId;
+import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
 import br.com.kntap.raykookie.orders.api.ports.PaidOrderCanceller;
 import br.com.kntap.raykookie.orders.api.ports.PendingChargeCanceller;
@@ -67,6 +70,9 @@ public class CustomerCancelUseCase {
     /** Pedido pago (módulo de devoluções). */
     private final ObjectProvider<PaidOrderCanceller> paid;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria o caso de uso.
      *
@@ -76,16 +82,22 @@ public class CustomerCancelUseCase {
      * @param transactions transações
      * @param pending      Pix pendente
      * @param paid         pedido pago
+     * @param audit        histórico de auditoria
      */
     public CustomerCancelUseCase(ShopOrders shopOrders, OrderEvents orderEvents, ApplicationEventPublisher events,
             TransactionTemplate transactions, ObjectProvider<PendingChargeCanceller> pending,
-            ObjectProvider<PaidOrderCanceller> paid) {
+            ObjectProvider<PaidOrderCanceller> paid, AuditTrail audit) {
+
+        // ── 1. Pedidos, histórico, avisos e transações.
         this.shopOrders = shopOrders;
         this.orderEvents = orderEvents;
         this.events = events;
         this.transactions = transactions;
+
+        // ── 2. Cobranças pendentes, pedidos pagos e auditoria.
         this.pending = pending;
         this.paid = paid;
+        this.audit = audit;
     }
 
     /**
@@ -114,7 +126,7 @@ public class CustomerCancelUseCase {
         }
 
         // ── 3. Não pago: cancela os itens ainda novos, sob trava.
-        String state = transactions.execute(status -> cancelUnpaid(orderId, code, note));
+        String state = transactions.execute(status -> cancelUnpaid(target.owner(), orderId, code, note));
         if ("paid".equals(state)) {
             return refundAndCancel(target, customer, code, note);
         }
@@ -172,12 +184,13 @@ public class CustomerCancelUseCase {
     /**
      * Cancela, na transação, se nenhum item entrou em produção.
      *
+     * @param owner   dona da loja
      * @param orderId pedido
      * @param code    motivo
      * @param note    texto do cliente
      * @return {@code cancelled}, {@code already}, {@code started} ou {@code paid} (pago no meio do caminho)
      */
-    private String cancelUnpaid(long orderId, String code, String note) {
+    private String cancelUnpaid(OwnerId owner, long orderId, String code, String note) {
 
         // ── 1. Trava o pedido e os itens (a confirmação de pagamento trava na mesma ordem); pago agora: devolução.
         if (shopOrders.lockPaid(orderId)) {
@@ -199,6 +212,10 @@ public class CustomerCancelUseCase {
         data.put("note", note);
         data.put("paid", false);
         orderEvents.log(orderId, "cliente", "cancelado", data);
+        audit.record(owner, Entry.of("pedido", "cancelou", "shop_order", orderId,
+                Map.of("cancelled", false, "paid", false),
+                Map.of("cancelled", true, "by", "cliente", "reason", Reasons.label(code), "note", note),
+                "Pedido #" + orderId + " cancelado pelo cliente: " + Reasons.label(code)));
         return "cancelled";
     }
 

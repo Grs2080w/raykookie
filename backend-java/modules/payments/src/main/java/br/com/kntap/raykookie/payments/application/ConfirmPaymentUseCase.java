@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.payments.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.kernel.NotFoundException;
 import br.com.kntap.raykookie.notifications.api.events.CustomerNotice;
 import br.com.kntap.raykookie.notifications.api.events.OwnerNotice;
@@ -49,6 +52,9 @@ public class ConfirmPaymentUseCase {
     /** Alertas de operação. */
     private final OpsAlert alert;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria o caso de uso com as portas de que ele precisa.
      *
@@ -58,15 +64,21 @@ public class ConfirmPaymentUseCase {
      * @param gateway   gateway de pagamento
      * @param events    publica os avisos de pagamento
      * @param alert     alertas de operação
+     * @param audit     histórico de auditoria
      */
     public ConfirmPaymentUseCase(ShopOrderLocking orders, OrdersApi ordersApi, ObjectProvider<RefundRequester> refunds,
-            PaymentGateway gateway, ApplicationEventPublisher events, OpsAlert alert) {
+            PaymentGateway gateway, ApplicationEventPublisher events, OpsAlert alert, AuditTrail audit) {
+
+        // ── 1. Pedidos, histórico, devoluções e gateway.
         this.orders = orders;
         this.ordersApi = ordersApi;
         this.refunds = refunds;
         this.gateway = gateway;
+
+        // ── 2. Avisos, alertas de operação e auditoria.
         this.events = events;
         this.alert = alert;
+        this.audit = audit;
     }
 
     /**
@@ -109,7 +121,7 @@ public class ConfirmPaymentUseCase {
 
         // ── 5. Marca como pago e registra o evento na mesma transação.
         orders.markPaid(orderId, payment.id(), installments);
-        ordersApi.logEvent(orderId, "mercadopago", "pago", paidEvent(payment, installments, via));
+        auditPaid(order, payment, via, paidEvent(payment, installments, via));
 
         // ── 6. Pedido já cancelado: aceita o dinheiro só para devolvê-lo inteiro.
         if (order.cancelled()) {
@@ -118,6 +130,23 @@ public class ConfirmPaymentUseCase {
         }
         notifyPaid(order);
         return ConfirmationOutcome.PAID_NOW;
+    }
+
+    /**
+     * Registra que o pedido foi pago: o evento do pedido e o histórico de auditoria (dinheiro que entra).
+     *
+     * @param order   pedido
+     * @param payment pagamento aprovado
+     * @param via     {@code pix}, {@code cartao} ou {@code conciliacao}
+     * @param event   dados do evento "pago"
+     */
+    private void auditPaid(ShopOrderLocking.PayableOrder order, GatewayPayment payment, String via,
+            Map<String, Object> event) {
+        ordersApi.logEvent(order.id(), "mercadopago", "pago", event);
+        audit.record(order.owner(), Entry.of("financeiro", "pagou", "shop_order", order.id(), Map.of("paid", false),
+                Map.of("paid", true, "payment_id", String.valueOf(payment.id()), "via", String.valueOf(via),
+                        "total", order.total().toDecimal()),
+                "Pedido #" + order.code() + " pago por " + via + ": R$ " + AuditValues.num(order.total().toDecimal())));
     }
 
     /**

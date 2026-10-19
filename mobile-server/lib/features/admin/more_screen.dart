@@ -174,6 +174,12 @@ class MoreScreen extends StatelessWidget {
           () => context.push('/painel/privacidade'),
         ),
         tile(
+          Icons.history_rounded,
+          'Histórico',
+          'Quem mudou estoque, receitas, preços e cupons',
+          () => context.push('/painel/historico'),
+        ),
+        tile(
           Icons.settings_outlined,
           'Custos e ajustes',
           'Valor da hora e gastos do mês',

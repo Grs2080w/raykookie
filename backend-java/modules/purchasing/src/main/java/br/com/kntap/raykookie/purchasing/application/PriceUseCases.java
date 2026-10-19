@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.purchasing.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.catalog.api.CatalogApi;
 import br.com.kntap.raykookie.catalog.api.PriceChange;
 import br.com.kntap.raykookie.kernel.ConflictException;
@@ -17,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Cotações dos ingredientes: manual, produto de site ligado, comparação por kg e "usar este preço"
@@ -40,17 +44,22 @@ public class PriceUseCases {
     /** Catálogo (histórico e alertas de margem). */
     private final CatalogApi catalog;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria os casos de uso.
      *
      * @param prices    cotações e preços
      * @param suppliers fornecedores
      * @param catalog   catálogo
+     * @param audit     histórico de auditoria
      */
-    public PriceUseCases(PriceBook prices, Suppliers suppliers, CatalogApi catalog) {
+    public PriceUseCases(PriceBook prices, Suppliers suppliers, CatalogApi catalog, AuditTrail audit) {
         this.prices = prices;
         this.suppliers = suppliers;
         this.catalog = catalog;
+        this.audit = audit;
     }
 
     /**
@@ -194,6 +203,7 @@ public class PriceUseCases {
      * @throws NotFoundException se a cotação ou o ingrediente não forem da dona
      * @throws ConflictException se a cotação estiver em outra unidade
      */
+    @Transactional
     public Map<String, Object> useQuote(OwnerId owner, long ingredient, Map<String, Object> body) {
 
         // ── 1. A cotação e o ingrediente, na mesma unidade.
@@ -210,6 +220,13 @@ public class PriceUseCases {
 
         // ── 2. Troca o preço e registra a mudança (histórico e alertas).
         prices.setIngredientPrice(ingredient, quote.price(), quote.size());
+        audit.record(owner, Entry.of("preco", "aplicou", "ingredient", ingredient,
+                Map.of("package_cost", current.cost(), "package_size", current.size()),
+                Map.of("package_cost", quote.price(), "package_size", quote.size()),
+                "Preço de " + current.name() + " trocado pela cotação: R$ " + AuditValues.num(current.cost())
+                        + " por " + AuditValues.num(current.size()) + " " + current.unit() + " para R$ "
+                        + AuditValues.num(quote.price()) + " por " + AuditValues.num(quote.size()) + " "
+                        + current.unit()));
         int alerts = catalog.priceChanged(new PriceChange(owner, ingredient,
                 new PriceChange.PriceState(current.cost(), current.size()),
                 new PriceChange.PriceState(quote.price(), quote.size()), "manual", quote.supplierId()));

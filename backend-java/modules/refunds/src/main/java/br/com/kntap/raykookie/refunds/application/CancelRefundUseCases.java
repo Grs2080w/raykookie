@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.refunds.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.kernel.ConflictException;
 import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.kernel.Money;
@@ -62,6 +65,9 @@ public class CancelRefundUseCases implements PaidOrderCanceller, RefundRequester
     /** Transações. */
     private final TransactionTemplate transactions;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria os casos de uso.
      *
@@ -73,10 +79,11 @@ public class CancelRefundUseCases implements PaidOrderCanceller, RefundRequester
      * @param history        histórico
      * @param events         avisos
      * @param transactions   transações
+     * @param audit          histórico de auditoria
      */
     public CancelRefundUseCases(RefundOrders orders, RefundRecorder recorder, RefundSender sender,
             RefundReconciliation reconciliation, PaymentsApi payments, OrdersApi history,
-            ApplicationEventPublisher events, TransactionTemplate transactions) {
+            ApplicationEventPublisher events, TransactionTemplate transactions, AuditTrail audit) {
 
         // ── 1. Dados e passos.
         this.orders = orders;
@@ -89,6 +96,7 @@ public class CancelRefundUseCases implements PaidOrderCanceller, RefundRequester
         this.history = history;
         this.events = events;
         this.transactions = transactions;
+        this.audit = audit;
     }
 
     /** {@inheritDoc} */
@@ -181,6 +189,10 @@ public class CancelRefundUseCases implements PaidOrderCanceller, RefundRequester
         data.put("note", note);
         data.put("paid", o.paid());
         history.logEvent(orderId, who.actor(), "cancelado", data);
+        audit.record(o.owner(), Entry.of("pedido", "cancelou", "shop_order", orderId,
+                Map.of("cancelled", false, "paid", o.paid()), Map.of("cancelled", true, "by", who.actor(),
+                        "reason", label, "note", note),
+                "Pedido #" + o.code() + " cancelado por " + who.actor() + ": " + label));
 
         // ── 3. Pago: devolve o que resta.
         Money amount = o.paid() ? o.left() : Money.ZERO;

@@ -1,5 +1,8 @@
 package br.com.kntap.raykookie.purchasing.application;
 
+import br.com.kntap.raykookie.audit.AuditTrail;
+import br.com.kntap.raykookie.audit.AuditTrail.Entry;
+import br.com.kntap.raykookie.audit.AuditValues;
 import br.com.kntap.raykookie.catalog.api.CatalogApi;
 import br.com.kntap.raykookie.catalog.api.IngredientForm;
 import br.com.kntap.raykookie.catalog.api.PriceChange.PriceState;
@@ -35,15 +38,20 @@ public class ReceiptImporter {
     /** Catálogo (cadastro de ingredientes). */
     private final CatalogApi catalog;
 
+    /** Histórico de auditoria. */
+    private final AuditTrail audit;
+
     /**
      * Cria o serviço.
      *
      * @param receipts notas e estoque
      * @param catalog  catálogo
+     * @param audit    histórico de auditoria
      */
-    public ReceiptImporter(Receipts receipts, CatalogApi catalog) {
+    public ReceiptImporter(Receipts receipts, CatalogApi catalog, AuditTrail audit) {
         this.receipts = receipts;
         this.catalog = catalog;
+        this.audit = audit;
     }
 
     /**
@@ -76,7 +84,7 @@ public class ReceiptImporter {
             Map<?, ?> item = raw instanceof Map<?, ?> map ? map : Map.of();
             Object action = item.get("action");
             if ("add".equals(action)) {
-                add(owner, item).ifPresent(changes::add);
+                add(owner, item, store).ifPresent(changes::add);
                 added++;
             } else if ("create".equals(action)) {
                 create(owner, item, store);
@@ -96,9 +104,10 @@ public class ReceiptImporter {
      *
      * @param owner dona
      * @param item  item da nota
+     * @param store loja da nota
      * @return a mudança de preço, se o ingrediente tinha preço antes
      */
-    private Optional<Change> add(OwnerId owner, Map<?, ?> item) {
+    private Optional<Change> add(OwnerId owner, Map<?, ?> item, String store) {
 
         // ── 1. Quantidade e custo.
         double qty = NodeInput.number(item.get("add_qty"));
@@ -118,6 +127,19 @@ public class ReceiptImporter {
         if (!alias.isEmpty()) {
             receipts.remember(owner, alias, id);
         }
+
+        // ── 4. Auditoria: a entrada no estoque e, se o custo mudou, o preço.
+        String name = NodeInput.text(item.get("item_name"));
+        audit.record(owner, Entry.of("estoque", "importou", "ingredient", id,
+                before.map(old -> Map.<String, Object>of("package_cost", old.cost(), "package_size", old.size()))
+                        .orElse(null), Map.<String, Object>of("added_qty", qty, "package_cost", after.cost(),
+                                "package_size", after.size(), "store", store),
+                "Entrada por nota fiscal (" + store + "): +" + AuditValues.num(qty) + " de " + name));
+        before.filter(old -> !old.equals(after)).ifPresent(old -> audit.record(owner, Entry.of("preco", "importou",
+                "ingredient", id, Map.of("package_cost", old.cost(), "package_size", old.size()),
+                Map.of("package_cost", after.cost(), "package_size", after.size()), "Preço de " + name
+                        + " pela nota fiscal: R$ " + AuditValues.num(old.cost()) + " para R$ "
+                        + AuditValues.num(after.cost()))));
         return before.map(old -> new Change(id, old, after));
     }
 
@@ -129,12 +151,19 @@ public class ReceiptImporter {
      * @param store loja (vira o fornecedor)
      */
     private void create(OwnerId owner, Map<?, ?> item, String store) {
+
+        // ── 1. Monta o formulário do ingrediente com os dados da nota.
         Map<String, Object> form = new HashMap<>();
         item.forEach((name, value) -> form.put(String.valueOf(name), value));
         form.put("min_stock", 0);
         form.put("supplier", store);
         form.put("notes", "Criado pela leitura de nota fiscal.");
-        catalog.createIngredient(owner, IngredientForm.from(form));
+
+        // ── 2. Cria o ingrediente e registra a entrada no histórico.
+        Map<String, Object> row = catalog.createIngredient(owner, IngredientForm.from(form));
+        audit.record(owner, Entry.of("estoque", "importou", "ingredient", row.get("id"), null,
+                Map.of("name", String.valueOf(row.get("name")), "stock_qty", String.valueOf(row.get("stock_qty")),
+                        "store", store), "Ingrediente criado pela nota fiscal (" + store + "): " + row.get("name")));
     }
 
     /**
