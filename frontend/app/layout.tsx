@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: { default: 'Raykookie', template: '%s · Raykookie' },
   applicationName: 'Raykookie',
+  keywords: ['confeitaria', 'cookies', 'brownies', 'tortas', 'bolos', 'doces artesanais', 'encomenda de doces', 'Raykookie'],
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
   description: 'Raykookie: confeitaria feita à mão. Veja o cardápio, faça sua encomenda, pague por Pix e acompanhe o pedido pelo site ou pelo app.',
   // Verificação de propriedade do Search Console (meta google-site-verification); não remover.
   verification: { google: process.env.GOOGLE_SITE_VERIFICATION || 'qaZ6jlbTIo0CCHVKSn79lRtvJAp3FSKXAbRciSaS0_0' },

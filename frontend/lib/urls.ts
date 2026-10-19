@@ -2,8 +2,12 @@
 // Para mudar um endereço: edite o arquivo e faça um novo deploy.
 import urls from '../../config/urls.json';
 
-/** Endereço público do site e do cliente (sem barra no fim). */
-export const SITE_URL = (process.env.SITE_URL || urls.SITE_URL).replace(/\/$/, '');
+/**
+ * Endereço público do site e do cliente (sem barra no fim). Em produção vale sempre o config/urls.json: um SITE_URL esquecido
+ * no painel da hospedagem (já apontou para o domínio antigo) fazia o robots.txt, o sitemap e o canonical saírem com o endereço errado.
+ * Fora de produção a variável ainda vale, para testar com localhost.
+ */
+export const SITE_URL = ((process.env.NODE_ENV === 'production' ? '' : process.env.SITE_URL) || urls.SITE_URL).replace(/\/$/, '');
 
 /** Host que serve só o painel de gestão. */
 export const GESTAO_HOST = (process.env.GESTAO_HOST || urls.GESTAO_HOST).toLowerCase();
