@@ -118,6 +118,11 @@ jobs:
           java-version: "25"
           cache: maven
           cache-dependency-path: backend-java/**/pom.xml
+      # O mvnw baixa o Maven com wget, sem retentativa: uma falha de rede derrubava o CD inteiro (PR #71)
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/wrapper
+          key: mvnw-${{ hashFiles('backend-java/.mvn/wrapper/maven-wrapper.properties') }}
       # Testcontainers usa o Docker do runner
       - name: Verify (testes + Checkstyle + arquitetura + cobertura)
         run: backend-java/mvnw -B -f backend-java/pom.xml verify

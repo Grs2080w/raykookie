@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyPairGenerator;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Base64;
@@ -70,6 +71,9 @@ abstract class AppItSupport extends PostgresTestBase {
             + "216992f0b9009b3af7a1ae842f0b167c45e4c876e89b9ebea0aae61d62c690a4"
             + "2dea16df88ba4d801cf641c80e33edeacb7d65df1e739162cb307c6536e905ff";
 
+    /** Folga mínima até a próxima fronteira de janela para um teste começar (o mais longo leva alguns segundos). */
+    static final Duration SAFE_WINDOW_MARGIN = Duration.ofSeconds(30);
+
     /** CPF válido de teste. */
     static final String CPF = "529.982.247-25";
 
@@ -112,6 +116,25 @@ abstract class AppItSupport extends PostgresTestBase {
         registry.add("rayka.fcm.base-url", FIREBASE::baseUrl);
         registry.add("rayka.firebase-service-account-path", SERVICE_ACCOUNT::toString);
         registry.add("rayka.downloads-dir", DOWNLOADS::toString);
+    }
+
+    /**
+     * Passa da fronteira da janela fixa dos limites quando ela está logo adiante. Todas as janelas ({@code
+     * RateLimits}: 10 minutos, 1 hora, 24 horas) são alinhadas à época Unix, então toda fronteira é também fronteira
+     * de 10 minutos. Sem isto, um teste que conta tentativas ({@code AbuseIT.forgedForwardedFor}) vê o contador
+     * zerar no meio e leva 200 onde esperava 429, uma vez a cada ~10 minutos de relógio.
+     */
+    @BeforeEach
+    void awaitSafeRateLimitWindow() throws InterruptedException {
+
+        // ── 1. Quanto falta para a próxima fronteira de 10 minutos.
+        long window = Duration.ofMinutes(10).toMillis();
+        long untilBoundary = window - Math.floorMod(System.currentTimeMillis(), window);
+
+        // ── 2. Perto demais: espera a fronteira passar, com uma folga, e o teste começa numa janela inteira.
+        if (untilBoundary < SAFE_WINDOW_MARGIN.toMillis()) {
+            Thread.sleep(untilBoundary + 1_000);
+        }
     }
 
     /**
