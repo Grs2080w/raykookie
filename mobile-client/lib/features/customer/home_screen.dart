@@ -22,6 +22,7 @@ import 'package:raykookie_common/ui/widgets.dart';
 import 'brand.dart';
 import 'feedback_card.dart';
 import 'menu_view.dart';
+import 'site_qr_screen.dart';
 
 // Cores das seções escuras (chocolate): texto e rosa legíveis sobre o fundo; iguais às do site.
 const _onDark = Color(0xFFFBF3EA);
@@ -117,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            floatingActionButton: const SiteQrButton(),
             // a barra ocupa espaço de verdade (não flutua sobre o conteúdo): o fim da página nunca fica escondido
             bottomNavigationBar: AnimatedSize(
               duration: const Duration(milliseconds: 280),
