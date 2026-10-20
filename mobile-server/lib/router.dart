@@ -21,6 +21,7 @@ import 'features/admin/recipes_screen.dart';
 import 'features/admin/sound_screen.dart';
 import 'features/admin/pickup_screen.dart';
 import 'features/admin/privacy_screen.dart';
+import 'features/admin/prospection_screen.dart';
 import 'features/admin/suppliers_screen.dart';
 import 'features/admin/refunds_screen.dart';
 import 'features/admin/stock_screen.dart';
@@ -183,6 +184,11 @@ GoRouter buildRouter(
       parentNavigatorKey: _rootKey,
       path: vendaRoute,
       builder: (_, _) => const VendaScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/painel/prospeccao',
+      builder: (_, _) => const ProspectionScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,

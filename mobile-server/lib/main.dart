@@ -10,6 +10,7 @@ import 'app.dart';
 import 'core/biometric.dart';
 import 'core/pix/venda_store.dart';
 import 'core/push.dart';
+import 'core/prospection_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,7 @@ Future<void> main() async {
   final theme = ThemeController(prefs);
   await theme.load();
   final venda = VendaStore(prefs);
+  final prospection = ProspectionStore(prefs);
   final session = Session(store: const SecureTokenStore());
 
   // Aberto pelo widget da tela inicial: vai direto para a Venda Presencial, sem esperar rede nem Firebase.
@@ -27,7 +29,7 @@ Future<void> main() async {
     final lock = BiometricLock(session: session, auth: LocalBiometricAuth());
     await lock.init();
     final push = PushService(session: session, prefs: prefs);
-    runApp(GestaoApp(session: session, theme: theme, lock: lock, push: push, venda: venda, initialLocation: vendaRoute));
+    runApp(GestaoApp(session: session, theme: theme, lock: lock, push: push, venda: venda, prospection: prospection, initialLocation: vendaRoute));
     unawaited(_warmUp(session, push));
     return;
   }
@@ -41,7 +43,7 @@ Future<void> main() async {
     const Duration(seconds: 8),
     onTimeout: () {},
   ); // sem credenciais do Firebase, segue sem push
-  runApp(GestaoApp(session: session, theme: theme, lock: lock, push: push, venda: venda));
+  runApp(GestaoApp(session: session, theme: theme, lock: lock, push: push, venda: venda, prospection: prospection));
 }
 
 /// O que a abertura normal faz antes de desenhar, mas depois da primeira tela quando vem do widget.

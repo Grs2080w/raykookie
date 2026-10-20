@@ -10,6 +10,13 @@ String moneyPrecise(num v) => _brl4.format(v).replaceAll(' ', ' ');
 String number(num v) => _num.format(v);
 String percent(num v) => '${_pct.format(v)}%';
 
+final _pct2 = NumberFormat.decimalPattern('pt_BR')
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
+
+/// Percentual com 2 casas (1.234,56%), como a tabela da Prospecção mostra.
+String percent2(num v) => '${_pct2.format(v.isFinite ? v : 0)}%';
+
 /// "2026-10-05" → "05/10/2026"
 String dateBR(String? d) {
   if (d == null || d.length < 10) return '—';
