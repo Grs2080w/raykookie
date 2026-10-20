@@ -28,7 +28,7 @@ function Num({ value, onChange, nullable, required, integer, label, suffix, plac
     <Field label={label} hint={required && blank ? 'Obrigatório' : undefined}>
       {(id) => (
         <div className="relative">
-          <NumberInput id={id} integer={integer} value={text} placeholder={placeholder} aria-invalid={required && blank} className={clsx(suffix && 'pr-9', required && blank && '!border-bad')}
+          <NumberInput id={id} integer={integer} value={text} placeholder={placeholder} onFocus={(e) => e.currentTarget.select()} aria-invalid={required && blank} className={clsx(suffix && 'pr-9', required && blank && '!border-bad')}
             onValueChange={(s) => { setText(s); onChange(s.trim() === '' ? (nullable ? null : 0) : parseNum(s)); }} />
           {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">{suffix}</span>}
         </div>
@@ -287,19 +287,19 @@ function ItemCard({ item, row, hasTiers, onChange, onRemove }: { item: ProspectI
           <button aria-label={`Remover ${item.name}`} onClick={onRemove} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-bad/10 hover:text-bad"><Trash2 size={17} /></button>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Num label="Quantidade" required value={item.qty} onChange={(v) => onChange({ qty: v ?? 0 })} />
         <Num label="Custo unit. (R$)" required value={item.cost} onChange={(v) => onChange({ cost: v ?? 0 })} />
         <Field label="Preço por">{(id) => <Select id={id} value={item.priceMode} onChange={(e) => onChange({ priceMode: e.target.value as 'price' | 'markup' })}><option value="price">Preço de venda</option><option value="markup">Markup %</option></Select>}</Field>
         {markup
-          ? <Num label="Markup (vazio = alvo geral)" nullable value={item.markupPct} onChange={(v) => onChange({ markupPct: v })} suffix="%" />
+          ? <Num label="Markup" placeholder="alvo geral" nullable value={item.markupPct} onChange={(v) => onChange({ markupPct: v })} suffix="%" />
           : <Num label="Preço de venda (R$)" required value={item.price} onChange={(v) => onChange({ price: v ?? 0 })} />}
         <Field label="Desconto">{(id) => (
           <Select id={id} value={dMode} onChange={(e) => onChange(e.target.value === 'geral' ? { discountMode: null, discount: 0 } : { discountMode: e.target.value as DiscountMode })}>
             <option value="geral">Usar geral</option><option value="pct">Em %</option><option value="brl">Em R$ (total)</option>
           </Select>)}</Field>
-        {item.discountMode ? <Num label="Valor do desconto" value={item.discount} onChange={(v) => onChange({ discount: v ?? 0 })} suffix={item.discountMode === 'pct' ? '%' : 'R$'} /> : <div className="hidden xl:block" />}
-        <Num label="Imposto (vazio = geral)" nullable value={item.taxPct} onChange={(v) => onChange({ taxPct: v })} suffix="%" />
+        {item.discountMode ? <Num label="Valor do desconto" value={item.discount} onChange={(v) => onChange({ discount: v ?? 0 })} suffix={item.discountMode === 'pct' ? '%' : 'R$'} /> : <div className="hidden md:block" />}
+        <Num label="Imposto" placeholder="geral" nullable value={item.taxPct} onChange={(v) => onChange({ taxPct: v })} suffix="%" />
         <Num label="Custos extras (R$)" value={item.extra} onChange={(v) => onChange({ extra: v ?? 0 })} />
       </div>
       {hasTiers && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--pink)]" checked={item.useTiers} onChange={(e) => onChange({ useTiers: e.target.checked })} />Usar faixas por quantidade{row && item.useTiers && row.discountValue > 0 ? ` (desconto aplicado: ${percent2(row.discountPct)})` : ''}</label>}
