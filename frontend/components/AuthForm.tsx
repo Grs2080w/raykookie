@@ -48,7 +48,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           <span key={i} className="float absolute opacity-90" style={{ left: x, top: y, ['--r' as any]: r, ['--d' as any]: d, animationDelay: `${i * -1.1}s` }}><I size={s} strokeWidth={1.4} /></span>
         ))}
         <div className="relative flex h-full flex-col justify-between p-14">
-          <Logo variant="compacta" tone="sobre-rosa" imgClassName="h-20" />
+          <Logo variant="compacta" business tone="sobre-rosa" imgClassName="h-24" />
           <div>
             <h2 className="font-display max-w-md text-5xl font-semibold leading-[1.05]">Saiba quanto cobrar por cada doce.</h2>
             <p className="mt-5 max-w-sm text-lg opacity-90">Estoque, receitas, pedidos e metas num lugar só, com o preço calculado enquanto você digita.</p>
@@ -59,7 +59,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       {/* Formulário */}
       <div className="relative flex flex-col items-center justify-center px-6 py-12">
         <div className="absolute right-5 top-5"><ThemeToggle /></div>
-        <div className="mb-10 lg:hidden"><Logo imgClassName="h-10" /></div>
+        <div className="mb-10 lg:hidden"><Logo business imgClassName="h-14" /></div>
         <AnimatePresence mode="wait">
           <motion.form key={mode} onSubmit={submit} className="w-full max-w-sm"
             initial={{ opacity: 0, x: isLogin ? -24 : 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: isLogin ? 24 : -24 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>

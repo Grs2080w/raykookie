@@ -103,7 +103,7 @@ class BiometricLock extends ChangeNotifier {
     if (_busy) return false;
     _busy = true;
     try {
-      final ok = await auth.authenticate('Entre no Raykookie gestão');
+      final ok = await auth.authenticate('Entre no raykookie business');
       if (ok) {
         locked = false;
         notifyListeners();

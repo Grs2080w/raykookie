@@ -76,7 +76,7 @@ void main() {
   group('versão do app', () {
     testWidgets('a tela de login mostra a versão instalada', (t) async {
       await pumpApp(t, FakeBackend({}), at: '/painel/entrar');
-      expect(find.text('Raykookie gestão · versão 1.0.0 (build 1)'), findsOneWidget);
+      expect(find.text('raykookie business · versão 1.0.0 (build 1)'), findsOneWidget);
     });
 
     testWidgets('"Mais" mostra a versão e avisa quando há build mais novo publicado', (t) async {
@@ -90,7 +90,7 @@ void main() {
       expect(find.text('Nova versão disponível'), findsOneWidget);
       expect(find.textContaining('1.0.1 (build 2)'), findsOneWidget);
       await t.scrollUntilVisible(find.textContaining('versão 1.0.0 (build 1)'), 400, scrollable: find.byType(Scrollable).first);
-      expect(find.text('Raykookie gestão · versão 1.0.0 (build 1)'), findsOneWidget);
+      expect(find.text('raykookie business · versão 1.0.0 (build 1)'), findsOneWidget);
     });
   });
 

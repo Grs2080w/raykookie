@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 export const APPS = {
   client: { name: 'raykookie', fileBase: 'raykookie-cliente' },
-  server: { name: 'raykookie gestão', fileBase: 'raykookie-gestao' },
+  server: { name: 'raykookie business', fileBase: 'raykookie-gestao' },
 };
 export const KEEP = 3;
 

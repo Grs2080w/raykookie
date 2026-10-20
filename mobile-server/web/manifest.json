@@ -1,11 +1,11 @@
 {
-    "name": "raykookie gestão",
-    "short_name": "gestão",
+    "name": "raykookie business",
+    "short_name": "business",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#1E1A1D",
     "theme_color": "#1E1A1D",
-    "description": "raykookie gestão: estoque, receitas, pedidos, metas e custos (app da confeiteira)",
+    "description": "raykookie business: estoque, receitas, pedidos, metas e custos (app da confeiteira)",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

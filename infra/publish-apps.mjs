@@ -18,7 +18,7 @@ const downloads = path.resolve(process.env.DOWNLOADS_DIR || path.join(root, 'dow
 
 const APPS = {
   client: { dir: 'mobile-client', name: 'raykookie', fileBase: 'raykookie-cliente' },
-  server: { dir: 'mobile-server', name: 'raykookie gestão', fileBase: 'raykookie-gestao' },
+  server: { dir: 'mobile-server', name: 'raykookie business', fileBase: 'raykookie-gestao' },
 };
 
 const args = process.argv.slice(2);

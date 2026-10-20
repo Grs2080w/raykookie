@@ -74,7 +74,7 @@ class _GestaoAppState extends State<GestaoApp> {
     ],
     child: Consumer<ThemeController>(
       builder: (context, theme, _) => MaterialApp.router(
-        title: 'Raykookie gestão',
+        title: 'raykookie business',
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
         builder: (context, child) =>

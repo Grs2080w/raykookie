@@ -10,7 +10,7 @@ backend/    API antiga (Next.js/Node) — desligada desde 10/10/2026 (container 
 frontend/   site, loja e painel (Next.js) — em produção vai pra Vercel
 shared/     regras e tipos em TypeScript puro usados pelo frontend (o backend tem a própria cópia em backend/shared/)
 mobile-client/   app Flutter do CLIENTE (cardápio e pedidos)
-mobile-server/   app Flutter de GESTÃO (estoque, receitas, pedidos, metas, custos), ícone escuro
+mobile-server/   app Flutter raykookie business (estoque, receitas, pedidos, metas, custos), ícone escuro
 mobile-common/   pacote Dart compartilhado pelos dois apps (API, sessão, modelos, preço, widgets)
 downloads/       APKs publicados + manifest.json (versões) — o container da API lê daqui
 infra/      scripts de build/verificação locais + infra/ci/ (pipeline)
@@ -85,7 +85,7 @@ front, os três pacotes Flutter, scripts e workflows com shellcheck/actionlint) 
 parte do `ci-ok`: se ela falhar, nada é implantado.
 
 `.github/workflows/cd.yml`, em todo push na `main`: roda o CI inteiro e, se passar, compila e **assina**
-os APKs que mudaram (cliente e/ou gestão) com a chave de produção, confere a assinatura contra o
+os APKs que mudaram (cliente e/ou business) com a chave de produção, confere a assinatura contra o
 fingerprint esperado, registra em `downloads/` — isso roda num runner **self-hosted** (`raykookie-prod`,
 label `rayka-prod`) porque é nesta própria máquina que o container da API lê essa pasta — e cria uma
 [Release no GitHub](../../releases) por app publicado, com o APK e o sha256 em anexo.
@@ -95,7 +95,7 @@ Segredos/variáveis do repositório que o CD precisa (Settings → Secrets and v
 (a partir de `~/.raykookie/release.jks` e `key.properties` — **nunca gere um keystore novo**: sem ser
 exatamente a mesma chave, os celulares com o app instalado param de conseguir atualizar), a variável
 `ANDROID_CERT_SHA256` (fingerprint público, não é segredo) e, opcionalmente,
-`GOOGLE_SERVICES_JSON_SERVER_BASE64` (push notifications do app de gestão).
+`GOOGLE_SERVICES_JSON_SERVER_BASE64` (push notifications do app raykookie business).
 
 Quando `backend-java/` muda, o CD também **implanta a API**: builda a imagem, troca o container `raykookie-api` com
 `infra/ci/run-api.sh` e, se a saúde não voltar em 2 minutos, volta sozinho para a imagem anterior.
@@ -104,10 +104,10 @@ O front não passa por este pipeline — a Vercel implanta direto do GitHub.
 
 ## Apps Android e versões
 
-Dois apps, cada um com o seu APK: **raykookie** (cliente) e **raykookie gestão** (confeiteira). A versão fica explícita no `version: X.Y.Z+N` do `pubspec.yaml` de cada app (N = número do build, que só pode subir) e aparece:
-- dentro dos apps (rodapé da loja; tela "Mais" e login da gestão), com a faixa "Nova versão disponível" quando o servidor tem um build maior: **Atualizar** baixa o APK no próprio app (barra de progresso, confere o SHA-256) e abre o instalador do Android;
+Dois apps, cada um com o seu APK: **raykookie** (cliente) e **raykookie business** (confeiteira). A versão fica explícita no `version: X.Y.Z+N` do `pubspec.yaml` de cada app (N = número do build, que só pode subir) e aparece:
+- dentro dos apps (rodapé da loja; tela "Mais" e login do business), com a faixa "Nova versão disponível" quando o servidor tem um build maior: **Atualizar** baixa o APK no próprio app (barra de progresso, confere o SHA-256) e abre o instalador do Android;
 - por push: quando o CD publica um build novo, a API avisa todos os aparelhos daquele app ("Nova versão do app"), uma vez por build;
-- no site: o APK do cliente na landing page (seção "Baixe o app") e o de gestão em **Custos e ajustes**, com versão, build, tamanho, data e SHA-256.
+- no site: o APK do cliente na landing page (seção "Baixe o app") e o do business em **Custos e ajustes**, com versão, build, tamanho, data e SHA-256.
 
 O jeito normal de publicar é só dar push na `main` — o CD acima compila, assina e publica sozinho (veja
 a seção de CI/CD). `infra/publish-apps.sh` continua existindo como alternativa pra compilar e publicar
@@ -122,7 +122,7 @@ O script compila em release, assina com a chave `~/.raykookie/release.jks` (**fa
 
 ## Loja online
 
-- `/` landing pública; o cardápio vem da **página Cardápio** do app de gestão (Mais → Cardápio): os produtos
+- `/` landing pública; o cardápio vem da **página Cardápio** do app raykookie business (Mais → Cardápio): os produtos
   ligados, com foto, preço, selos de alergia e (se escolhido) a lista de ingredientes, e os **combos**. O mesmo
   cardápio (`/api/menu`) aparece no app do cliente e no link de compartilhar.
 - Receitas: cada produto pode ter **várias receitas** (abas Receita 1, Receita 2…); a **padrão** dá o preço do

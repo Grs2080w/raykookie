@@ -1,43 +1,30 @@
 'use client';
-import { motion } from 'motion/react';
-import { BarChart3, BookOpen, Calculator, ChefHat, ChevronDown, ClipboardList, LayoutDashboard, LogOut, MapPin, MessageSquareHeart, Package, Settings, ShieldCheck, Store, Tags, Target, TicketPercent, Undo2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { LogOut, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Logo } from './Logo';
+import { NavTree, useNavSections } from './NavTree';
 import { ThemeToggle } from './ThemeToggle';
-
-const NAV = [
-  { href: '/dashboard', label: 'Início', icon: LayoutDashboard },
-  { href: '/estoque', label: 'Estoque', icon: Package },
-  { href: '/receitas', label: 'Receitas', icon: ChefHat },
-  { href: '/cardapio-do-site', label: 'Cardápio', icon: BookOpen },
-  { href: '/pedidos', label: 'Pedidos', icon: ClipboardList },
-  { href: '/cupons', label: 'Cupons', icon: TicketPercent },
-  { href: '/metas', label: 'Metas', icon: Target },
-  { href: '/devolucoes', label: 'Devoluções', icon: Undo2 },
-  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart },
-  { href: '/engajamento', label: 'Engajamento', icon: BarChart3 },
-  { href: '/fornecedores', label: 'Fornecedores', icon: Store },
-  { href: '/categorias', label: 'Categorias', icon: Tags },
-  { href: '/enderecos', label: 'Endereço de retirada', icon: MapPin },
-  { href: '/solicitacoes-privacidade', label: 'Privacidade dos clientes', icon: ShieldCheck },
-  { href: '/configuracoes', label: 'Custos e ajustes', icon: Settings },
-];
-// "Outros": ferramentas de apoio, agrupadas para não encher o menu principal.
-const OUTROS = [
-  { href: '/prospeccao', label: 'Prospecção', icon: Calculator },
-];
-const MOBILE = NAV.slice(0, 5);
+import { NAV_BAR, isActive } from '@/lib/nav';
 
 export function Shell({ username, children }: { username: string; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
-  const active = (href: string) => path.startsWith(href);
-  const outrosActive = OUTROS.some((o) => active(o.href));
-  const [outros, setOutros] = useState(false);
+  const sections = useNavSections(path);
+  const active = (href: string) => isActive(path, href);
+
+  // a gaveta fecha ao navegar e com Esc
+  useEffect(() => setMenu(false), [path]);
+  useEffect(() => {
+    if (!menu) return;
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(false);
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [menu]);
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -49,32 +36,8 @@ export function Shell({ username, children }: { username: string; children: Reac
     <div className="min-h-dvh md:pl-64">
       {/* Sidebar (desktop) */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-line bg-surface/70 px-4 py-6 backdrop-blur md:flex">
-        <Link href="/dashboard" aria-label="Raykookie, início" className="px-2"><Logo imgClassName="h-8" /></Link>
-        <nav className="mt-9 flex flex-1 flex-col gap-1" aria-label="Principal">
-          {NAV.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
-              className={clsx('relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors', active(href) ? 'text-pink-strong' : 'text-muted hover:bg-surface-2 hover:text-ink')}>
-              {active(href) && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl bg-pink-tint" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-              <Icon size={19} className="relative" />
-              <span className="relative">{label}</span>
-            </Link>
-          ))}
-          <button type="button" onClick={() => setOutros((v) => !v)} aria-expanded={outros || outrosActive} aria-controls="nav-outros"
-            className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink">
-            <ChevronDown size={19} className={clsx('transition-transform', !(outros || outrosActive) && '-rotate-90')} />
-            <span>Outros</span>
-          </button>
-          {(outros || outrosActive) && (
-            <div id="nav-outros" className="flex flex-col gap-1 pl-4">
-              {OUTROS.map(({ href, label, icon: Icon }) => (
-                <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
-                  className={clsx('flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors', active(href) ? 'bg-pink-tint text-pink-strong' : 'text-muted hover:bg-surface-2 hover:text-ink')}>
-                  <Icon size={19} />{label}
-                </Link>
-              ))}
-            </div>
-          )}
-        </nav>
+        <Link href="/dashboard" aria-label="raykookie business, início" className="px-2"><Logo business imgClassName="h-11" /></Link>
+        <div className="mt-7 min-h-0 flex-1 overflow-y-auto pb-4 pr-1"><NavTree path={path} state={sections} pill="nav-pill" /></div>
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface p-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-pink-tint font-display font-semibold text-pink-strong">{username[0]?.toUpperCase()}</span>
@@ -86,22 +49,10 @@ export function Shell({ username, children }: { username: string; children: Reac
 
       {/* Barra superior */}
       <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur md:justify-end md:px-8">
-        <Link href="/dashboard" aria-label="Raykookie, início" className="md:hidden"><Logo variant="compacta" imgClassName="h-10" /></Link>
+        <Link href="/dashboard" aria-label="raykookie business, início" className="md:hidden"><Logo business imgClassName="h-9" /></Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <div className="relative md:hidden">
-            <button onClick={() => setMenu((v) => !v)} aria-label="Menu da conta" aria-expanded={menu}
-              className="grid size-10 place-items-center rounded-full bg-pink-tint font-display font-semibold text-pink-strong">{username[0]?.toUpperCase()}</button>
-            {menu && (
-              <div className="absolute right-0 top-12 z-40 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-card" onClick={() => setMenu(false)}>
-                <Link href="/categorias" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-surface-2"><Tags size={17} />Categorias</Link>
-                <Link href="/configuracoes" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-surface-2"><Settings size={17} />Custos e ajustes</Link>
-                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted">Outros</p>
-                {OUTROS.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-surface-2"><Icon size={17} />{label}</Link>)}
-                <button onClick={logout} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-bad hover:bg-bad/10"><LogOut size={17} />Sair ({username})</button>
-              </div>
-            )}
-          </div>
+          <button onClick={() => setMenu(true)} aria-label="Abrir menu" aria-expanded={menu} className="grid size-11 place-items-center rounded-full bg-pink-tint text-pink-strong md:hidden"><Menu size={21} /></button>
         </div>
       </header>
 
@@ -109,7 +60,7 @@ export function Shell({ username, children }: { username: string; children: Reac
 
       {/* Barra inferior (mobile) */}
       <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/95 px-1 pb-[max(env(safe-area-inset-bottom),6px)] pt-1.5 backdrop-blur md:hidden" aria-label="Principal">
-        {MOBILE.map(({ href, label, icon: Icon }) => (
+        {NAV_BAR.map(({ href, label, icon: Icon }) => (
           <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
             className={clsx('flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-medium', active(href) ? 'text-pink-strong' : 'text-muted')}>
             <span className={clsx('grid h-7 w-12 place-items-center rounded-full transition-colors', active(href) && 'bg-pink-tint')}><Icon size={19} /></span>
@@ -117,6 +68,29 @@ export function Shell({ username, children }: { username: string; children: Reac
           </Link>
         ))}
       </nav>
+      {/* Menu do celular: a mesma árvore da sidebar */}
+      <AnimatePresence>
+        {menu && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <motion.div className="absolute inset-0 bg-black/50" onClick={() => setMenu(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+            <motion.aside role="dialog" aria-modal="true" aria-label="Menu" className="absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] flex-col border-r border-line bg-surface px-4 pb-[max(env(safe-area-inset-bottom),16px)] pt-5"
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', stiffness: 420, damping: 40 }}>
+              <div className="flex items-center justify-between px-2">
+                <Logo business imgClassName="h-11" />
+                <button onClick={() => setMenu(false)} aria-label="Fechar menu" className="grid size-11 place-items-center rounded-full text-muted hover:bg-surface-2"><X size={20} /></button>
+              </div>
+              <div className="mt-5 min-h-0 flex-1 overflow-y-auto pb-4"><NavTree path={path} state={sections} touch pill="nav-pill-m" onNavigate={() => setMenu(false)} /></div>
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-bg p-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-pink-tint font-display font-semibold text-pink-strong">{username[0]?.toUpperCase()}</span>
+                  <span className="truncate text-sm font-medium">{username}</span>
+                </div>
+                <button onClick={logout} aria-label="Sair" title="Sair" className="grid size-11 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-bad"><LogOut size={18} /></button>
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

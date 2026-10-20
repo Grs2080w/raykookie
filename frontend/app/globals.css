@@ -21,6 +21,8 @@
   --warn: #b7791f;
   --bad: #d13b4b;
   --shadow: 0 1px 2px rgb(60 20 40 / 0.05), 0 8px 24px -12px rgb(60 20 40 / 0.14);
+  /* Dourado do "business": claro → profundo (mesmos valores das logos em public/brand, geradas por scripts/gerar-logo-business.py) */
+  --gold-1: #c9962b; --gold-2: #a67614; --gold-3: #7a520c;
   color-scheme: light;
 }
 [data-theme='dark'] {
@@ -38,6 +40,7 @@
   --warn: #e3b04b;
   --bad: #ff7482;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.7);
+  --gold-1: #f7e3a3; --gold-2: #d9a93f; --gold-3: #a87a22;
   color-scheme: dark;
 }
 
@@ -83,6 +86,7 @@ body {
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
 .font-display { font-variation-settings: 'opsz' 96, 'SOFT' 50; letter-spacing: -0.015em; }
+.text-gold { background: linear-gradient(135deg, var(--gold-1), var(--gold-2) 50%, var(--gold-3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .tnum { font-variant-numeric: tabular-nums; }
 
 :focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; border-radius: 6px; }

@@ -1,6 +1,6 @@
-# raykookie gestão (app da confeiteira)
+# raykookie business (app da confeiteira)
 
-App de **gestão** da raykookie: início (resumo do mês), **estoque**, **receitas** (preço automático e foto para a loja), **pedidos**, **metas**, **categorias** e **custos e ajustes**. Só abre com a conta da confeiteira. Pacote Android `br.com.kntap.raykookie_gestao`, ícone escuro (o mesmo cookie do app do cliente sobre `#1E1A1D`). Código compartilhado em [`../mobile-common`](../mobile-common).
+App **raykookie business**, da confeiteira: início (resumo do mês), **estoque**, **receitas** (preço automático e foto para a loja), **pedidos**, **metas**, **categorias** e **custos e ajustes**. Só abre com a conta da confeiteira. Pacote Android `br.com.kntap.raykookie_gestao`, ícone escuro (o mesmo cookie do app do cliente sobre `#1E1A1D`). Código compartilhado em [`../mobile-common`](../mobile-common).
 
 ## Biometria
 
