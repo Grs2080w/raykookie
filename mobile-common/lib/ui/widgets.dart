@@ -423,14 +423,58 @@ class PhotoTile extends StatelessWidget {
 }
 
 class RkLogo extends StatelessWidget {
-  const RkLogo({super.key, this.variant = 'principal', this.tone, this.height = 36});
+  const RkLogo({super.key, this.variant = 'principal', this.tone, this.height = 36, this.business = false});
   final String variant; // principal | compacta | simbolo
   final String? tone; // fundo-claro | fundo-escuro | mono-claro | mono-escuro | sobre-rosa · null = pelo tema (claro: fundo-claro, escuro: mono-claro)
   final double height;
+
+  /// Wordmark com "business" em dourado (app de gestão); só existem fundo-claro, fundo-escuro e (compacta) sobre-rosa. O símbolo não muda.
+  final bool business;
   @override
   Widget build(BuildContext context) {
-    final t = tone ?? (Theme.of(context).brightness == Brightness.dark ? 'mono-claro' : 'fundo-claro');
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    if (business && variant != 'simbolo') {
+      final t = tone ?? (dark ? 'fundo-escuro' : 'fundo-claro');
+      return SvgPicture.asset('assets/brand/raykookie-business-$variant-$t.svg', height: height, semanticsLabel: 'raykookie business');
+    }
+    final t = tone ?? (dark ? 'mono-claro' : 'fundo-claro');
     final file = variant == 'simbolo' ? 'raykookie-simbolo-cookie' : 'raykookie-$variant-$t';
     return SvgPicture.asset('assets/brand/$file.svg', height: height, semanticsLabel: 'Raykookie');
+  }
+}
+
+/// Nome do app de gestão em texto: "raykookie" no título do app e "business" em dourado, na fonte de destaque.
+/// O gradiente fica no próprio texto (sem imagem) e o dourado muda com o tema claro/escuro.
+class BusinessName extends StatelessWidget {
+  const BusinessName({super.key, this.size = 30});
+  final double size;
+  @override
+  Widget build(BuildContext context) {
+    final gold = Theme.of(context).brightness == Brightness.dark ? AppColors.goldOnDark : AppColors.goldOnLight;
+    return Semantics(
+      label: 'raykookie business',
+      excludeSemantics: true,
+      // em telas estreitas o nome encolhe em vez de estourar a linha
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text('raykookie', style: display(context, size: size)),
+            SizedBox(width: size * 0.2),
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (r) => LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gold).createShader(r),
+              child: Text(
+                'business',
+                style: TextStyle(fontFamily: AppColors.businessFamily, fontSize: size * 1.05, height: 1.1, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

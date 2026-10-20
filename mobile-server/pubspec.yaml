@@ -1,5 +1,5 @@
 name: raykookie_gestao
-description: "raykookie gestão: estoque, receitas, pedidos, metas e custos (app da confeiteira)"
+description: "raykookie business: estoque, receitas, pedidos, metas e custos (app da confeiteira)"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -80,6 +80,10 @@ flutter:
     - family: Fraunces
       fonts:
         - asset: assets/fonts/Fraunces.ttf
+    # "business" do nome do app (dourado): Fraunces itálica estática, gerada por scripts/gerar-logo-business.py
+    - family: FrauncesItalic
+      fonts:
+        - asset: assets/fonts/FrauncesItalic.ttf
 
 # Ícone: o mesmo cookie do app do cliente, sobre o fundo escuro da marca (#1E1A1D)
 flutter_launcher_icons:

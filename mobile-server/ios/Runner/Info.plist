@@ -11,9 +11,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Tire uma foto da receita para mostrar no cardápio ou leia o QR code de uma nota fiscal.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Use o rosto para entrar no raykookie gestão sem digitar a senha.</string>
+	<string>Use o rosto para entrar no raykookie business sem digitar a senha.</string>
 	<key>CFBundleDisplayName</key>
-	<string>raykookie gestão</string>
+	<string>raykookie business</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

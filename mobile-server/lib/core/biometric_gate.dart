@@ -108,7 +108,7 @@ class _LockScreen extends StatelessWidget {
               children: [
                 const RkLogo(variant: 'simbolo', height: 64),
                 const SizedBox(height: 22),
-                Text('Raykookie gestão', style: display(context, size: 30)),
+                const BusinessName(size: 30),
                 const SizedBox(height: 6),
                 Text(
                   'Use sua biometria para entrar.',

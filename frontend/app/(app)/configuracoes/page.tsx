@@ -16,7 +16,7 @@ export default async function Page() {
       <CostSettings settings={settings} costs={costs} categories={categories} />
       <div className="mt-8 max-w-2xl">
         <AppDownload
-          id="app-gestao" release={releases.server} icon="/app/icone-gestao.png" title="App de gestão (Android)" dark
+          id="app-gestao" release={releases.server} icon="/app/icone-gestao.png" title="App raykookie business (Android)" dark
           description="Estoque, receitas, pedidos, metas e custos no celular. Entre com a mesma conta do painel."
         />
       </div>

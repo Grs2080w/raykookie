@@ -246,7 +246,7 @@ class _CameraState extends State<_Camera> {
                 const SizedBox(height: 12),
                 Text(
                   denied
-                      ? 'O app não tem permissão para usar a câmera. Libere em Configurações do celular > Apps > raykookie gestão > Permissões.'
+                      ? 'O app não tem permissão para usar a câmera. Libere em Configurações do celular > Apps > raykookie business > Permissões.'
                       : 'Não foi possível abrir a câmera neste aparelho.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white),

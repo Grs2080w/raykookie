@@ -40,7 +40,7 @@ class _SoundScreenState extends State<SoundScreen> {
     final note = !push.available
         ? 'As notificações ainda não estão ativas nesta versão do app (falta configurar o Firebase). Você já pode escolher o som; ele vale assim que o push for ativado.'
         : !push.permissionGranted
-            ? 'As notificações estão bloqueadas para este app. Ative em Configurações do celular → Apps → raykookie gestão → Notificações.'
+            ? 'As notificações estão bloqueadas para este app. Ative em Configurações do celular → Apps → raykookie business → Notificações.'
             : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Som de novos pedidos')),

@@ -7,12 +7,13 @@ import 'package:raykookie_common/ui/toast.dart';
 
 import '../../core/biometric.dart';
 import '../../core/push.dart';
+import 'menu_tree.dart';
 
 import 'package:raykookie_common/ui/theme.dart';
 import 'package:raykookie_common/ui/app_update.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
-/// "Mais": metas, categorias, custos, tema e sair.
+/// "Mais": o menu em seções (ver [menuSections]), tema, biometria e sair.
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
   @override
@@ -71,6 +72,8 @@ class MoreScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
+        const Align(alignment: Alignment.centerLeft, child: RkLogo(variant: 'principal', business: true, height: 44)),
+        const SizedBox(height: 16),
         Row(
           children: [
             CircleAvatar(
@@ -101,96 +104,15 @@ class MoreScreen extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         UpdateBanner(api: session.ownerApi, app: 'server'),
-        tile(
-          Icons.track_changes_rounded,
-          'Metas de venda',
-          'Defina o alvo do mês e acompanhe',
-          () => context.push('/painel/metas'),
+        MenuTree(
+          tile: (i) => tile(
+            i.icon,
+            i.title,
+            i.route == '/painel/som' ? push.sound.label : i.subtitle,
+            () => context.push(i.route),
+          ),
         ),
-        tile(
-          Icons.local_offer_outlined,
-          'Cupons',
-          'Códigos de desconto para os clientes',
-          () => context.push('/painel/cupons'),
-        ),
-        tile(
-          Icons.sell_outlined,
-          'Categorias',
-          'Ingredientes, receitas e gastos',
-          () => context.push('/painel/categorias'),
-        ),
-        tile(
-          Icons.restaurant_menu_outlined,
-          'Cardápio',
-          'O que aparece na landing page, ingredientes e combos',
-          () => context.push('/painel/cardapio'),
-        ),
-        tile(
-          Icons.qr_code_2_rounded,
-          'Venda Presencial',
-          'Pix estático por produto, funciona sem internet',
-          () => context.push('/painel/venda-presencial'),
-        ),
-        tile(
-          Icons.notifications_active_outlined,
-          'Som de novos pedidos',
-          push.sound.label,
-          () => context.push('/painel/som'),
-        ),
-        tile(
-          Icons.place_outlined,
-          'Endereço de retirada',
-          'Onde o cliente retira os pedidos',
-          () => context.push('/painel/enderecos'),
-        ),
-        tile(
-          Icons.storefront_outlined,
-          'Fornecedores',
-          'Sites e lojas onde você compra, com preços',
-          () => context.push('/painel/fornecedores'),
-        ),
-        tile(
-          Icons.undo_rounded,
-          'Devoluções',
-          'Pedidos de devolução e Pix devolvidos',
-          () => context.push('/painel/devolucoes'),
-        ),
-        tile(
-          Icons.reviews_outlined,
-          'Feedback dos clientes',
-          'Nota, mensagem e fotos enviadas no site e no app',
-          () => context.push('/painel/feedback'),
-        ),
-        tile(
-          Icons.insights_outlined,
-          'Engajamento',
-          'O que os clientes veem e até onde chegam no pedido',
-          () => context.push('/painel/engajamento'),
-        ),
-        tile(
-          Icons.privacy_tip_outlined,
-          'Privacidade dos clientes',
-          'Solicitações sobre dados (LGPD)',
-          () => context.push('/painel/privacidade'),
-        ),
-        tile(
-          Icons.history_rounded,
-          'Histórico',
-          'Quem mudou estoque, receitas, preços e cupons',
-          () => context.push('/painel/historico'),
-        ),
-        tile(
-          Icons.calculate_outlined,
-          'Prospecção',
-          'Planeje o preço por quantidade, com desconto e margem',
-          () => context.push('/painel/prospeccao'),
-        ),
-        tile(
-          Icons.settings_outlined,
-          'Custos e ajustes',
-          'Valor da hora e gastos do mês',
-          () => context.push('/painel/custos'),
-        ),
+        const SizedBox(height: 10),
         AppCard(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           child: SwitchListTile(
@@ -241,7 +163,7 @@ class MoreScreen extends StatelessWidget {
           },
         ),
         const SizedBox(height: 22),
-        const VersionLabel('Raykookie gestão'),
+        const VersionLabel('raykookie business'),
       ],
     );
   }

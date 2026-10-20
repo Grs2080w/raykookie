@@ -34,7 +34,7 @@ const freePort = () => new Promise((resolve, reject) => {
 const fixtureDownloads = ({ withApks = true } = {}) => {
   const dir = tmp();
   const entry = (app, name, build) => ({ app, name, version: '1.0.0', build, file: `${app}.apk`, size: 1, sha256: 'a'.repeat(64), date: '2026-01-01T00:00:00.000Z' });
-  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ client: entry('client', 'raykookie', 7), server: entry('server', 'raykookie gestão', 9) }));
+  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ client: entry('client', 'raykookie', 7), server: entry('server', 'raykookie business', 9) }));
   if (withApks) for (const app of ['client', 'server']) fs.writeFileSync(path.join(dir, `${app}.apk`), 'x');
   return dir;
 };

@@ -67,7 +67,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const RkLogo(variant: 'compacta', height: 56),
+                  const RkLogo(variant: 'compacta', business: true, height: 96),
                   const SizedBox(height: 28),
                   Text(
                     _create ? 'Crie sua conta' : 'Bem-vinda de volta',
@@ -138,7 +138,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const VersionLabel('Raykookie gestão'),
+                  const VersionLabel('raykookie business'),
                 ],
               ),
             ),

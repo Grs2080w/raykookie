@@ -56,6 +56,14 @@ class AppColors extends ThemeExtension<AppColors> {
   static const rkRosaClaro = Color(0xFFFBDDE8);
   static const rkEscuro = Color(0xFF3A1D12);
 
+  /// Dourado do "business" (claro → profundo). Sobre fundo claro usa-se o mais fechado, para manter o contraste.
+  /// Mesmos valores das logos geradas por `scripts/gerar-logo-business.py` e dos tokens `--gold-*` do CSS.
+  static const goldOnDark = [Color(0xFFF7E3A3), Color(0xFFD9A93F), Color(0xFFA87A22)];
+  static const goldOnLight = [Color(0xFFC9962B), Color(0xFFA67614), Color(0xFF7A520C)];
+
+  /// Família do "business" (Fraunces itálica, declarada no pubspec do app que a usa).
+  static const businessFamily = 'FrauncesItalic';
+
   @override
   AppColors copyWith() => this;
   @override
