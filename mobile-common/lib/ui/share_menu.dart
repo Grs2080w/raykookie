@@ -41,6 +41,11 @@ Future<void> shareImage(Uint8List bytes, {required String name, String? text}) a
   await sharePlatform(ShareParams(text: text, files: [XFile.fromData(bytes, mimeType: 'image/png', name: name)], fileNameOverrides: [name]));
 }
 
+/// Compartilha um arquivo (ex.: o CSV da Prospecção) pela folha de compartilhar do celular.
+Future<void> shareFile(Uint8List bytes, {required String name, required String mimeType, String? text}) async {
+  await sharePlatform(ShareParams(text: text, files: [XFile.fromData(bytes, mimeType: mimeType, name: name)], fileNameOverrides: [name]));
+}
+
 /// Botão "Compartilhar cardápio".
 class ShareMenuButton extends StatelessWidget {
   const ShareMenuButton({super.key, this.expand = false});

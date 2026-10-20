@@ -30,3 +30,6 @@ export function sanitizeNumber(raw: string, integer = false) {
   }
   return out;
 }
+// Percentual com 2 casas (1.234,56%), como a tabela da Prospecção mostra.
+const pct2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const percent2 = (v: number) => `${pct2.format(Number.isFinite(v) ? v : 0)}%`;

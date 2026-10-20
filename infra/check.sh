@@ -11,6 +11,8 @@ step "backend: tipos e testes"
 ( cd backend && npx tsc --noEmit && npm test )
 step "frontend: tipos"
 ( cd frontend && npx tsc --noEmit )
+step "prospecção: testes do cálculo (shared/prospection.ts)"
+node --test tests/prospection/prospection.test.mjs
 if command -v flutter >/dev/null 2>&1; then
   for pkg in mobile-common mobile-client mobile-server; do
     step "$pkg: análise e testes"

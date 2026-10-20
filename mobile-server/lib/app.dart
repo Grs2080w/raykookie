@@ -9,6 +9,7 @@ import 'package:raykookie_common/ui/toast.dart';
 import 'core/biometric.dart';
 import 'core/biometric_gate.dart';
 import 'core/pix/venda_store.dart';
+import 'core/prospection_store.dart';
 import 'core/push.dart';
 import 'router.dart';
 
@@ -20,9 +21,11 @@ class GestaoApp extends StatefulWidget {
     required this.lock,
     this.push,
     this.venda,
+    this.prospection,
     this.initialLocation = '/painel/inicio',
   });
   final VendaStore? venda;
+  final ProspectionStore? prospection;
   final Session session;
   final BiometricLock lock;
   final ThemeController theme;
@@ -40,6 +43,7 @@ class _GestaoAppState extends State<GestaoApp> {
   late final PushService _push =
       widget.push ?? PushService(session: widget.session);
   late final VendaStore _venda = widget.venda ?? VendaStore();
+  late final ProspectionStore _prospection = widget.prospection ?? ProspectionStore();
 
   @override
   void initState() {
@@ -66,6 +70,7 @@ class _GestaoAppState extends State<GestaoApp> {
       ChangeNotifierProvider.value(value: widget.lock),
       ChangeNotifierProvider.value(value: _push),
       ChangeNotifierProvider.value(value: _venda),
+      ChangeNotifierProvider.value(value: _prospection),
     ],
     child: Consumer<ThemeController>(
       builder: (context, theme, _) => MaterialApp.router(

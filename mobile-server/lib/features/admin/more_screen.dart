@@ -180,6 +180,12 @@ class MoreScreen extends StatelessWidget {
           () => context.push('/painel/historico'),
         ),
         tile(
+          Icons.calculate_outlined,
+          'Prospecção',
+          'Planeje o preço por quantidade, com desconto e margem',
+          () => context.push('/painel/prospeccao'),
+        ),
+        tile(
           Icons.settings_outlined,
           'Custos e ajustes',
           'Valor da hora e gastos do mês',
