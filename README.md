@@ -210,45 +210,7 @@ Só o que existe no código:
 | **Avisos** | notificações push (Firebase) para mudanças no pedido, pedindo permissão com um cartão "Quer saber quando o pedido mudar?"; sem Firebase no build, o app segue sem avisos |
 | **Atualização** | o app confere se há build mais novo, baixa o APK dentro dele, confere o `sha256` e abre o instalador; a confirmação final é do Android |
 | **Medição** | análise de uso anônima, **desligada por padrão** (só entra com uma flag de build) |
-| **Testes** | 78 testes de widget e unitários passando no app cliente, mais os do pacote comum (`flutter test`) |
-
----
-
-## Como rodar localmente
-
-Não precisa do backend real: há uma **API de mentira** com dados fictícios, a mesma que gerou as capturas deste README. Para ligar o backend de verdade (Java + Postgres), veja o [guia técnico](docs/DESENVOLVIMENTO.md).
-
-**1. API fictícia** (porta 10006)
-
-```bash
-node scripts/readme-media/mock-api.mjs
-```
-
-**2. Site** (porta 10005)
-
-```bash
-cd frontend
-npm ci
-BACKEND_URL=http://127.0.0.1:10006 npm run dev
-```
-
-Abra <http://localhost:10005>. As telas públicas (início e cardápio) já funcionam. Para ver as telas logadas, crie no navegador o cookie `mock=1` e abra `/cliente/pedidos`.
-
-**3. App** (precisa do [Flutter](https://docs.flutter.dev/get-started/install) e, para rodar no Android, do JDK 17 ou 21)
-
-```bash
-cd mobile-client
-flutter pub get
-flutter run -d chrome \
-  --dart-define=API_BASE=http://127.0.0.1:10006 \
-  --dart-define=SITE_BASE=http://127.0.0.1:10006
-```
-
-No app, qualquer e-mail válido e qualquer senha entram contra a API fictícia. Em um emulador Android, troque `127.0.0.1` por `10.0.2.2`. Testes: `flutter test`.
-
-> Verificado ao preparar este README: `npm ci`, `next dev`, `next build` e `next start` do site; `flutter build web` com os parâmetros acima; `flutter test` do app (78 passando, 1 ignorado).
-
-**Refazer as mídias deste README**: o passo a passo (capturas, GIFs e mockups) está em [`scripts/readme-media/`](scripts/readme-media/README.md).
+| **Testes** | 78 testes de widget e unitários passando no app cliente, mais os do pacote comum |
 
 ---
 
@@ -262,4 +224,4 @@ O produto resolve o problema de uma operação pequena que quer manter o jeito c
 
 ---
 
-<sub>Documentação técnica interna: [guia de desenvolvimento e produção](docs/DESENVOLVIMENTO.md), [arquitetura](docs/ARQUITETURA.md) e [API](docs/API.md).</sub>
+<sub>Documentação técnica: [arquitetura](docs/ARQUITETURA.md) e [API](docs/API.md).</sub>
