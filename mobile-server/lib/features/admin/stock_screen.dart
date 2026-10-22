@@ -103,7 +103,7 @@ class _StockViewState extends State<_StockView> {
     final low = all
         .where((i) => stockStatus(i.stockQty, i.minStock) != StockStatus.ok)
         .length;
-    final value = all.fold<double>(0, (s, i) => s + i.stockQty * i.packageCost);
+    final value = all.fold<double>(0, (s, i) => s + i.stockQty * i.unitCostValue);
     final rows = all.where((i) {
       if (_search.isNotEmpty &&
           !'${i.name} ${i.supplier}'.toLowerCase().contains(

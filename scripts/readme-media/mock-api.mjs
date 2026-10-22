@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gestaoRoutes } from './mock-gestao.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PORT = Number(process.argv[2] || 10006);
@@ -61,6 +62,10 @@ http.createServer((req, res) => {
     return fs.existsSync(file) ? send(200, fs.readFileSync(file), 'image/jpeg') : send(404, {});
   }
   if (routes[url.pathname]) return send(200, routes[url.pathname]());
+  if (url.pathname === '/api/auth/login' || url.pathname === '/api/auth/register') return send(200, { token: 'mock-owner-token', ok: true });
+  const receita = url.pathname.match(/^\/api\/recipes\/(\d+)$/); // editor de receita: uma receita com as versões
+  if (receita && req.method === 'GET') return authed(req) ? send(200, gestaoRoutes['/api/recipes']().find((r) => r.id === Number(receita[1])) ?? {}) : send(401, {});
+  if (gestaoRoutes[url.pathname] && req.method === 'GET') return authed(req) ? send(200, gestaoRoutes[url.pathname](url)) : send(401, { error: 'Sem sessão' });
   if (url.pathname === '/api/cliente/me') return authed(req) ? send(200, customer) : send(401, { error: 'Sem sessão' });
   if (url.pathname === '/api/cliente/pedidos' && req.method === 'GET') return authed(req) ? send(200, orders) : send(401, {});
   if (url.pathname === '/api/cliente/login' || url.pathname === '/api/cliente/cadastro') return send(200, { token: 'mock-token', ok: true });
