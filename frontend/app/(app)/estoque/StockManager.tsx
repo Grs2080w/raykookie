@@ -38,7 +38,7 @@ export function StockManager({ ingredients, categories }: { ingredients: Ingredi
     return true;
   });
   const low = ingredients.filter((i) => stockStatus(i.stock_qty, i.min_stock) !== 'ok').length;
-  const stockValue = ingredients.reduce((s, i) => s + i.stock_qty * i.package_cost, 0);
+  const stockValue = ingredients.reduce((s, i) => s + i.stock_qty * unitCost(i.package_cost, i.package_size), 0);
 
   const edit = (i: Ingredient) => setDraft({ id: i.id, name: i.name, category_id: i.category_id ? String(i.category_id) : '', unit: i.unit, stock_qty: fieldNum(i.stock_qty), package_size: fieldNum(i.package_size), package_cost: fieldNum(i.package_cost), min_stock: fieldNum(i.min_stock), supplier: i.supplier, notes: i.notes });
 

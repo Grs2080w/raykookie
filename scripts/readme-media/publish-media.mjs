@@ -14,6 +14,6 @@ for (const f of fs.readdirSync(mockups).filter((n) => n.endsWith('.png'))) {
 }
 // o MP4 do hero é a versão leve do GIF; os demais clipes entram só como GIF (é o que o GitHub anima em <img>)
 for (const f of ['hero-loop.gif', 'hero-loop.mp4', 'web-rolagem.gif', 'web-pedido.gif', 'app-cardapio.gif', 'app-pedido.gif']) {
-  fs.copyFileSync(path.join(clips, f), path.join(dest, f));
+  if (fs.existsSync(path.join(clips, f))) fs.copyFileSync(path.join(clips, f), path.join(dest, f)); // sem o clipe, só os mockups são atualizados
 }
 for (const f of fs.readdirSync(dest).sort()) console.log((fs.statSync(path.join(dest, f)).size / 1024).toFixed(0).padStart(6), 'KB', f);

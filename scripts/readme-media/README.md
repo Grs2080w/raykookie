@@ -51,6 +51,28 @@ node scripts/readme-media/build-mockups.mjs $W/src $W/mock
 node scripts/readme-media/publish-media.mjs $W/mock $W/out docs/media
 ```
 
+## Apps de gestão (painel web e app Android)
+
+Usa a mesma `mock-api.mjs`, que também serve o painel da confeiteira com os dados de `mock-gestao.mjs` (estoque, receitas, pedidos, metas e custos inventados; o preço sai do `shared/pricing.ts` de verdade). O passo 1 (API) e o 2 (site em `:10005`) são os mesmos de cima; o app de gestão é compilado a partir de `mobile-server`:
+
+```bash
+cd mobile-server
+flutter build web --release \
+  --dart-define=API_BASE=http://127.0.0.1:10006 --dart-define=SITE_BASE=http://127.0.0.1:10006
+python3 -m http.server 10007 --bind 127.0.0.1 --directory build/web &
+cd ..
+
+W=/tmp/readme-work
+node scripts/readme-media/capture-gestao-web.mjs $W/gweb     # painel web (login por cookie de mentira)
+node scripts/readme-media/capture-gestao-app.mjs $W/gapp     # app (faz o login pela interface)
+
+mkdir -p $W/gsrc && cp $W/gweb/*.png $W/gapp/*.png $W/gsrc/
+node scripts/readme-media/build-mockups.mjs $W/gsrc $W/gmock gestao   # 3º argumento: mockups de gestão
+mkdir -p $W/noclips && node scripts/readme-media/publish-media.mjs $W/gmock $W/noclips docs/media
+```
+
+Só os mockups de gestão são WebP; não há GIFs de gestão (o `publish-media.mjs` ignora clipes ausentes).
+
 ## Por que o loop do hero não tem corte
 
 `capture-hero.mjs` grava a **repetição** da animação (o ponteiro entra no logo): ela parte do logo estático e termina nele. O primeiro e o último quadro saem idênticos, então o GIF fecha o ciclo sem salto. Os quadros vêm do *screencast* do Chrome (PNG com timestamp) e o `build-clip.mjs` respeita a duração real de cada quadro.
