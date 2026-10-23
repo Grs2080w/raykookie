@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ShareMenu } from '@/components/ShareMenu';
 import { MenuList } from '@/components/site/MenuList';
+import { GoogleTag } from '@/components/site/GoogleTag';
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome';
 import { siteClass } from '@/lib/site-font';
 import { apiPublic } from '@/lib/server-api';
@@ -37,6 +38,7 @@ export default async function Page() {
         <MenuList menu={menu} from="cardapio" />
       </main>
       <SiteFooter />
+      <GoogleTag />
     </div>
   );
 }

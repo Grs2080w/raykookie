@@ -18,11 +18,11 @@ const CSP_ENFORCED = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'
  */
 const CSP_REPORT_ONLY = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com https://va.vercel-scripts.com ${MP}`,
+  `script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com https://va.vercel-scripts.com https://www.googletagmanager.com ${MP}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${MP}`,
+  `img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com ${MP}`,
   "font-src 'self' data:",
-  `connect-src 'self' https://viacep.com.br https://vitals.vercel-insights.com https://va.vercel-scripts.com ${MP}`,
+  `connect-src 'self' https://viacep.com.br https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com ${MP}`,
   `frame-src ${MP}`,
   CSP_ENFORCED,
 ].join('; ');
