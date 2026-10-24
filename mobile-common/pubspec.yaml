@@ -18,7 +18,7 @@ dependencies:
   url_launcher: ^6.3.2
   share_plus: ^13.3.1
   http_parser: ^4.1.2
-  open_filex: ^4.7.0
+  open_filex: ^5.0.0
   crypto: ^3.0.7
 
 dev_dependencies:
