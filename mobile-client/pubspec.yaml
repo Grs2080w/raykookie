@@ -46,7 +46,7 @@ dependencies:
   image_picker: ^1.2.3
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
-  flutter_local_notifications: ^22.3.1
+  flutter_local_notifications: ^22.3.2
   url_launcher: ^6.3.2
   webview_flutter: ^4.14.1
   flutter_svg: ^2.3.0
