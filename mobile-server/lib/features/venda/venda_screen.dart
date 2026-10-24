@@ -11,8 +11,8 @@ import '../../core/pix/venda_store.dart';
 import 'pix_config_screen.dart';
 import 'pix_qr_screen.dart';
 
-/// Venda Presencial: o cardápio inteiro já na tela (lido do aparelho, sem loading). Tocar num produto abre o QR do Pix
-/// estático dele. Nada aqui depende de internet; a cópia do cardápio só é renovada em segundo plano.
+/// Venda Presencial: o cardápio inteiro já na tela (lido do aparelho, sem loading). Tocar num produto pergunta a quantidade e abre o QR do
+/// Pix estático com o total. Nada aqui depende de internet; a cópia do cardápio só é renovada em segundo plano.
 class VendaScreen extends StatefulWidget {
   const VendaScreen({super.key});
   @override
@@ -33,16 +33,25 @@ class _VendaScreenState extends State<VendaScreen> {
     });
   }
 
-  void _open(MenuItem item) {
+  Future<void> _open(MenuItem item) async {
     final cfg = context.read<VendaStore>().config;
     if (cfg == null) {
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PixConfigScreen()));
       return;
     }
+    final qty = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => _QuantitySheet(item),
+    );
+    if (qty == null || !mounted) return;
     final store = context.read<VendaStore>();
     final api = context.read<Session>().ownerApi;
-    store.report('qr_gerado', title: item.name, amount: item.price).then((_) => store.flushEvents(api));
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PixQrScreen(title: item.name, amount: item.price, config: cfg)));
+    // em centavos inteiros, para o total do Pix não herdar erro de ponto flutuante
+    final amount = (item.price * 100).round() * qty / 100;
+    final title = qty > 1 ? '$qty× ${item.name}' : item.name;
+    store.report('qr_gerado', title: title, amount: amount).then((_) => store.flushEvents(api));
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PixQrScreen(title: title, amount: amount, config: cfg)));
   }
 
   @override
@@ -141,6 +150,61 @@ class _ProductTile extends StatelessWidget {
           Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, height: 1.2)),
           Text(money(item.price), style: display(context, size: 22, color: c.pinkStrong)),
         ],
+      ),
+    );
+  }
+}
+
+/// Escolha da quantidade de unidades do produto; devolve o número escolhido ao confirmar.
+class _QuantitySheet extends StatefulWidget {
+  const _QuantitySheet(this.item);
+  final MenuItem item;
+  @override
+  State<_QuantitySheet> createState() => _QuantitySheetState();
+}
+
+class _QuantitySheetState extends State<_QuantitySheet> {
+  static const _max = 99;
+  int _qty = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final total = (widget.item.price * 100).round() * _qty / 100;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.item.name, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+            const SizedBox(height: 4),
+            Text('${money(widget.item.price)} cada', style: TextStyle(color: c.muted, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton.filledTonal(
+                  tooltip: 'Menos uma unidade',
+                  icon: const Icon(Icons.remove_rounded),
+                  onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
+                ),
+                SizedBox(width: 72, child: Text('$_qty', textAlign: TextAlign.center, style: display(context, size: 36, color: c.pinkStrong))),
+                IconButton.filledTonal(
+                  tooltip: 'Mais uma unidade',
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: _qty < _max ? () => setState(() => _qty++) : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            BusyButton(
+              label: 'Gerar QR · ${money(total)}',
+              icon: Icons.qr_code_2_rounded,
+              onPressed: () => Navigator.of(context).pop(_qty),
+            ),
+          ],
+        ),
       ),
     );
   }

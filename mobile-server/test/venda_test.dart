@@ -74,11 +74,28 @@ void main() {
     await open(t);
     await t.tap(find.text('Cookie Red Velvet'));
     await t.pumpAndSettle(const Duration(milliseconds: 100));
+    await t.tap(find.textContaining('Gerar QR'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
     final payload = buildPixPayload(_cfg, 12.5);
     expect(payload, contains('540512.50'));
     expect(find.byKey(ValueKey(payload)), findsOneWidget); // o QR é desenhado com exatamente este "copia e cola"
     expect(find.byType(QrImageView), findsOneWidget);
     expect(find.text('Copiar Pix copia e cola'), findsOneWidget);
+  });
+
+  testWidgets('escolher 3 unidades gera o QR com o valor triplicado', (t) async {
+    await open(t);
+    await t.tap(find.text('Cookie Red Velvet'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
+    await t.tap(find.byIcon(Icons.add_rounded));
+    await t.tap(find.byIcon(Icons.add_rounded));
+    await t.pump();
+    await t.tap(find.textContaining('Gerar QR'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
+    final payload = buildPixPayload(_cfg, 37.5);
+    expect(payload, contains('540537.50'));
+    expect(find.byKey(ValueKey(payload)), findsOneWidget);
+    expect(find.text('3× Cookie Red Velvet'), findsOneWidget);
   });
 
   testWidgets('abre sem pedir biometria mesmo com o app trancado; sair da tela volta a trancar', (t) async {
@@ -127,6 +144,8 @@ void main() {
     final app = await open(t);
     await t.tap(find.text('Cookie Red Velvet'));
     await t.pumpAndSettle(const Duration(milliseconds: 100));
+    await t.tap(find.textContaining('Gerar QR'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
     final queued = app.venda.pendingEvents;
     expect(queued, hasLength(1));
     expect(queued.single['kind'], 'qr_gerado');
@@ -145,6 +164,8 @@ void main() {
       },
     });
     await t.tap(find.text('Cookie Red Velvet'));
+    await t.pumpAndSettle(const Duration(milliseconds: 100));
+    await t.tap(find.textContaining('Gerar QR'));
     await t.pumpAndSettle(const Duration(milliseconds: 100));
     expect(app.venda.pendingEvents, isEmpty);
     final events = (sent.single as Map)['events'] as List;
