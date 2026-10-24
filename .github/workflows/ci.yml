@@ -111,15 +111,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
           cache-dependency-path: backend-java/**/pom.xml
       # O mvnw baixa o Maven com wget, sem retentativa: uma falha de rede derrubava o CD inteiro (PR #71)
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/wrapper
           key: mvnw-${{ hashFiles('backend-java/.mvn/wrapper/maven-wrapper.properties') }}
@@ -135,7 +135,7 @@ jobs:
           fi
       - name: Relatório JaCoCo
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-backend-java
           path: backend-java/**/target/site/jacoco*/
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: sha256 de backend/migrations/*.sql bate com o SHA256SUMS do Java e nenhum arquivo ficou de fora
         run: |
           sums="$PWD/backend-java/platform/persistence/src/main/resources/db/migration/production/SHA256SUMS"
@@ -173,8 +173,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Regera os vetores e compara com os do Java

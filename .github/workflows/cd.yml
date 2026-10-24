@@ -92,7 +92,7 @@ jobs:
       DOWNLOADS_DIR: ${{ vars.RAYKA_DOWNLOADS_DIR || '/home/g_snts/works/raykookie/downloads' }}
       DATA_DIR: ${{ vars.RAYKOOKIE_DATA_DIR || '/home/g_snts/.raykookie' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Builda a imagem candidata (não mexe em "latest" ainda, pra sobrar algo pro rollback)
         run: docker build -t raykookie-api-java:candidate backend-java
       - name: Troca o container (guarda a imagem atual como "previous" para o rollback)
