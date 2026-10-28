@@ -243,9 +243,11 @@ jobs:
           path: artifacts
       - name: Registra os APKs em downloads/ (site e apps leem o manifesto)
         run: |
-          shopt -s nullglob
-          for dir in artifacts/apk-*; do
-            r="$dir/release.json"
+          # com um único artefato o download-artifact extrai direto em artifacts/ (sem subpasta apk-*)
+          mapfile -t releases < <(find artifacts -type f -name release.json | sort)
+          [ "${#releases[@]}" -gt 0 ] || { echo "::error::nenhum release.json encontrado em artifacts/"; exit 1; }
+          for r in "${releases[@]}"; do
+            dir="$(dirname "$r")"
             node infra/ci/publish-prebuilt.mjs \
               --app "$(node -p "require('./$r').app")" --apk "$dir/app.apk" \
               --version "$(node -p "require('./$r').version")" --build "$(node -p "require('./$r').build")" \
@@ -273,7 +275,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          for dir in artifacts/apk-*; do
+          # com um único artefato o download-artifact extrai direto em artifacts/ (sem subpasta apk-*)
+          mapfile -t releases < <(find artifacts -type f -name release.json | sort)
+          [ "${#releases[@]}" -gt 0 ] || { echo "::error::nenhum release.json encontrado em artifacts/"; exit 1; }
+          for release in "${releases[@]}"; do
+            dir="$(dirname "$release")"
             app="$(jq -r .app "$dir/release.json")"; ver="$(jq -r .version "$dir/release.json")"; build="$(jq -r .build "$dir/release.json")"
             sha="$(jq -r .sha256 "$dir/release.json")"
             tag="${app}-v${ver}-b${build}"
