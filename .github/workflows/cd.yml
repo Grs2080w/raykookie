@@ -273,7 +273,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          for dir in artifacts/apk-*; do
+          mapfile -t releases < <(find artifacts -type f -name release.json | sort)
+          [ "${#releases[@]}" -gt 0 ] || { echo "::error::nenhum release.json encontrado em artifacts/"; exit 1; }
+          for release in "${releases[@]}"; do
+            dir="$(dirname "$release")"
             app="$(jq -r .app "$dir/release.json")"; ver="$(jq -r .version "$dir/release.json")"; build="$(jq -r .build "$dir/release.json")"
             sha="$(jq -r .sha256 "$dir/release.json")"
             tag="${app}-v${ver}-b${build}"
