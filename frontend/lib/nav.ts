@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Calculator, ChefHat, ClipboardList, LayoutDashboard, MapPin, MessageSquareHeart, Package, Settings, ShieldCheck, Store, Tags, Target, TicketPercent, Undo2, type LucideIcon } from 'lucide-react';
+import { BarChart3, BookOpen, Boxes, Calculator, ChefHat, ClipboardList, LayoutDashboard, MapPin, MessageSquareHeart, Package, Settings, ShieldCheck, Store, Tags, Target, TicketPercent, Undo2, type LucideIcon } from 'lucide-react';
 
 /** Uma aba do painel. `bar`: posição na barra inferior do celular (1 a 5); sem `bar`, só aparece no menu. */
 export type NavItem = { href: string; label: string; icon: LucideIcon; bar?: number };
@@ -25,7 +25,8 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'estoque',
     title: 'Estoque e compras',
     items: [
-      { href: '/estoque', label: 'Estoque', icon: Package, bar: 2 },
+      { href: '/estoque', label: 'Estoque de ingredientes', icon: Package, bar: 2 },
+      { href: '/estoque-producao', label: 'Estoque de produção', icon: Boxes },
       { href: '/fornecedores', label: 'Fornecedores', icon: Store },
     ],
   },

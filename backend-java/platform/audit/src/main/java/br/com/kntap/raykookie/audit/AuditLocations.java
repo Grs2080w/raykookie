@@ -13,8 +13,9 @@ public final class AuditLocations {
     private static final Map<String, String> BY_PREFIX = new LinkedHashMap<>();
 
     static {
-        BY_PREFIX.put("/api/ingredients", "Gestão > Estoque");
-        BY_PREFIX.put("/api/nota", "Gestão > Estoque > Nota fiscal");
+        BY_PREFIX.put("/api/ingredients", "Gestão > Estoque de ingredientes");
+        BY_PREFIX.put("/api/production", "Gestão > Estoque de produção");
+        BY_PREFIX.put("/api/nota", "Gestão > Estoque de ingredientes > Nota fiscal");
         BY_PREFIX.put("/api/recipes", "Gestão > Receitas");
         BY_PREFIX.put("/api/combos", "Gestão > Cardápio > Combos");
         BY_PREFIX.put("/api/orders", "Gestão > Pedidos");

@@ -61,8 +61,8 @@ class AuditSupportTest {
     @Test
     @DisplayName("telas: cada rota de gestão tem o seu nome e rota desconhecida aparece como a própria rota")
     void locationsComeFromTheRoute() {
-        assertThat(AuditLocations.of("/api/ingredients/7")).isEqualTo("Gestão > Estoque");
-        assertThat(AuditLocations.of("/api/nota/importar")).isEqualTo("Gestão > Estoque > Nota fiscal");
+        assertThat(AuditLocations.of("/api/ingredients/7")).isEqualTo("Gestão > Estoque de ingredientes");
+        assertThat(AuditLocations.of("/api/nota/importar")).isEqualTo("Gestão > Estoque de ingredientes > Nota fiscal");
         assertThat(AuditLocations.of("/api/recipes")).isEqualTo("Gestão > Receitas");
         assertThat(AuditLocations.of("/api/coupons/3")).isEqualTo("Gestão > Cupons");
         assertThat(AuditLocations.of("/api/webhooks/mercadopago")).isEqualTo("Sistema > Webhook Mercado Pago");

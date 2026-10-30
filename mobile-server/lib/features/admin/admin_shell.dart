@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:raykookie_common/core/session.dart';
 
-/// Navegação do painel: Início, Estoque, Receitas, Pedidos e Mais (metas, categorias, custos, devoluções, tema, sair).
+/// Navegação do painel: Início, Estoque de ingredientes, Receitas, Pedidos e Mais (metas, categorias, custos, devoluções, tema, sair).
 /// O "Mais" mostra quantas devoluções aguardam decisão (conferido ao abrir e a cada troca de aba).
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key, required this.shell});
@@ -51,7 +51,8 @@ class _AdminShellState extends State<AdminShell> {
           const NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2_rounded),
-            label: 'Estoque',
+            label: 'Ingredientes',
+            tooltip: 'Estoque de ingredientes',
           ),
           const NavigationDestination(
             icon: Icon(Icons.restaurant_menu_outlined),

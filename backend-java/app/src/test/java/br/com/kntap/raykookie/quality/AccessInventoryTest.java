@@ -37,8 +37,8 @@ class AccessInventoryTest extends PostgresTestBase {
     /** Quantas rotas o Node tem (Apêndice A do plano). */
     private static final int NODE_ROUTES = 111;
 
-    /** Rotas que só existem no Java (versões de receita, combos, cupons, a consulta de status do cartão, a medição de engajamento e o histórico de auditoria). */
-    private static final int JAVA_ONLY_ROUTES = 24;
+    /** Rotas que só existem no Java (versões de receita, combos, cupons, a consulta de status do cartão, a medição de engajamento, o histórico de auditoria e o estoque de produção). */
+    private static final int JAVA_ONLY_ROUTES = 30;
 
     /** Todas as rotas de controller da aplicação. */
     @Autowired
