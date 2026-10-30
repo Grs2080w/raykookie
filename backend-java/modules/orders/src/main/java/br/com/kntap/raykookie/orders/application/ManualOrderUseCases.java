@@ -9,14 +9,18 @@ import br.com.kntap.raykookie.kernel.StoreClock;
 import br.com.kntap.raykookie.kernel.ids.OwnerId;
 import br.com.kntap.raykookie.orders.application.ports.ManualOrders;
 import br.com.kntap.raykookie.orders.application.ports.OrderNumbers;
+import br.com.kntap.raykookie.kernel.InvalidInputException;
 import br.com.kntap.raykookie.orders.domain.ManualOrderForm;
+import br.com.kntap.raykookie.orders.domain.ManualOrderItems;
 import br.com.kntap.raykookie.web.NodeInput;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,19 +95,31 @@ public class ManualOrderUseCases {
     }
 
     /**
-     * Registra um pedido à mão, com o próximo número da dona (mesma trava dos pedidos da loja, G10).
+     * Registra um pedido à mão, com o próximo número da dona (mesma trava dos pedidos da loja, G10). Com {@code items}
+     * no corpo, cada item vira uma linha (com o seu número) e as linhas do pedido compartilham o {@code group_id}.
      *
      * @param owner dona
      * @param body  corpo JSON
-     * @return a linha criada
+     * @return a linha criada (a do primeiro item, quando há vários)
      */
     @Transactional
     public Map<String, Object> create(OwnerId owner, Map<String, Object> body) {
-        ManualOrderForm form = ManualOrderForm.from(body, today());
+
+        // ── 1. Um item só (corpo antigo ou lista de um) é a linha sem grupo.
+        List<ManualOrderItems> items = ManualOrderItems.from(body, today());
+        List<ManualOrderForm> forms = items.isEmpty() ? List.of(ManualOrderForm.from(body, today()))
+                : items.stream().map(ManualOrderItems::form).toList();
+        UUID group = forms.size() > 1 ? UUID.randomUUID() : null;
+
+        // ── 2. Uma linha por item, com o próximo número de cada uma.
         numbers.lock(owner);
-        Map<String, Object> row = orders.create(owner, numbers.next(owner), form);
-        record(owner, "criou", null, row);
-        return row;
+        Map<String, Object> first = null;
+        for (ManualOrderForm form : forms) {
+            Map<String, Object> row = orders.create(owner, numbers.next(owner), form, group);
+            record(owner, "criou", null, row);
+            first = first == null ? row : first;
+        }
+        return first;
     }
 
     /**
@@ -116,6 +132,10 @@ public class ManualOrderUseCases {
      */
     @Transactional
     public Map<String, Object> update(OwnerId owner, long id, Map<String, Object> body) {
+        List<ManualOrderItems> items = ManualOrderItems.from(body, today());
+        if (!items.isEmpty()) {
+            return updateItems(owner, id, items);
+        }
         Map<String, Object> was = line(owner, id);
         Map<String, Object> row = change(owner, id, body);
         record(owner, "editou", was, row);
@@ -172,6 +192,7 @@ public class ManualOrderUseCases {
         Optional<Map<String, Object>> row = orders.quickUpdate(id, owner, status, payment);
         if (row.isPresent()) {
             statusChanges.after(before);
+            followGroup(owner, id, status, payment);
             return row.get();
         }
         throw orders.exists(id, owner) ? new ConflictException(USE_CANCEL) : new NotFoundException(NOT_FOUND);
@@ -212,6 +233,92 @@ public class ManualOrderUseCases {
     }
 
     /**
+     * Troca rápida em pedido com vários itens: as outras linhas do pedido acompanham.
+     *
+     * @param owner   dona
+     * @param id      linha trocada
+     * @param status  situação nova (nula = mantém)
+     * @param payment pagamento novo (nulo = mantém)
+     */
+    private void followGroup(OwnerId owner, long id, String status, String payment) {
+        for (long other : orders.groupLines(id, owner)) {
+            if (other != id) {
+                Map<String, Object> was = line(owner, other);
+                orders.quickUpdate(other, owner, status, payment).ifPresent(row -> record(owner, "editou", was, row));
+            }
+        }
+    }
+
+    /**
+     * Confere que o pedido existe, é à mão e que os ids dos itens enviados são dele.
+     *
+     * @param owner    dona
+     * @param existing linhas do pedido hoje
+     * @param items    itens enviados
+     */
+    private void checkEditable(OwnerId owner, List<Long> existing, List<ManualOrderItems> items) {
+        if (existing.isEmpty()) {
+            throw new NotFoundException(NOT_FOUND);
+        }
+        for (long lineId : existing) {
+            if (orders.appLine(lineId, owner).isPresent()) {
+                throw new ConflictException("Itens e valores de pedido do app não mudam por aqui. Para devolver "
+                        + "parte do valor, use \"Devolver valor\".");
+            }
+        }
+        List<Long> sent = items.stream().map(ManualOrderItems::id).filter(java.util.Objects::nonNull).toList();
+        if (!existing.containsAll(sent) || sent.size() != sent.stream().distinct().count()) {
+            throw new InvalidInputException("Item inválido.");
+        }
+    }
+
+    /**
+     * Edição de pedido à mão com a lista de itens: atualiza os itens que já existem, cria os novos e tira os que
+     * saíram da lista. Pedido do app não muda item nem valor por aqui.
+     *
+     * @param owner dona
+     * @param id    uma das linhas do pedido
+     * @param items itens como ficam depois da edição
+     * @return a linha do primeiro item
+     */
+    private Map<String, Object> updateItems(OwnerId owner, long id, List<ManualOrderItems> items) {
+
+        // ── 1. O pedido é da dona, é à mão e os ids enviados são dele.
+        List<Long> existing = orders.groupLines(id, owner);
+        checkEditable(owner, existing, items);
+
+        // ── 2. Atualiza ou cria cada item, na ordem enviada.
+        numbers.lock(owner);
+        UUID group = items.size() > 1 ? UUID.randomUUID() : null;
+        List<Long> kept = new ArrayList<>();
+        for (ManualOrderItems item : items) {
+            if (item.id() == null) {
+                Map<String, Object> row = orders.create(owner, numbers.next(owner), item.form(), group);
+                record(owner, "criou", null, row);
+                kept.add(((Number) row.get("id")).longValue());
+            } else {
+                Map<String, Object> was = line(owner, item.id());
+                Map<String, Object> row = orders.update(item.id(), owner, item.form())
+                        .orElseThrow(() -> new NotFoundException(NOT_FOUND));
+                orders.followManualShopOrder(item.id(), item.form());
+                record(owner, "editou", was, row);
+                kept.add(item.id());
+            }
+        }
+
+        // ── 3. Quem saiu da lista é excluído; o resto fica no mesmo pedido.
+        for (long lineId : existing) {
+            if (!kept.contains(lineId)) {
+                Map<String, Object> was = line(owner, lineId);
+                orders.delete(lineId, owner);
+                record(owner, "excluiu", was, null);
+            }
+        }
+        orders.setGroup(kept, owner, group);
+        return line(owner, kept.getFirst());
+    }
+
+    /**
      * Exclui um pedido à mão; linha de pedido da loja não some.
      *
      * @param owner dona
@@ -219,13 +326,22 @@ public class ManualOrderUseCases {
      */
     @Transactional
     public void delete(OwnerId owner, long id) {
-        if (orders.appLine(id, owner).isPresent()) {
-            throw new ConflictException("Pedido do app não pode ser excluído. Use \"Cancelar pedido\" se ele não vai "
-                    + "acontecer.");
+
+        // ── 1. Pedido do app não some; pedido com vários itens some inteiro.
+        List<Long> lines = orders.groupLines(id, owner);
+        for (long lineId : lines.isEmpty() ? List.of(id) : lines) {
+            if (orders.appLine(lineId, owner).isPresent()) {
+                throw new ConflictException("Pedido do app não pode ser excluído. Use \"Cancelar pedido\" se ele não "
+                        + "vai acontecer.");
+            }
         }
-        Map<String, Object> was = line(owner, id);
-        orders.delete(id, owner);
-        record(owner, "excluiu", was, null);
+
+        // ── 2. Exclui cada linha, com o histórico de cada uma.
+        for (long lineId : lines.isEmpty() ? List.of(id) : lines) {
+            Map<String, Object> was = line(owner, lineId);
+            orders.delete(lineId, owner);
+            record(owner, "excluiu", was, null);
+        }
     }
 
     /**

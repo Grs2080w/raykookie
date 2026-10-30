@@ -90,6 +90,49 @@ class OrdersWebIT extends OrdersItSupport {
     }
 
     /**
+     * Pedido à mão com vários itens: uma linha por item no mesmo grupo.
+     */
+    @Test
+    @DisplayName("pedido à mão com vários itens: uma linha por item; troca rápida e exclusão valem para o pedido todo")
+    void multiItemOrder() {
+
+        // ── 1. Cria com dois itens: duas linhas no mesmo grupo.
+        Map<String, Object> body = Map.of("customer", "Ana Multi", "items", List.of(
+                Map.of("product", "Bolo", "qty", "1", "unit_price", "50"),
+                Map.of("product", "Brigadeiro", "qty", "10", "unit_price", "3,50")));
+        Response created = as(owner, body).post("/api/orders");
+        assertThat(created.statusCode()).isEqualTo(201);
+        String group = created.jsonPath().getString("group_id");
+        long first = created.jsonPath().getLong("id");
+        assertThat(group).isNotBlank();
+        assertThat(jdbc.sql("SELECT product FROM orders WHERE group_id = CAST(:g AS uuid) ORDER BY id")
+                .param("g", group).query(String.class).list()).containsExactly("Bolo", "Brigadeiro");
+
+        // ── 2. A troca rápida de uma linha vale para as duas.
+        assertThat(as(owner, Map.of("payment", "pago")).patch("/api/orders/" + first).statusCode()).isEqualTo(200);
+        assertThat(jdbc.sql("SELECT count(*) FROM orders WHERE group_id = CAST(:g AS uuid) AND payment = 'pago'")
+                .param("g", group).query(Integer.class).single()).isEqualTo(2);
+
+        // ── 3. Editar com um item só tira o outro e solta o grupo.
+        Map<String, Object> one = Map.of("customer", "Ana Multi", "items", List.of(
+                Map.of("id", first, "product", "Bolo", "qty", "2", "unit_price", "50")));
+        assertThat(as(owner, one).patch("/api/orders/" + first).statusCode()).isEqualTo(200);
+        assertThat(jdbc.sql("SELECT count(*) FROM orders WHERE customer = 'Ana Multi'").query(Integer.class).single())
+                .isEqualTo(1);
+        assertThat(jdbc.sql("SELECT group_id IS NULL FROM orders WHERE id = :id").param("id", first)
+                .query(Boolean.class).single()).isTrue();
+
+        // ── 4. Item novo volta a formar grupo; excluir leva o pedido todo.
+        Map<String, Object> two = Map.of("customer", "Ana Multi", "items", List.of(
+                Map.of("id", first, "product", "Bolo", "qty", "2", "unit_price", "50"),
+                Map.of("product", "Docinho", "qty", "5", "unit_price", "4")));
+        assertThat(as(owner, two).patch("/api/orders/" + first).statusCode()).isEqualTo(200);
+        assertThat(as(owner, Map.of()).delete("/api/orders/" + first).statusCode()).isEqualTo(200);
+        assertThat(jdbc.sql("SELECT count(*) FROM orders WHERE customer = 'Ana Multi'").query(Integer.class).single())
+                .isZero();
+    }
+
+    /**
      * Limites por cliente (G11).
      */
     @Test

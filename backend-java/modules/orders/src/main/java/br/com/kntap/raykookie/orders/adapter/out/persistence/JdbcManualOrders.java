@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -59,14 +60,31 @@ public class JdbcManualOrders implements ManualOrders {
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, Object> create(OwnerId owner, int number, ManualOrderForm form) {
+    public Map<String, Object> create(OwnerId owner, int number, ManualOrderForm form, UUID group) {
         return params(jdbc.sql("""
                 INSERT INTO orders (user_id, number, order_date, customer, recipe_id, product, qty, unit_price,
-                                    delivery_date, status, payment, notes)
+                                    delivery_date, status, payment, notes, group_id)
                 VALUES (:owner, :number, :orderDate, :customer, :recipe, :product, :qty, :price, :delivery, :status,
-                        :payment, :notes)
+                        :payment, :notes, :group)
                 RETURNING *"""), form).param("owner", owner.value()).param("number", number)
-                .query(NodeRows.ROW).single();
+                .param("group", group).query(NodeRows.ROW).single();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<Long> groupLines(long id, OwnerId owner) {
+        return jdbc.sql("""
+                SELECT x.id FROM orders o JOIN orders x ON x.user_id = o.user_id
+                       AND (x.id = o.id OR (o.group_id IS NOT NULL AND x.group_id = o.group_id))
+                 WHERE o.id = :id AND o.user_id = :owner ORDER BY x.id""")
+                .param("id", id).param("owner", owner.value()).query(Long.class).list();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setGroup(List<Long> ids, OwnerId owner, UUID group) {
+        jdbc.sql("UPDATE orders SET group_id = :group WHERE user_id = :owner AND id IN (:ids)")
+                .param("group", group).param("owner", owner.value()).param("ids", ids).update();
     }
 
     /**

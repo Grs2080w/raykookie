@@ -106,6 +106,27 @@ public class PayLinkUseCases {
     }
 
     /**
+     * A linha aceita link: à mão, de um item só, aberta e não paga.
+     *
+     * @param o a linha
+     */
+    private static void checkLinkable(PayLinks.LinkOrder o) {
+        if (o.shopOrderId() != null) {
+            throw new InvalidInputException("Pedido do app: o cliente paga pelo próprio app.");
+        }
+        if (o.grouped()) {
+            throw new InvalidInputException("Pedido com vários itens ainda não gera link de pagamento. "
+                    + "Marque o pagamento no próprio pedido.");
+        }
+        if ("cancelado".equals(o.status())) {
+            throw new ConflictException("Este pedido foi cancelado.");
+        }
+        if ("pago".equals(o.payment())) {
+            throw new ConflictException("Este pedido já está pago.");
+        }
+    }
+
+    /**
      * Cria (ou reaproveita) o link de uma linha registrada à mão.
      *
      * @param owner   dona
@@ -118,15 +139,7 @@ public class PayLinkUseCases {
         // ── 1. A linha: da dona, à mão, aberta e não paga.
         PayLinks.LinkOrder o = links.order(orderId, owner).orElseThrow(() -> new NotFoundException(
                 "Pedido não encontrado."));
-        if (o.shopOrderId() != null) {
-            throw new InvalidInputException("Pedido do app: o cliente paga pelo próprio app.");
-        }
-        if ("cancelado".equals(o.status())) {
-            throw new ConflictException("Este pedido foi cancelado.");
-        }
-        if ("pago".equals(o.payment())) {
-            throw new ConflictException("Este pedido já está pago.");
-        }
+        checkLinkable(o);
 
         // ── 2. Valor de R$ 0,01 até o total.
         Money total = Money.fromDecimal(o.total().setScale(2, java.math.RoundingMode.HALF_UP));

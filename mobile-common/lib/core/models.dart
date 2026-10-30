@@ -51,9 +51,11 @@ class OrderModel {
     required this.id, required this.number, required this.orderDate, required this.customer, this.recipeId, required this.product,
     required this.qty, required this.unitPrice, this.deliveryDate, required this.status, required this.payment, required this.notes, this.address = '',
     this.shopOrderId, this.shopCode, this.shopPaid = false, this.shopTotal = 0, this.shopRefunded = 0, this.shopCancel, this.shopRefund,
-    this.shopPaymentMethod, this.shopInstallments = 1,
+    this.shopPaymentMethod, this.shopInstallments = 1, this.groupId,
   });
   final int id, number;
+  /// Pedido com vários itens: as linhas do mesmo pedido compartilham o `groupId` (nulo = um item só).
+  final String? groupId;
   final int? shopOrderId, shopCode; // pedido online: id interno e o número que o cliente vê
   final bool shopPaid;
   final double shopTotal, shopRefunded; // pedido online: total e quanto já foi devolvido
@@ -68,16 +70,37 @@ class OrderModel {
   final double qty, unitPrice;
   double get total => qty * unitPrice;
   /// Pedido registrado à mão (não veio do app), ainda não pago e não cancelado: dá para mandar um link de pagamento Pix.
-  bool get canPayLink => shopOrderId == null && status != 'cancelado' && payment != 'pago';
+  bool get canPayLink => shopOrderId == null && groupId == null && status != 'cancelado' && payment != 'pago';
   factory OrderModel.fromJson(Map<String, dynamic> j) => OrderModel(
         id: _i(j['id'])!, number: _i(j['number']) ?? 0, orderDate: _s(j['order_date']), customer: _s(j['customer']), recipeId: _i(j['recipe_id']),
         product: _s(j['product']), qty: _d(j['qty']), unitPrice: _d(j['unit_price']), deliveryDate: j['delivery_date'] as String?,
         status: _s(j['status']), payment: _s(j['payment']), notes: _s(j['notes']), address: _s(j['address']),
         shopOrderId: _i(j['shop_order_id']), shopCode: _i(j['shop_code']), shopPaid: j['shop_paid'] == true, shopTotal: _d(j['shop_total']), shopRefunded: _d(j['shop_refunded']),
-        shopPaymentMethod: j['shop_payment_method'] as String?, shopInstallments: _i(j['shop_installments']) ?? 1,
+        shopPaymentMethod: j['shop_payment_method'] as String?, shopInstallments: _i(j['shop_installments']) ?? 1, groupId: j['group_id'] as String?,
         shopCancel: j['shop_cancel'] is Map ? Map<String, dynamic>.from(j['shop_cancel'] as Map) : null,
         shopRefund: j['shop_refund'] is Map ? Map<String, dynamic>.from(j['shop_refund'] as Map) : null,
       );
+}
+
+/// Junta as linhas do mesmo pedido (mesmo `groupId`) numa lista só, na posição da primeira; as demais ficam sozinhas.
+List<List<OrderModel>> groupOrders(List<OrderModel> lines) {
+  final out = <List<OrderModel>>[];
+  final byGroup = <String, List<OrderModel>>{};
+  for (final o in lines) {
+    final g = o.groupId;
+    if (g == null) {
+      out.add([o]);
+    } else if (byGroup[g] case final found?) {
+      found.add(o);
+    } else {
+      final first = byGroup[g] = [o];
+      out.add(first);
+    }
+  }
+  for (final g in out) {
+    g.sort((a, b) => a.id.compareTo(b.id)); // itens na ordem em que foram lançados
+  }
+  return out;
 }
 
 class RecipeItem {

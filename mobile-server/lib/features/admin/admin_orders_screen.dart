@@ -58,11 +58,11 @@ class _OrdersViewState extends State<_OrdersView> {
 
   ApiClient get _api => context.read<Session>().ownerApi;
 
-  Future<void> _edit([OrderModel? o]) async {
+  Future<void> _edit([List<OrderModel>? lines]) async {
     final saved = await showFormSheet<bool>(
       context,
-      title: o == null ? 'Novo pedido' : 'Editar pedido',
-      child: OrderFormSheet(existing: o, recipes: widget.data.recipes),
+      title: lines == null ? 'Novo pedido' : 'Editar pedido',
+      child: OrderFormSheet(lines: lines ?? const [], recipes: widget.data.recipes),
     );
     if (saved == true) await widget.reload();
   }
@@ -76,10 +76,10 @@ class _OrdersViewState extends State<_OrdersView> {
     }
   }
 
-  Future<void> _delete(OrderModel o) async {
+  Future<void> _delete(OrderModel o, int items) async {
     if (!await confirmDialog(
       context,
-      title: 'Excluir o pedido ${o.number}?',
+      title: items > 1 ? 'Excluir o pedido de ${o.customer} (os $items itens)?' : 'Excluir o pedido ${o.number}?',
       message: 'Ele deixa de contar nas metas do mês. Para manter o histórico, prefira marcar como Cancelado.',
     ))
       return;
@@ -96,22 +96,24 @@ class _OrdersViewState extends State<_OrdersView> {
   Widget build(BuildContext context) {
     final c = context.c;
     final orders = widget.data.orders;
+    // pedido com vários itens: as linhas do mesmo pedido viram um card só (situação e pagamento valem para todas)
+    final entries = groupOrders(orders);
     final counts = {
       for (final s in orderStatus)
-        s.$1: orders.where((o) => o.status == s.$1).length,
+        s.$1: entries.where((g) => g.first.status == s.$1).length,
     };
-    final rows = orders
+    final rows = entries
         .where(
-          (o) =>
-              (_filter == 'all' || o.status == _filter) &&
+          (g) =>
+              (_filter == 'all' || g.first.status == _filter) &&
               (_search.isEmpty ||
-                  '${o.customer} ${o.product} ${o.number}'
+                  g.any((o) => '${o.customer} ${o.product} ${o.number}'
                       .toLowerCase()
-                      .contains(_search.toLowerCase())),
+                      .contains(_search.toLowerCase()))),
         )
         .toList();
-    final open = orders
-        .where((o) => !['entregue', 'cancelado'].contains(o.status))
+    final open = entries
+        .where((g) => !['entregue', 'cancelado'].contains(g.first.status))
         .length;
     // devoluções aguardando (um pedido do app tem uma linha por item: conta o pedido uma vez)
     final waiting = {for (final o in orders) if (o.refundWaiting) o.shopOrderId}.length;
@@ -173,7 +175,7 @@ class _OrdersViewState extends State<_OrdersView> {
             const SizedBox(width: 8),
             stat('A receber', money(receivable)),
             const SizedBox(width: 8),
-            stat('Total', '${orders.length}'),
+            stat('Total', '${entries.length}'),
           ],
         ),
         const SizedBox(height: 14),
@@ -196,7 +198,7 @@ class _OrdersViewState extends State<_OrdersView> {
           child: Row(
             children: [
               for (final (id, label, n) in [
-                ('all', 'Todos', orders.length),
+                ('all', 'Todos', entries.length),
                 for (final s in orderStatus) (s.$1, s.$2, counts[s.$1] ?? 0),
               ]) ...[
                 ChoiceChip(
@@ -210,11 +212,11 @@ class _OrdersViewState extends State<_OrdersView> {
           ),
         ),
         const SizedBox(height: 14),
-        if (orders.isEmpty)
+        if (entries.isEmpty)
           EmptyState(
             icon: Icons.receipt_long_outlined,
             title: 'Nenhum pedido registrado',
-            text: 'Registre a primeira encomenda. Se escolher uma receita, o preço já vem preenchido.',
+            text: 'Registre a primeira encomenda. Adicione um item por produto; se escolher uma receita, o preço já vem preenchido.',
             action: BusyButton(
               label: 'Novo pedido',
               expand: false,
@@ -237,7 +239,7 @@ class _OrdersViewState extends State<_OrdersView> {
             ),
           )
         else
-          for (final o in rows) _orderCard(context, o),
+          for (final g in rows) _orderCard(context, g),
       ],
     );
   }
@@ -376,8 +378,10 @@ class _OrdersViewState extends State<_OrdersView> {
     ];
   }
 
-  Widget _orderCard(BuildContext context, OrderModel o) {
+  Widget _orderCard(BuildContext context, List<OrderModel> lines) {
     final c = context.c;
+    final o = lines.first;
+    final total = lines.fold<double>(0, (sum, l) => sum + l.total);
     final st = orderStatus.where((s) => s.$1 == o.status).firstOrNull;
     final pay = orderPayment.where((s) => s.$1 == o.payment).firstOrNull;
     final shop = o.shopOrderId != null;
@@ -441,10 +445,11 @@ class _OrdersViewState extends State<_OrdersView> {
                           fontSize: 16,
                         ),
                       ),
-                      Text(
-                        '${number(o.qty)}× ${o.product}',
-                        style: TextStyle(color: c.muted, fontSize: 13.5),
-                      ),
+                      for (final l in lines)
+                        Text(
+                          lines.length > 1 ? '${number(l.qty)}× ${l.product} · ${money(l.total)}' : '${number(l.qty)}× ${l.product}',
+                          style: TextStyle(color: c.muted, fontSize: 13.5),
+                        ),
                       if (o.shopOrderId != null && o.shopPaymentMethod != null)
                         Text(
                           paymentLabel(o.shopPaymentMethod!) + (o.shopPaymentMethod == 'cartao' && o.shopInstallments > 1 ? ' · ${o.shopInstallments}x' : ''),
@@ -456,7 +461,7 @@ class _OrdersViewState extends State<_OrdersView> {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
-                    money(o.total),
+                    money(total),
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
@@ -541,13 +546,13 @@ class _OrdersViewState extends State<_OrdersView> {
                 // pedido do app: não some da gestão (a cliente continua vendo) e, encerrado, não muda mais
                 if (!shopClosed)
                   IconButton(
-                    onPressed: () => _edit(o),
+                    onPressed: () => _edit(lines),
                     icon: const Icon(Icons.edit_outlined),
                     tooltip: 'Editar pedido ${o.number}',
                   ),
                 if (!shop)
                   IconButton(
-                    onPressed: () => _delete(o),
+                    onPressed: () => _delete(o, lines.length),
                     icon: Icon(Icons.delete_outline_rounded, color: c.bad),
                     tooltip: 'Excluir pedido ${o.number}',
                   ),
@@ -562,50 +567,72 @@ class _OrdersViewState extends State<_OrdersView> {
 
 /// Formulário de pedido (novo ou edição).
 class OrderFormSheet extends StatefulWidget {
-  const OrderFormSheet({super.key, this.existing, required this.recipes});
-  final OrderModel? existing;
+  const OrderFormSheet({super.key, this.lines = const [], required this.recipes});
+
+  /// Itens do pedido que está sendo editado (vazio = pedido novo).
+  final List<OrderModel> lines;
   final List<RecipeRow> recipes;
   @override
   State<OrderFormSheet> createState() => _OrderFormSheetState();
 }
 
+/// Um item do pedido em edição: a receita escolhida (ou produto avulso), o produto, a quantidade e o preço unitário.
+class _ItemDraft {
+  _ItemDraft({this.id, this.recipe, String product = '', String qty = '1', String price = ''})
+    : product = TextEditingController(text: product),
+      qty = TextEditingController(text: qty),
+      price = TextEditingController(text: price);
+
+  /// Linha que o item já tem no banco (nulo = item novo).
+  final int? id;
+  int? recipe;
+  final TextEditingController product, qty, price;
+
+  /// Quantidade × preço unitário.
+  double get total => parseNum(qty.text) * parseNum(price.text);
+
+  void dispose() {
+    for (final c in [product, qty, price]) {
+      c.dispose();
+    }
+  }
+}
+
 class _OrderFormSheetState extends State<OrderFormSheet> {
-  late final _customer = TextEditingController(
-    text: widget.existing?.customer ?? '',
-  );
-  late final _product = TextEditingController(
-    text: widget.existing?.product ?? '',
-  );
-  late final _qty = TextEditingController(
-    text: widget.existing == null ? '1' : fieldNum(widget.existing!.qty),
-  );
-  late final _price = TextEditingController(
-    text: widget.existing == null ? '' : fieldNum(widget.existing!.unitPrice),
-  );
-  late final _notes = TextEditingController(text: widget.existing?.notes ?? '');
-  late int? _recipe = widget.existing?.recipeId;
-  late String _orderDate = widget.existing?.orderDate ?? todayIso();
-  late String _delivery = widget.existing?.deliveryDate ?? '';
-  late String _status = widget.existing?.status ?? 'novo';
-  late String _payment = widget.existing?.payment ?? 'pendente';
-  late final bool _shop = widget.existing?.shopOrderId != null;
+  OrderModel? get _existing => widget.lines.firstOrNull;
+  late final _customer = TextEditingController(text: _existing?.customer ?? '');
+  late final _notes = TextEditingController(text: _existing?.notes ?? '');
+  late final List<_ItemDraft> _items = widget.lines.isEmpty
+      ? [_ItemDraft()]
+      : [
+          for (final l in widget.lines)
+            _ItemDraft(id: l.id, recipe: l.recipeId, product: l.product, qty: fieldNum(l.qty), price: fieldNum(l.unitPrice)),
+        ];
+  late String _orderDate = _existing?.orderDate ?? todayIso();
+  late String _delivery = _existing?.deliveryDate ?? '';
+  late String _status = _existing?.status ?? 'novo';
+  late String _payment = _existing?.payment ?? 'pendente';
+  late final bool _shop = _existing?.shopOrderId != null;
   bool _busy = false;
 
   @override
   void dispose() {
-    for (final c in [_customer, _product, _qty, _price, _notes]) {
+    for (final c in [_customer, _notes]) {
       c.dispose();
+    }
+    for (final i in _items) {
+      i.dispose();
     }
     super.dispose();
   }
 
-  void _pickRecipe(int? id) {
+  void _pickRecipe(_ItemDraft item, int? id) {
     setState(() {
-      _recipe = id;
+      item.recipe = id;
       final r = widget.recipes.where((x) => x.id == id).firstOrNull;
       if (r != null) {
-        _product.text = r.name;
-        _price.text = fieldNum(r.pricing?.rounded ?? 0);
+        item.product.text = r.name;
+        item.price.text = fieldNum(r.pricing?.rounded ?? 0);
       }
     });
   }
@@ -624,34 +651,51 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
     return d == null ? (allowEmpty ? '' : null) : todayIso(d);
   }
 
+  /// Os campos de uma linha do pedido, como a API os recebe.
+  Map<String, String> _line(_ItemDraft item) => {
+    'recipe_id': item.recipe?.toString() ?? '',
+    'product': item.product.text,
+    'qty': item.qty.text,
+    'unit_price': item.price.text,
+  };
+
   Future<void> _save() async {
     if (_customer.text.trim().isEmpty)
       return Toast.error('Informe o nome do cliente.');
-    if (_product.text.trim().isEmpty) return Toast.error('Informe o produto.');
-    if (parseNum(_qty.text) <= 0)
-      return Toast.error('A quantidade precisa ser maior que zero.');
+    for (final (i, item) in _items.indexed) {
+      final where = _items.length > 1 ? ' do item ${i + 1}' : '';
+      if (item.product.text.trim().isEmpty) {
+        return Toast.error('Informe o produto$where.');
+      }
+      if (parseNum(item.qty.text) <= 0) {
+        return Toast.error('A quantidade$where precisa ser maior que zero.');
+      }
+    }
     final body = {
       'order_date': _orderDate,
       'customer': _customer.text,
-      'recipe_id': _recipe?.toString() ?? '',
-      'product': _product.text,
-      'qty': _qty.text,
-      'unit_price': _price.text,
       'delivery_date': _delivery,
       'status': _status,
       'payment': _payment,
       'notes': _notes.text,
+      // pedido do app não muda item nem valor: segue pelo formato de uma linha só (o servidor confere que não mudou)
+      if (_shop)
+        ..._line(_items.first)
+      else
+        'items': [
+          for (final item in _items) {if (item.id != null) 'id': item.id, ..._line(item)},
+        ],
     };
     final api = context.read<Session>().ownerApi;
     setState(() => _busy = true);
     try {
-      if (widget.existing == null) {
+      if (_existing == null) {
         await api.post('/api/orders', body);
       } else {
-        await api.patch('/api/orders/${widget.existing!.id}', body);
+        await api.patch('/api/orders/${_existing!.id}', body);
       }
       Toast.ok(
-        widget.existing == null ? 'Pedido registrado' : 'Pedido atualizado',
+        _existing == null ? 'Pedido registrado' : 'Pedido atualizado',
       );
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
@@ -659,6 +703,90 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Cartão de um item do pedido: receita (ou produto avulso), produto, quantidade, preço e o subtotal do item.
+  Widget _itemEditor(int index, _ItemDraft item) {
+    final c = context.c;
+    final many = _items.length > 1;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.surface2,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (many)
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Item ${index + 1}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                ),
+                IconButton(
+                  onPressed: () => setState(() {
+                    _items.removeAt(index).dispose();
+                  }),
+                  icon: Icon(Icons.delete_outline_rounded, color: c.bad),
+                  tooltip: 'Tirar o item ${index + 1}',
+                ),
+              ],
+            ),
+          SelectField<int?>(
+            label: 'Receita (opcional)',
+            hint: 'Preenche o produto e o preço sugerido.',
+            value: item.recipe,
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Produto avulso')),
+              for (final r in widget.recipes)
+                DropdownMenuItem(
+                  value: r.id,
+                  child: Text(
+                    '${r.name} · ${money(r.pricing?.rounded ?? 0)}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: (v) => _pickRecipe(item, v),
+          ),
+          const SizedBox(height: 14),
+          AppTextField(
+            label: 'Produto',
+            controller: item.product,
+            maxLength: 100,
+            capitalization: TextCapitalization.sentences,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: NumberField(
+                  label: 'Quantidade',
+                  controller: item.qty,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: NumberField(
+                  label: 'Preço unitário (R\$)',
+                  controller: item.price,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ],
+          ),
+          if (many)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text('Subtotal ${money(item.total)}', style: TextStyle(color: c.muted, fontWeight: FontWeight.w700)),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _dateField(String label, String value, VoidCallback onTap) =>
@@ -682,7 +810,7 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final total = parseNum(_qty.text) * parseNum(_price.text);
+    final total = _items.fold<double>(0, (sum, i) => sum + i.total);
     return Column(
       children: [
         AppTextField(
@@ -700,7 +828,7 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
             decoration: BoxDecoration(color: c.surface2, borderRadius: BorderRadius.circular(16)),
             child: Text.rich(
               TextSpan(children: [
-                TextSpan(text: '${number(widget.existing!.qty)}× ${widget.existing!.product}\n', style: const TextStyle(fontWeight: FontWeight.w800)),
+                TextSpan(text: '${number(_existing!.qty)}× ${_existing!.product}\n', style: const TextStyle(fontWeight: FontWeight.w800)),
                 TextSpan(
                   text: 'Pedido do app: item e valor não mudam aqui. Para devolver parte do valor, use "Devolver valor" no card.',
                   style: TextStyle(color: c.muted, fontSize: 13.5),
@@ -710,50 +838,12 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
             ),
           )
         else ...[
-        SelectField<int?>(
-          label: 'Receita (opcional)',
-          hint: 'Preenche o produto e o preço sugerido.',
-          value: _recipe,
-          items: [
-            const DropdownMenuItem(value: null, child: Text('Produto avulso')),
-            for (final r in widget.recipes)
-              DropdownMenuItem(
-                value: r.id,
-                child: Text(
-                  '${r.name} · ${money(r.pricing?.rounded ?? 0)}',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
-          onChanged: _pickRecipe,
-        ),
-        const SizedBox(height: 14),
-        AppTextField(
-          label: 'Produto',
-          controller: _product,
-          maxLength: 100,
-          capitalization: TextCapitalization.sentences,
-        ),
-        const SizedBox(height: 14),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: NumberField(
-                label: 'Quantidade',
-                controller: _qty,
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: NumberField(
-                label: 'Preço unitário (R\$)',
-                controller: _price,
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-          ],
+        for (final (i, item) in _items.indexed) _itemEditor(i, item),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _items.add(_ItemDraft())),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 46)),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Adicionar item'),
         ),
         ],
         const SizedBox(height: 12),
@@ -767,7 +857,7 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
             children: [
               Expanded(
                 child: Text(
-                  'Total do pedido',
+                  _items.length > 1 ? 'Total do pedido (${_items.length} itens)' : 'Total do pedido',
                   style: TextStyle(
                     color: c.pinkStrong,
                     fontWeight: FontWeight.w600,
