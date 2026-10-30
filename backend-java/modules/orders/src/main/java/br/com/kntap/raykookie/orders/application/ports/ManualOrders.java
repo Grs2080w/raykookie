@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Linhas da tela Pedidos (tabela {@code orders}), registradas à mão ou espelhando pedidos da loja.
@@ -26,9 +27,28 @@ public interface ManualOrders {
      * @param owner  dona
      * @param number número do pedido
      * @param form   dados
+     * @param group  pedido com vários itens a que a linha pertence (nulo = pedido de um item só)
      * @return a linha criada
      */
-    Map<String, Object> create(OwnerId owner, int number, ManualOrderForm form);
+    Map<String, Object> create(OwnerId owner, int number, ManualOrderForm form, UUID group);
+
+    /**
+     * Ids das linhas do mesmo pedido que a linha, em ordem (só ela, se o pedido tem um item só).
+     *
+     * @param id    linha
+     * @param owner dona
+     * @return os ids; vazio se a linha não for da dona
+     */
+    List<Long> groupLines(long id, OwnerId owner);
+
+    /**
+     * Liga as linhas ao mesmo pedido (ou solta, com nulo).
+     *
+     * @param ids   linhas
+     * @param owner dona
+     * @param group pedido (nulo = pedido de um item só)
+     */
+    void setGroup(List<Long> ids, OwnerId owner, UUID group);
 
     /**
      * A linha, se espelha um pedido da loja.

@@ -42,11 +42,12 @@ public class JdbcPayLinks implements PayLinks {
     @Override
     public Optional<LinkOrder> order(long orderId, OwnerId owner) {
         return jdbc.sql("""
-                SELECT status, payment, shop_order_id, qty * unit_price AS total FROM orders
+                SELECT status, payment, shop_order_id, qty * unit_price AS total, group_id IS NOT NULL AS grouped
+                  FROM orders
                  WHERE id = :id AND user_id = :owner""")
                 .param("id", orderId).param("owner", owner.value())
                 .query((rs, row) -> new LinkOrder(rs.getString(1), rs.getString(2),
-                        rs.getObject(3) == null ? null : rs.getLong(3), rs.getBigDecimal(4)))
+                        rs.getObject(3) == null ? null : rs.getLong(3), rs.getBigDecimal(4), rs.getBoolean(5)))
                 .optional();
     }
 

@@ -6,6 +6,7 @@ import 'package:raykookie_common/core/session.dart';
 import 'package:raykookie_common/ui/share_menu.dart';
 import 'package:raykookie_gestao/core/biometric.dart';
 import 'package:raykookie_gestao/core/push.dart';
+import 'package:raykookie_gestao/features/admin/admin_orders_screen.dart';
 
 import 'helpers.dart';
 
@@ -150,6 +151,41 @@ void main() {
     testWidgets('o botão só aparece em pedido registrado à mão, não pago e não cancelado (pendente ou sinal)', (t) async {
       await open(t, [order(5), order(6, payment: 'sinal'), order(7, payment: 'pago'), order(8, shop: 3), order(9, status: 'cancelado')]);
       expect(find.text(share, skipOffstage: false), findsNWidgets(2));
+    });
+
+    testWidgets('pedido com vários itens: um card só com o total somado e sem link de pagamento', (t) async {
+      Map<String, dynamic> item(int id, String product, num qty, num price) =>
+          {...order(id, qty: qty, price: price), 'product': product, 'group_id': 'g1'};
+      await open(t, [item(6, 'Brigadeiro', 10, 3.5), item(5, 'Bolo', 2, 50)]);
+      expect(find.textContaining('2× Bolo', skipOffstage: false), findsOneWidget);
+      expect(find.textContaining('10× Brigadeiro', skipOffstage: false), findsOneWidget);
+      expect(find.textContaining('135,00', skipOffstage: false), findsNWidgets(2)); // o total do pedido (card e "A receber")
+      expect(find.text(share, skipOffstage: false), findsNothing);
+    });
+
+    testWidgets('novo pedido: adicionar item manda a lista de itens para a API', (t) async {
+      final be = await open(t, [], extra: {'POST /api/orders': (_) => (201, {'id': 1})});
+      await t.tap(find.text('Novo pedido').first);
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('Adicionar item'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      final fields = find.descendant(of: find.byType(OrderFormSheet), matching: find.byType(TextField));
+      await t.enterText(fields.at(0), 'Ana');
+      await t.enterText(fields.at(1), 'Bolo');
+      await t.enterText(fields.at(3), '50');
+      await t.enterText(fields.at(4), 'Docinho');
+      await t.enterText(fields.at(5), '10');
+      await t.enterText(fields.at(6), '3,5');
+      await t.pump();
+      expect(find.textContaining('Total do pedido (2 itens)'), findsOneWidget);
+      await t.ensureVisible(find.text('Salvar pedido'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Salvar pedido'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      final body = be.bodies['POST /api/orders'] as Map;
+      expect(body['customer'], 'Ana');
+      expect((body['items'] as List).map((i) => (i as Map)['product']), ['Bolo', 'Docinho']);
+      expect(((body['items'] as List)[1] as Map)['qty'], '10');
     });
 
     testWidgets('compartilhar: o valor editado vai para a API e a mensagem leva o link', (t) async {

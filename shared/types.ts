@@ -13,6 +13,7 @@ export type Order = {
   id: number; number: number; order_date: string; customer: string; recipe_id: number | null; product: string;
   qty: number; unit_price: number; delivery_date: string | null; status: string; payment: string; notes: string;
   address: string; // endereço de entrega (ou "Retirada no local") dos pedidos online; vazio nos pedidos manuais
+  group_id?: string | null; // pedido manual com vários itens: as linhas do mesmo pedido compartilham o group_id (nulo = um item só)
   shop_order_id?: number | null; shop_code?: number | null; // pedido online: id interno e número que o cliente vê
   shop_paid?: boolean; shop_total?: number | null; shop_refunded?: number | null; // pedido online: pago? total e quanto já foi devolvido
   shop_payment_method?: string | null; shop_installments?: number | null; // pedido online: pix, cartao (com quantas parcelas) ou dinheiro
