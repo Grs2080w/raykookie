@@ -85,70 +85,99 @@ public class ProductionUseCases {
         // ── 1. Uma linha por receita, com custo, preço, lucro e quantas unidades o estoque de ingredientes cobre.
         Map<Long, Map<String, Object>> byId = ingredientsById(owner);
         Map<Long, BigDecimal> stock = store.recipeStock(owner);
-        List<Map<String, Object>> rows = new ArrayList<>();
+        List<StockLine> lines = new ArrayList<>();
         for (PricedRecipe recipe : pricing.priced(owner)) {
-            rows.add(row(recipe, byId, stock.getOrDefault(recipe.id(), BigDecimal.ZERO)));
+            lines.add(line(recipe, byId, stock.getOrDefault(recipe.id(), BigDecimal.ZERO)));
         }
 
-        // ── 2. Resumo: unidades, custo, receita e lucro do que está pronto.
+        // ── 2. Resumo do que está pronto, somado em BigDecimal e arredondado ao centavo só no fim.
+        BigDecimal units = BigDecimal.ZERO;
+        BigDecimal cost = BigDecimal.ZERO;
+        BigDecimal revenue = BigDecimal.ZERO;
+        BigDecimal profit = BigDecimal.ZERO;
+        for (StockLine l : lines) {
+            units = units.add(l.qty());
+            cost = cost.add(l.qty().multiply(orZero(l.unitCost())));
+            revenue = revenue.add(l.qty().multiply(orZero(l.price())));
+            profit = profit.add(l.qty().multiply(orZero(l.profit())));
+        }
         Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("units", sum(rows, "qty", null));
-        summary.put("cost", sum(rows, "qty", "unit_cost"));
-        summary.put("revenue", sum(rows, "qty", "price"));
-        summary.put("profit", sum(rows, "qty", "profit_unit"));
-        return Map.of("recipes", rows, "summary", summary);
+        summary.put("units", units.doubleValue());
+        summary.put("cost", cost.setScale(2, RoundingMode.HALF_UP).doubleValue());
+        summary.put("revenue", revenue.setScale(2, RoundingMode.HALF_UP).doubleValue());
+        summary.put("profit", profit.setScale(2, RoundingMode.HALF_UP).doubleValue());
+        return Map.of("recipes", lines.stream().map(StockLine::json).toList(), "summary", summary);
     }
 
     /**
-     * Soma de {@code a} (× {@code b}, se houver) das linhas; valor ausente conta como 0.
+     * Uma receita no estoque de produção: a linha da API e os valores exatos que entram no resumo.
      *
-     * @param rows linhas
-     * @param a    primeira coluna
-     * @param b    segunda coluna (nulo = só a primeira)
-     * @return a soma
+     * @param json     a linha como a API devolve
+     * @param qty      unidades prontas
+     * @param unitCost custo por unidade (nulo = receita sem ingredientes)
+     * @param price    preço do cardápio (nulo = sem preço)
+     * @param profit   lucro por unidade (nulo se faltar custo ou preço)
      */
-    private static double sum(List<Map<String, Object>> rows, String a, String b) {
-        double total = 0;
-        for (Map<String, Object> r : rows) {
-            double x = r.get(a) instanceof Number n ? n.doubleValue() : 0;
-            double y = b == null ? 1 : r.get(b) instanceof Number n ? n.doubleValue() : 0;
-            total += x * y;
-        }
-        return Math.round(total * 100) / 100.0;
+    private record StockLine(Map<String, Object> json, BigDecimal qty, BigDecimal unitCost, BigDecimal price,
+            BigDecimal profit) {
+    }
+
+    /**
+     * Valor ausente conta como zero nas somas.
+     *
+     * @param value valor ou nulo
+     * @return o valor, ou zero
+     */
+    private static BigDecimal orZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    /**
+     * Número da API (nulo continua nulo).
+     *
+     * @param value valor exato ou nulo
+     * @return o valor como número do JSON
+     */
+    private static Double json(BigDecimal value) {
+        return value == null ? null : value.doubleValue();
     }
 
     /**
      * A linha de uma receita no estoque de produção. O custo por unidade é o dos ingredientes de uma receita inteira
      * dividido pelo rendimento (a quantidade de um ingrediente por unidade é pequena demais para arredondar sozinha).
+     * Custo, preço, lucro e margem são calculados em {@link BigDecimal}; só viram número na hora de montar o JSON.
      *
      * @param recipe receita precificada
      * @param byId   ingredientes por id
      * @param qty    unidades prontas
      * @return a linha
      */
-    private Map<String, Object> row(PricedRecipe recipe, Map<Long, Map<String, Object>> byId, BigDecimal qty) {
+    private StockLine line(PricedRecipe recipe, Map<Long, Map<String, Object>> byId, BigDecimal qty) {
 
-        // ── 1. Uma receita inteira: custo por unidade e preço.
-        Map<Long, BigDecimal> stock = stockOf(byId);
+        // ── 1. Uma receita inteira: custo por unidade, preço, lucro e margem.
         BigDecimal yield = new BigDecimal(String.valueOf(recipe.row().get("yield_units")));
-        ProductionPlan batch = ProductionPlan.of(recipe.row(), byId, stock, yield);
+        ProductionPlan batch = ProductionPlan.of(recipe.row(), byId, stockOf(byId), yield);
         boolean hasItems = !batch.lines().isEmpty() && yield.signum() > 0;
-        double price = recipe.pricing().rounded();
-        Double unitCost = hasItems ? batch.cost().divide(yield, 4, RoundingMode.HALF_UP).doubleValue() : null;
-        Double profit = unitCost != null && price > 0 ? Math.round((price - unitCost) * 100) / 100.0 : null;
+        BigDecimal rounded = BigDecimal.valueOf(recipe.pricing().rounded()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal price = rounded.signum() > 0 ? rounded : null;
+        BigDecimal unitCost = hasItems ? batch.cost().divide(yield, 4, RoundingMode.HALF_UP) : null;
+        BigDecimal profit = unitCost != null && price != null
+                ? price.subtract(unitCost).setScale(2, RoundingMode.HALF_UP) : null;
+        BigDecimal margin = profit == null ? null
+                : profit.multiply(BigDecimal.valueOf(100)).divide(price, 1, RoundingMode.HALF_UP);
 
         // ── 2. A linha da API (nulo onde não há ingrediente ou preço).
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("recipe_id", recipe.id());
         out.put("name", recipe.name());
         out.put("qty", qty.doubleValue());
-        out.put("unit_cost", unitCost);
-        out.put("price", price > 0 ? price : null);
-        out.put("profit_unit", profit);
-        out.put("margin_pct", profit == null ? null : Math.round(profit / price * 1000) / 10.0);
+        out.put("unit_cost", json(unitCost));
+        out.put("price", json(price));
+        out.put("profit_unit", json(profit));
+        out.put("margin_pct", json(margin));
         out.put("can_make", hasItems ? canMake(batch, yield) : null);
         out.put("blocking", hasItems ? blocking(batch, yield) : List.of());
-        return out;
+        return new StockLine(out, qty, unitCost, price, profit);
     }
 
     /**
@@ -343,7 +372,7 @@ public class ProductionUseCases {
                 Map.<String, Object>of("qty", was), Map.<String, Object>of("qty", qty),
                 "Estoque de produção de " + recipe.name() + ": " + was.stripTrailingZeros().toPlainString()
                         + " para " + qty.stripTrailingZeros().toPlainString()));
-        return row(recipe, ingredientsById(owner), qty);
+        return line(recipe, ingredientsById(owner), qty).json();
     }
 
     /**

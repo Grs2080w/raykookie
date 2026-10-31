@@ -93,12 +93,16 @@ class _ProductionViewState extends State<_ProductionView> {
       title: 'Registrar produção',
       child: ProduceSheet(rows: widget.data.rows, initial: row?.id),
     );
-    if (done == true) await widget.reload();
+    if (done == true) {
+      await widget.reload();
+    }
   }
 
   Future<void> _adjust(ProductionRow r) async {
     final done = await showFormSheet<bool>(context, title: 'Ajustar estoque de produção', child: _AdjustSheet(row: r));
-    if (done == true) await widget.reload();
+    if (done == true) {
+      await widget.reload();
+    }
   }
 
   Future<void> _undo(Map<String, dynamic> run) async {
@@ -274,11 +278,15 @@ class _AdjustSheetState extends State<_AdjustSheet> {
     try {
       await context.read<Session>().ownerApi.patch('/api/production/stock/${widget.row.id}', {'qty': _qty.text});
       Toast.ok('Estoque de produção atualizado');
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } on ApiException catch (e) {
       Toast.error(e.message);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -317,31 +325,45 @@ class _ProduceSheetState extends State<ProduceSheet> {
 
   Future<void> _next() async {
     final n = parseNum(_qty.text);
-    if (_recipe == null) return Toast.error('Escolha a receita.');
-    if (n <= 0 || n != n.roundToDouble()) return Toast.error('Informe quantas unidades foram produzidas (número inteiro maior que zero).');
+    if (_recipe == null) {
+      return Toast.error('Escolha a receita.');
+    }
+    if (n <= 0 || n != n.roundToDouble()) {
+      return Toast.error('Informe quantas unidades foram produzidas (número inteiro maior que zero).');
+    }
     setState(() => _busy = true);
     try {
       final r = await _api.post('/api/production/preview', {'recipe_id': _recipe, 'qty': n.toInt()});
-      if (mounted) setState(() { _review = Map<String, dynamic>.from(r as Map); _force = false; });
+      if (mounted) {
+        setState(() { _review = Map<String, dynamic>.from(r as Map); _force = false; });
+      }
     } on ApiException catch (e) {
       Toast.error(e.message);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
   Future<void> _confirm() async {
-    if (_busy) return; // trava o duplo toque
+    if (_busy) {
+      return; // trava o duplo toque
+    }
     final r = _review!;
     setState(() => _busy = true);
     try {
       await _api.post('/api/production/runs', {'recipe_id': r['recipe_id'], 'qty': r['qty'], 'force': _force});
       Toast.ok('Produção registrada');
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } on ApiException catch (e) {
       Toast.error(e.message);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -434,7 +456,7 @@ class _ProduceSheetState extends State<ProduceSheet> {
 
 /// Histórico de produção: filtro por receita e período, e "Desfazer".
 class _HistoryView extends StatefulWidget {
-  const _HistoryView({super.key, required this.rows, required this.initial, required this.onUndo});
+  const _HistoryView({required this.rows, required this.initial, required this.onUndo});
   final List<ProductionRow> rows;
   final List<Map<String, dynamic>> initial;
   final Future<void> Function(Map<String, dynamic> run) onUndo;
@@ -452,7 +474,9 @@ class _HistoryViewState extends State<_HistoryView> {
   @override
   void didUpdateWidget(_HistoryView old) {
     super.didUpdateWidget(old);
-    if (identical(old.initial, widget.initial)) return;
+    if (identical(old.initial, widget.initial)) {
+      return;
+    }
     if (_recipe == null && _from.isEmpty && _to.isEmpty) {
       setState(() => _runs = widget.initial);
     } else {
@@ -464,7 +488,9 @@ class _HistoryViewState extends State<_HistoryView> {
     final q = [if (_recipe != null) 'recipe=$_recipe', if (_from.isNotEmpty) 'from=$_from', if (_to.isNotEmpty) 'to=$_to'].join('&');
     try {
       final r = await context.read<Session>().ownerApi.get('/api/production/runs${q.isEmpty ? '' : '?$q'}');
-      if (mounted) setState(() => _runs = [for (final e in r as List) Map<String, dynamic>.from(e as Map)]);
+      if (mounted) {
+        setState(() => _runs = [for (final e in r as List) Map<String, dynamic>.from(e as Map)]);
+      }
     } on ApiException catch (e) {
       Toast.error(e.message);
     }

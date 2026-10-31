@@ -79,8 +79,10 @@ class DevicesWebIT extends PostgresTestBase {
     @DisplayName("aparelhos cadastrados recebem os avisos (arquivo do PUSH_LOG_PATH)")
     void devicesReceiveNotices() throws Exception {
 
-        // ── 1. Um aparelho da dona (som caixa) e um da Ana.
+        // ── 1. Um aparelho da dona (som caixa) e um da Ana, sem os aparelhos que outros testes do módulo deixaram
+        //       (cada aparelho da dona vira uma linha a mais no arquivo e o teste liberava antes do aviso da Ana).
         Files.deleteIfExists(LOG);
+        jdbc.sql("DELETE FROM device_tokens").update();
         String owner = login("/api/auth/login", Map.of("username", "dona", "password", "senha-de-teste-123"));
         String ana = login("/api/cliente/login", Map.of("email", "ana@teste.com", "password", "senha-de-teste-123"));
         assertThat(as(owner).body(Map.of("token", "aparelho-da-dona-0123456789", "sound", "caixa"))
