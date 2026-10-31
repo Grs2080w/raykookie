@@ -1,0 +1,28 @@
+# Auto-merge dos PRs do Dependabot: SÓ patch e minor. Major (ex.: next 15→16) fica para revisão manual.
+# O merge não acontece na hora: o "--auto" espera o check obrigatório "ci-ok" (proteção da main) ficar verde.
+name: Dependabot auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: Habilita auto-merge (patch/minor)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+    steps:
+      - name: Lê os metadados da atualização
+        id: meta
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Liga o auto-merge (squash) quando não for major
+        if: ${{ steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor' }}
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash "$PR_URL"
