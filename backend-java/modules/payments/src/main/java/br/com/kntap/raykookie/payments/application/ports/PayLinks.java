@@ -179,8 +179,9 @@ public interface PayLinks {
      * @param payment      pagamento
      * @param shopOrderId  pedido do app (nulo = registrada à mão)
      * @param total        quantidade × preço
+     * @param grouped      linha de pedido com vários itens (o link cobra uma linha só)
      */
-    record LinkOrder(String status, String payment, Long shopOrderId, BigDecimal total) {
+    record LinkOrder(String status, String payment, Long shopOrderId, BigDecimal total, boolean grouped) {
     }
 
     /**

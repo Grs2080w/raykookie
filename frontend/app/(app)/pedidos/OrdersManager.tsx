@@ -1,6 +1,6 @@
 'use client';
 import { AnimatePresence, motion } from 'motion/react';
-import { ClipboardList, MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ClipboardList, MapPin, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import clsx from 'clsx';
@@ -17,12 +17,16 @@ import { ORDER_PAYMENT, ORDER_STATUS } from '@shared/order-labels';
 import { FULL_REFUND_CODE, anyReasonLabel } from '@shared/refund';
 import { paymentLabel } from '@shared/shop';
 import Link from 'next/link';
+import { groupOrders, orderTotal } from '@shared/order-groups';
 import type { Order } from '@shared/types';
 
 type Recipe = { id: number; name: string; price: number };
-type Draft = { id?: number; shop?: boolean; order_date: string; customer: string; recipe_id: string; product: string; qty: string; unit_price: string; delivery_date: string; status: string; payment: string; notes: string };
+/** Um item do pedido em edição; `id` é a linha que ele já tem (ausente = item novo). */
+type ItemDraft = { id?: number; recipe_id: string; product: string; qty: string; unit_price: string };
+type Draft = { id?: number; shop?: boolean; order_date: string; customer: string; items: ItemDraft[]; delivery_date: string; status: string; payment: string; notes: string };
 const today = () => new Date().toLocaleDateString('sv-SE');
-const blank = (): Draft => ({ order_date: today(), customer: '', recipe_id: '', product: '', qty: '1', unit_price: '', delivery_date: '', status: 'novo', payment: 'pendente', notes: '' });
+const blankItem = (): ItemDraft => ({ recipe_id: '', product: '', qty: '1', unit_price: '' });
+const blank = (): Draft => ({ order_date: today(), customer: '', items: [blankItem()], delivery_date: '', status: 'novo', payment: 'pendente', notes: '' });
 const toneOf = (list: readonly { id: string; tone: any }[], id: string) => list.find((s) => s.id === id)?.tone ?? 'neutral';
 
 export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: Recipe[] }) {
@@ -30,22 +34,36 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [del, setDel] = useState<Order | null>(null);
+  const [del, setDel] = useState<Order[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [shopAct, setShopAct] = useState<ShopAction>(null);
 
-  const counts = Object.fromEntries(ORDER_STATUS.map((s) => [s.id, orders.filter((o) => o.status === s.id).length]));
-  const rows = orders.filter((o) => (filter === 'all' || o.status === filter) && (!search || `${o.customer} ${o.product} ${o.number}`.toLowerCase().includes(search.toLowerCase())));
-  const open = orders.filter((o) => !['entregue', 'cancelado'].includes(o.status));
+  // pedido com vários itens: as linhas do mesmo pedido viram uma linha só (situação e pagamento valem para todas)
+  const entries = groupOrders(orders);
+  const counts = Object.fromEntries(ORDER_STATUS.map((s) => [s.id, entries.filter((g) => g[0].status === s.id).length]));
+  const rows = entries.filter((g) => (filter === 'all' || g[0].status === filter) && (!search || g.some((o) => `${o.customer} ${o.product} ${o.number}`.toLowerCase().includes(search.toLowerCase()))));
+  const open = entries.filter((g) => !['entregue', 'cancelado'].includes(g[0].status));
   const receivable = orders.filter((o) => o.status !== 'cancelado' && o.payment !== 'pago').reduce((s, o) => s + o.qty * o.unit_price, 0);
 
-  const edit = (o: Order) => setDraft({ id: o.id, shop: !!o.shop_order_id, order_date: o.order_date, customer: o.customer, recipe_id: o.recipe_id ? String(o.recipe_id) : '', product: o.product, qty: fieldNum(o.qty), unit_price: fieldNum(o.unit_price), delivery_date: o.delivery_date ?? '', status: o.status, payment: o.payment, notes: o.notes });
+  const edit = (lines: Order[]) => {
+    const o = lines[0];
+    setDraft({ id: o.id, shop: !!o.shop_order_id, order_date: o.order_date, customer: o.customer, delivery_date: o.delivery_date ?? '', status: o.status, payment: o.payment, notes: o.notes,
+      items: lines.map((l) => ({ id: l.id, recipe_id: l.recipe_id ? String(l.recipe_id) : '', product: l.product, qty: fieldNum(l.qty), unit_price: fieldNum(l.unit_price) })) });
+  };
 
   async function save() {
     if (!draft) return;
+    for (const [i, it] of draft.items.entries()) {
+      const where = draft.items.length > 1 ? ` do item ${i + 1}` : '';
+      if (!it.product.trim()) return toast.error(`Informe o produto${where}.`);
+      if (parseNum(it.qty) <= 0) return toast.error(`A quantidade${where} precisa ser maior que zero.`);
+    }
     setBusy(true);
     try {
-      if (draft.id) await api(`/api/orders/${draft.id}`, 'PATCH', draft); else await api('/api/orders', 'POST', draft);
+      const { items, shop, ...header } = draft;
+      // pedido do app não muda item nem valor: segue pelo formato de uma linha só (o servidor confere que não mudou)
+      const body = shop ? { ...header, ...items[0] } : { ...header, items };
+      if (draft.id) await api(`/api/orders/${draft.id}`, 'PATCH', body); else await api('/api/orders', 'POST', body);
       toast.ok(draft.id ? 'Pedido atualizado' : 'Pedido registrado');
       setDraft(null); router.refresh();
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
@@ -56,12 +74,15 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
   async function remove() {
     if (!del) return;
     setBusy(true);
-    try { await api(`/api/orders/${del.id}`, 'DELETE'); toast.ok('Pedido excluído'); setDel(null); router.refresh(); }
+    try { await api(`/api/orders/${del[0].id}`, 'DELETE'); toast.ok('Pedido excluído'); setDel(null); router.refresh(); }
     catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
   }
-  function pickRecipe(id: string) {
+  function setItem(index: number, patch: Partial<ItemDraft>) {
+    setDraft((d) => d && ({ ...d, items: d.items.map((it, i) => (i === index ? { ...it, ...patch } : it)) }));
+  }
+  function pickRecipe(index: number, id: string) {
     const r = recipes.find((x) => String(x.id) === id);
-    setDraft((d) => d && ({ ...d, recipe_id: id, ...(r ? { product: r.name, unit_price: fieldNum(r.price) } : {}) }));
+    setItem(index, { recipe_id: id, ...(r ? { product: r.name, unit_price: fieldNum(r.price) } : {}) });
   }
 
   return (
@@ -70,7 +91,7 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
         <Card className="p-4"><p className="text-sm text-muted">Em andamento</p><p className="font-display mt-1 text-3xl font-semibold"><Counter value={open.length} kind="int" /></p></Card>
         <Card className="p-4"><p className="text-sm text-muted">A receber</p><p className="font-display mt-1 text-3xl font-semibold"><Counter value={receivable} /></p></Card>
         <Card className="col-span-2 flex items-center justify-between p-4 md:col-span-1">
-          <div><p className="text-sm text-muted">Total de pedidos</p><p className="font-display mt-1 text-3xl font-semibold"><Counter value={orders.length} kind="int" /></p></div>
+          <div><p className="text-sm text-muted">Total de pedidos</p><p className="font-display mt-1 text-3xl font-semibold"><Counter value={entries.length} kind="int" /></p></div>
           <Button onClick={() => setDraft(blank())}><Plus size={18} />Novo</Button>
         </Card>
       </div>
@@ -80,15 +101,15 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
         <Input aria-label="Buscar pedido" placeholder="Buscar por cliente, produto ou número" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
       <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-        {[{ id: 'all', label: 'Todos', n: orders.length }, ...ORDER_STATUS.map((s) => ({ id: s.id, label: s.label, n: counts[s.id] }))].map((f) => (
+        {[{ id: 'all', label: 'Todos', n: entries.length }, ...ORDER_STATUS.map((s) => ({ id: s.id, label: s.label, n: counts[s.id] }))].map((f) => (
           <button key={f.id} onClick={() => setFilter(f.id)} className={clsx('shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors', filter === f.id ? 'border-pink bg-pink text-on-pink' : 'border-line bg-surface text-muted hover:text-ink')}>
             {f.label} <span className="tnum opacity-70">{f.n}</span>
           </button>
         ))}
       </div>
 
-      {orders.length === 0 ? (
-        <EmptyState icon={<ClipboardList size={26} />} title="Nenhum pedido registrado" text="Registre a primeira encomenda. Se escolher uma receita, o preço já vem preenchido." action={<Button onClick={() => setDraft(blank())}><Plus size={18} />Novo pedido</Button>} />
+      {entries.length === 0 ? (
+        <EmptyState icon={<ClipboardList size={26} />} title="Nenhum pedido registrado" text="Registre a primeira encomenda. Adicione um item por produto; se escolher uma receita, o preço já vem preenchido." action={<Button onClick={() => setDraft(blank())}><Plus size={18} />Novo pedido</Button>} />
       ) : rows.length === 0 ? (
         <p className="rounded-3xl border border-dashed border-line px-6 py-12 text-center text-muted">Nenhum pedido encontrado.</p>
       ) : (
@@ -98,27 +119,28 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
           </div>
           <ul>
             <AnimatePresence initial={false}>
-              {rows.map((o) => (
+              {rows.map((g) => { const o = g[0]; return (
                 <motion.li key={o.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }}
                   className="grid grid-cols-2 items-center gap-x-3 gap-y-2.5 border-b border-line px-5 py-4 last:border-0 lg:grid-cols-[52px_minmax(0,1.6fr)_minmax(0,1.5fr)_1fr_1fr_1.1fr_1.1fr_76px] lg:py-3">
                   <span className="tnum font-display text-lg font-semibold text-pink-strong">{String(o.number).padStart(2, '0')}</span>
                   <p className="truncate text-right font-semibold lg:text-left">{o.customer}</p>
-                  <p className="col-span-2 truncate text-sm lg:col-span-1"><span className="tnum text-muted">{number(o.qty)}× </span>{o.product}
+                  <div className="col-span-2 text-sm lg:col-span-1">
+                    {g.map((l) => <p key={l.id} className="truncate"><span className="tnum text-muted">{number(l.qty)}× </span>{l.product}{g.length > 1 && <span className="tnum text-muted"> · {money(l.qty * l.unit_price)}</span>}</p>)}
                     {o.shop_order_id && o.shop_payment_method && <span className="text-muted"> · {paymentLabel(o.shop_payment_method)}{o.shop_payment_method === 'cartao' && (o.shop_installments ?? 1) > 1 ? ` ${o.shop_installments}x` : ''}</span>}
-                  </p>
+                  </div>
                   {o.address && <p className="col-span-full flex items-start gap-1.5 text-sm"><MapPin size={15} className="mt-0.5 shrink-0 text-pink-strong" /><span><span className="font-semibold">Endereço: </span>{o.address}</span></p>}
                   <p className="text-sm text-muted"><span className="lg:hidden">Entrega: </span>{dateBR(o.delivery_date)}</p>
-                  <p className="tnum text-right font-semibold lg:text-left">{money(o.qty * o.unit_price)}</p>
+                  <p className="tnum text-right font-semibold lg:text-left">{money(orderTotal(g))}</p>
                   <StateSelect value={o.status} options={ORDER_STATUS} label={`Status do pedido ${o.number}`} disabled={!!o.shop_cancel} onChange={(v) => (v === 'cancelado' && o.shop_order_id ? setShopAct({ order: o, mode: 'cancelar' }) : quick(o, { status: v }))} />
                   <StateSelect value={o.payment} options={ORDER_PAYMENT} label={`Pagamento do pedido ${o.number}`} disabled={!!o.shop_cancel} onChange={(v) => quick(o, { payment: v })} />
                   {o.shop_order_id && <ShopBands o={o} onAct={(mode) => setShopAct({ order: o, mode })} />}
                   <div className="col-span-2 flex justify-end gap-0.5 lg:col-span-1">
                     {/* pedido do app: não some da gestão (a cliente continua vendo) e, encerrado, não muda mais */}
-                    {!o.shop_cancel && <Button variant="ghost" size="sm" aria-label={`Editar pedido ${o.number}`} onClick={() => edit(o)}><Pencil size={16} /></Button>}
-                    {!o.shop_order_id && <Button variant="danger" size="sm" aria-label={`Excluir pedido ${o.number}`} onClick={() => setDel(o)}><Trash2 size={16} /></Button>}
+                    {!o.shop_cancel && <Button variant="ghost" size="sm" aria-label={`Editar pedido ${o.number}`} onClick={() => edit(g)}><Pencil size={16} /></Button>}
+                    {!o.shop_order_id && <Button variant="danger" size="sm" aria-label={`Excluir pedido ${o.number}`} onClick={() => setDel(g)}><Trash2 size={16} /></Button>}
                   </div>
                 </motion.li>
-              ))}
+              ); })}
             </AnimatePresence>
           </ul>
         </Card>
@@ -133,19 +155,32 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
             <Field label="Cliente" className="col-span-2">{(id) => <Input maxLength={80} id={id} value={draft.customer} onChange={(e) => setDraft({ ...draft, customer: e.target.value })} />}</Field>
             {draft.shop ? (
               <p className="col-span-2 rounded-2xl bg-surface-2 px-4 py-3 text-sm">
-                <b>{draft.qty}× {draft.product}</b><br />
+                <b>{draft.items[0].qty}× {draft.items[0].product}</b><br />
                 <span className="text-muted">Pedido do app: item e valor não mudam aqui. Para devolver parte do valor, use &quot;Devolver valor&quot;.</span>
               </p>
             ) : (<>
-            <Field label="Receita (opcional)" className="col-span-2" hint="Preenche o produto e o preço sugerido.">{(id) => (
-              <Select id={id} value={draft.recipe_id} onChange={(e) => pickRecipe(e.target.value)}>
-                <option value="">Produto avulso</option>{recipes.map((r) => <option key={r.id} value={r.id}>{r.name} · {money(r.price)}</option>)}
-              </Select>)}</Field>
-            <Field label="Produto" className="col-span-2">{(id) => <Input maxLength={100} id={id} value={draft.product} onChange={(e) => setDraft({ ...draft, product: e.target.value })} />}</Field>
-            <Field label="Quantidade">{(id) => <NumberInput id={id} value={draft.qty} onValueChange={(v) => setDraft({ ...draft, qty: v })} />}</Field>
-            <Field label="Preço unitário (R$)">{(id) => <NumberInput id={id} value={draft.unit_price} onValueChange={(v) => setDraft({ ...draft, unit_price: v })} />}</Field>
+            {draft.items.map((it, i) => (
+              <div key={it.id ?? `novo-${i}`} className="col-span-2 grid grid-cols-2 gap-4 rounded-2xl bg-surface-2 p-4">
+                {draft.items.length > 1 && (
+                  <div className="col-span-2 flex items-center justify-between">
+                    <p className="text-sm font-bold">Item {i + 1}</p>
+                    <Button type="button" variant="ghost" size="sm" aria-label={`Tirar o item ${i + 1}`} onClick={() => setDraft({ ...draft, items: draft.items.filter((_, k) => k !== i) })}><X size={16} /></Button>
+                  </div>
+                )}
+                <Field label="Receita (opcional)" className="col-span-2" hint="Preenche o produto e o preço sugerido.">{(id) => (
+                  <Select id={id} value={it.recipe_id} onChange={(e) => pickRecipe(i, e.target.value)}>
+                    <option value="">Produto avulso</option>{recipes.map((r) => <option key={r.id} value={r.id}>{r.name} · {money(r.price)}</option>)}
+                  </Select>)}</Field>
+                <Field label="Produto" className="col-span-2">{(id) => <Input maxLength={100} id={id} value={it.product} onChange={(e) => setItem(i, { product: e.target.value })} />}</Field>
+                <Field label="Quantidade">{(id) => <NumberInput id={id} value={it.qty} onValueChange={(v) => setItem(i, { qty: v })} />}</Field>
+                <Field label="Preço unitário (R$)">{(id) => <NumberInput id={id} value={it.unit_price} onValueChange={(v) => setItem(i, { unit_price: v })} />}</Field>
+                {draft.items.length > 1 && <p className="tnum col-span-2 text-right text-sm font-semibold text-muted">Subtotal {money(parseNum(it.qty) * parseNum(it.unit_price))}</p>}
+              </div>
+            ))}
+            <Button type="button" variant="soft" className="col-span-2" onClick={() => setDraft({ ...draft, items: [...draft.items, blankItem()] })}><Plus size={18} />Adicionar item</Button>
             <div className="col-span-2 flex items-center justify-between rounded-2xl bg-pink-tint px-4 py-3 text-pink-strong">
-              <span className="text-sm font-medium">Total do pedido</span><Counter value={parseNum(draft.qty) * parseNum(draft.unit_price)} className="font-display text-xl font-semibold" />
+              <span className="text-sm font-medium">{draft.items.length > 1 ? `Total do pedido (${draft.items.length} itens)` : 'Total do pedido'}</span>
+              <Counter value={draft.items.reduce((sum, it) => sum + parseNum(it.qty) * parseNum(it.unit_price), 0)} className="font-display text-xl font-semibold" />
             </div>
             </>)}
             <Field label="Data do pedido">{(id) => <Input id={id} type="date" value={draft.order_date} onChange={(e) => setDraft({ ...draft, order_date: e.target.value })} />}</Field>
@@ -156,7 +191,7 @@ export function OrdersManager({ orders, recipes }: { orders: Order[]; recipes: R
           </form>
         )}
       </Drawer>
-      <ConfirmDialog open={!!del} busy={busy} title={`Excluir o pedido ${del?.number}?`} message="Ele deixa de contar nas metas do mês. Para manter o histórico, prefira marcar como Cancelado." onClose={() => setDel(null)} onConfirm={remove} />
+      <ConfirmDialog open={!!del} busy={busy} title={del && del.length > 1 ? `Excluir o pedido de ${del[0].customer} (os ${del.length} itens)?` : `Excluir o pedido ${del?.[0].number}?`} message="Ele deixa de contar nas metas do mês. Para manter o histórico, prefira marcar como Cancelado." onClose={() => setDel(null)} onConfirm={remove} />
     </>
   );
 }
