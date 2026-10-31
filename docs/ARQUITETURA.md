@@ -29,7 +29,6 @@ Esse modo de processo único é o que `backend/tests/e2e/` exercita.
 | `backend/tests/e2e/` | Testes de fumaça do `backend/server.mjs` (sobe o servidor de verdade e confere roteamento, saúde e desligamento). |
 | `docs/` | Esta documentação. |
 | `raykookie-arts/` | Logos e referências visuais (fonte de design, não usada pelo build; `referencias-designs/` fica fora do git). |
-| `legacy/` | O app único de antes da divisão backend/frontend. Não roda nem é testado; veja `legacy/README.md`. |
 
 ## Decisões
 

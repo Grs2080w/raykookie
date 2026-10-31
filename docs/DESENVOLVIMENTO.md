@@ -18,7 +18,6 @@ downloads/       APKs publicados + manifest.json (versões) — o container da A
 infra/      scripts de build/verificação locais + infra/ci/ (pipeline)
 docs/       ARQUITETURA.md e API.md
 raykookie-arts/  logos e referências visuais (não entram no build)
-legacy/     app único antigo, de antes da divisão backend/frontend — não roda (veja legacy/README.md)
 ```
 
 Veja [ARQUITETURA.md](ARQUITETURA.md) e [API.md](API.md). O plano da reconstrução em Java está em
