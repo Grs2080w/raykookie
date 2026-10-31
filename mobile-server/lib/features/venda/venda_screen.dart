@@ -80,6 +80,7 @@ class _VendaScreenState extends State<VendaScreen> {
     final store = context.read<VendaStore>();
     final cart = store.cart;
     final cfg = store.config;
+    FocusManager.instance.primaryFocus?.unfocus(); // aplica a quantidade que ainda está sendo digitada
     if (cart.isEmpty || _generating) return; // trava o duplo toque
     if (cfg == null) {
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PixConfigScreen()));
@@ -417,6 +418,7 @@ class _CartRowState extends State<_CartRow> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
             decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8)),
             onSubmitted: (_) => _settle(),
+            onTapOutside: (_) => _focus.unfocus(), // tocar em "Gerar PIX" logo após digitar aplica a quantidade antes
           ),
         ),
         IconButton(

@@ -161,6 +161,21 @@ void main() {
       expect(find.text('Venda presencial'), findsOneWidget);
     });
 
+    testWidgets('digitar a quantidade e tocar direto em Gerar PIX (sem confirmar o teclado) usa a quantidade nova', (t) async {
+      final app = await open(t);
+      await openCart(t);
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      final field = find.descendant(of: find.byType(ListView).last, matching: find.byType(TextField));
+      await t.tap(field);
+      await t.enterText(field, '4');
+      await t.pump();
+      await t.tap(find.text('Gerar PIX'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(app.venda.cart.itemCount, 4);
+      expect(find.byKey(ValueKey(buildPixPayload(_cfg, 50.0))), findsOneWidget); // 4 × 12,50
+    });
+
     testWidgets('o botão voltar fecha o carrinho antes de sair da tela', (t) async {
       await open(t);
       await openCart(t);

@@ -17,9 +17,10 @@ reviews:
       - main
 
   # Fora da revisão: código que não roda, binários, artes e arquivos gerados.
+  # O `backend/` (Node antigo) fica DENTRO: o CI ainda roda os testes dele e `infra/rules-vectors` gera os vetores de
+  # paridade do Java a partir de `backend/shared/`.
   path_filters:
     - "!legacy/**"
-    - "!backend/**"
     - "!raykookie-arts/**"
     - "!downloads/**"
     - "!vitrine-publica/**"
