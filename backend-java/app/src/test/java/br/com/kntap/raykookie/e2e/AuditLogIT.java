@@ -91,7 +91,7 @@ class AuditLogIT extends AppItSupport {
         assertThat(created.get("action")).isEqualTo("criou");
         assertThat(created.get("user_name")).isEqualTo(OWNER);
         assertThat(created.get("role")).isEqualTo("dona");
-        assertThat(created.get("location")).isEqualTo("Gestão > Estoque");
+        assertThat(created.get("location")).isEqualTo("Gestão > Estoque de ingredientes");
         assertThat(created.get("route")).isEqualTo("POST /api/ingredients");
         assertThat(created.get("record_id")).isEqualTo(String.valueOf(id));
         assertThat(created.get("ip")).isNotNull();

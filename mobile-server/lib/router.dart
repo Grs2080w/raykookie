@@ -24,6 +24,7 @@ import 'features/admin/privacy_screen.dart';
 import 'features/admin/prospection_screen.dart';
 import 'features/admin/suppliers_screen.dart';
 import 'features/admin/refunds_screen.dart';
+import 'features/admin/production_screen.dart';
 import 'features/admin/stock_screen.dart';
 import 'core/pix/venda_store.dart';
 import 'features/venda/venda_screen.dart';
@@ -109,6 +110,11 @@ GoRouter buildRouter(
       path: '/painel/receitas/:id',
       builder: (_, s) =>
           RecipeEditorScreen(id: int.tryParse(s.pathParameters['id'] ?? '')),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/painel/estoque-producao',
+      builder: (_, _) => const ProductionScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,

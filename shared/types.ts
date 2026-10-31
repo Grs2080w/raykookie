@@ -7,6 +7,21 @@ export type Ingredient = {
   id: number; category_id: number | null; name: string; unit: 'g' | 'ml' | 'un';
   stock_qty: number; package_size: number; package_cost: number; min_stock: number; supplier: string; notes: string;
 };
+/** Uma receita no estoque de produção (GET /api/production/stock). Custo = só ingredientes; `price` é o do cardápio. */
+export type ProductionRow = {
+  recipe_id: number; name: string; qty: number; // unidades prontas
+  unit_cost: number | null; price: number | null; profit_unit: number | null; margin_pct: number | null; // nulo = sem ingredientes ou sem preço
+  can_make: number | null; // unidades que o estoque de ingredientes cobre (nulo = receita sem ingredientes)
+  blocking: string[]; // ingredientes que não deixam produzir nem uma unidade
+};
+export type ProductionSummary = { units: number; cost: number; revenue: number; profit: number };
+export type ProductionLine = { ingredient_id: number; name: string; unit: string; needed: number; stock: number; after: number; missing: number; cost: number };
+export type ProductionPreview = { recipe_id: number; recipe: string; qty: number; total_cost: number; short: boolean; lines: ProductionLine[] };
+export type ProductionRun = {
+  id: number; recipe_id: number | null; recipe: string; qty: number; total_cost: number; forced: boolean;
+  consumed: { ingredient_id: number; name: string; unit: string; needed: number; deducted_packs: number; cost: number }[];
+  created_at: string; undone_at: string | null;
+};
 export type Settings = { hourly_rate: number; monthly_units: number; min_margin_pct: number }; // min_margin_pct: abaixo disso o painel avisa que a margem caiu
 export type FixedCost = { id: number; category_id: number | null; name: string; kind: 'fixed' | 'variable'; amount: number };
 export type Order = {

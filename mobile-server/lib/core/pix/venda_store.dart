@@ -6,6 +6,7 @@ import 'package:raykookie_common/core/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'br_code.dart';
+import 'venda_cart.dart';
 
 /// Rota da Venda Presencial: o widget da tela inicial abre o app direto aqui.
 const vendaRoute = '/painel/venda-presencial';
@@ -21,6 +22,9 @@ class VendaStore extends ChangeNotifier {
   static const _kPix = 'venda_pix', _kMenu = 'venda_menu', _kEvents = 'venda_events';
   static const _maxQueued = 200, _batch = 50;
   final SharedPreferences? _prefs; // nulo = só na memória (testes)
+
+  /// Carrinho da Venda presencial (vários produtos num Pix só), guardado no aparelho.
+  late final VendaCart cart = VendaCart(_prefs);
 
   PixConfig? config;
   Menu menu = Menu.empty();

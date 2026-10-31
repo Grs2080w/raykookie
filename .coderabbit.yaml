@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Revisão automática do CodeRabbit. Referência: https://docs.coderabbit.ai/reference/configuration
+language: pt-BR
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  # Fora da revisão: código que não roda, binários, artes e arquivos gerados.
+  # O `backend/` (Node antigo) fica DENTRO: o CI ainda roda os testes dele e `infra/rules-vectors` gera os vetores de
+  # paridade do Java a partir de `backend/shared/`.
+  path_filters:
+    - "!legacy/**"
+    - "!raykookie-arts/**"
+    - "!downloads/**"
+    - "!vitrine-publica/**"
+    - "!docs/media/**"
+    - "!**/package-lock.json"
+    - "!**/pubspec.lock"
+    - "!**/*.webp"
+    - "!**/*.png"
+    - "!**/*.apk"
+
+  path_instructions:
+    - path: "backend-java/**/*.java"
+      instructions: |
+        API de produção (Java + Spring Boot, módulos em Clean Architecture: domain, application, adapter).
+        - Javadoc em tudo, e métodos com mais de 6 instruções divididos em blocos separados por linha em branco,
+          cada um com um comentário `// ── N. explicação` (há teste que exige isso).
+        - Linhas de até 120 colunas e métodos de até 40 linhas (checkstyle).
+        - Domínio puro: sem acesso a banco nem Spring em `domain/`. SQL só nos adaptadores `Jdbc*`.
+        - Operações que mexem em mais de uma tabela (estoque, pedidos, pagamentos) devem ser atômicas
+          (`@Transactional`) e travar as linhas que leem e alteram (`FOR UPDATE`).
+        - Dinheiro e quantidades em `BigDecimal`, nunca `double`, fora da borda JSON.
+        - Toda rota nova entra em `app/src/test/resources/expected-routes.txt` com o nível de acesso certo,
+          e toda rota de dados da dona usa `@Access(AccessLevel.OWNER)` e filtra por dona.
+    - path: "backend-java/platform/persistence/src/main/resources/db/migration/**"
+      instructions: |
+        Migrações são aditivas e idempotentes (`IF NOT EXISTS`). Não alterar nem apagar migração já aplicada
+        (as `production/` têm checksum). Nada de `DROP`, `TRUNCATE` ou mudança de tipo que perca dados.
+    - path: "backend-java/**/src/test/**"
+      instructions: |
+        Testes de integração usam Postgres real (Testcontainers). Cobrir o caminho de erro, não só o feliz.
+    - path: "mobile-server/**/*.dart"
+      instructions: |
+        App Flutter de gestão (raykookie business). Reaproveitar os widgets de `mobile-common` (AppCard,
+        BusyButton, NumberField, SelectField, Loader, showFormSheet) e o tema, sem estilo próprio.
+        Textos em português do Brasil, valores com `money()`/`number()`. Evitar `if` sem chaves.
+        A Venda presencial funciona offline: não pode depender de internet.
+    - path: "mobile-client/**/*.dart"
+      instructions: |
+        App Flutter do cliente. Mesmo padrão visual de `mobile-common`; textos em português do Brasil.
+    - path: "mobile-common/**/*.dart"
+      instructions: |
+        Pacote compartilhado pelos dois apps: mudança aqui afeta os dois. Conferir compatibilidade e testes.
+    - path: "frontend/**/*.{ts,tsx}"
+      instructions: |
+        Site, loja e painel (Next.js). Reaproveitar os componentes de `components/ui` e `lib/format.ts`.
+        Textos em português do Brasil; dinheiro com `money()`. Tipos compartilhados vêm de `shared/`.
+        Cuidar de acessibilidade (rótulos, foco) e de dados sensíveis vazando para o cliente.
+    - path: "shared/**/*.ts"
+      instructions: |
+        Tipos e regras em TypeScript puro, sem dependências de framework. Devem bater com o contrato da API Java
+        (`docs/API.md`).
+    - path: "docs/**/*.md"
+      instructions: |
+        Documentação em português do Brasil. Se a API mudou, `docs/API.md` precisa refletir.
+
+  tools:
+    gitleaks:
+      enabled: true
+    actionlint:
+      enabled: true
+    markdownlint:
+      enabled: false
+
+chat:
+  auto_reply: true

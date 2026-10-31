@@ -246,6 +246,92 @@ void main() {
     });
   });
 
+  group('estoque de produção (gestão)', () {
+    Map<String, dynamic> row(int id, String name, {num qty = 0, num? cost, num? price, num? profit, num? margin, int? canMake, List<String> blocking = const []}) => {
+          'recipe_id': id, 'name': name, 'qty': qty, 'unit_cost': cost, 'price': price, 'profit_unit': profit, 'margin_pct': margin, 'can_make': canMake, 'blocking': blocking,
+        };
+
+    Future<FakeBackend> open(WidgetTester t, {Map<String, Handler> extra = const {}}) async {
+      final be = FakeBackend({
+        'GET /api/me': (_) => (200, {'id': 2, 'username': 'teste_qa'}),
+        'GET /api/production/stock': (_) => (200, {
+              'recipes': [
+                row(1, 'Brigadeiro', qty: 10, cost: 1.2, price: 3.5, profit: 2.3, margin: 65.7, canMake: 5),
+                row(2, 'Bolo de cenoura', qty: 0, cost: 8, canMake: 0, blocking: ['Cenoura']),
+              ],
+              'summary': {'units': 10, 'cost': 12.0, 'revenue': 35.0, 'profit': 23.0},
+            }),
+        'GET /api/production/runs': (_) => (200, []),
+        ...extra,
+      });
+      final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
+      await s.load();
+      await pumpApp(t, be, at: '/painel/estoque-producao', session: s);
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      return be;
+    }
+
+    testWidgets('lista com resumo, "—" no lucro de receita sem preço e aviso de estoque zerado e de falta de ingrediente', (t) async {
+      await open(t);
+      expect(find.text('Unidades em estoque'), findsOneWidget);
+      expect(find.text('Brigadeiro'), findsOneWidget);
+      expect(find.text('Sem estoque'), findsOneWidget);
+      expect(find.textContaining('Faltam ingredientes: Cenoura'), findsOneWidget);
+      expect(find.textContaining('Dá para produzir 5 un'), findsOneWidget);
+      expect(find.text('—'), findsWidgets);
+    });
+
+    testWidgets('histórico: depois de "Desfazer" a produção aparece como desfeita, sem o botão', (t) async {
+      var undone = false;
+      Map<String, dynamic> run() => {
+            'id': 7, 'recipe_id': 1, 'recipe': 'Brigadeiro', 'qty': 10, 'total_cost': 12.0, 'forced': false,
+            'created_at': '2026-10-30T12:00:00Z', 'undone_at': undone ? '2026-10-30T13:00:00Z' : null, 'consumed': [],
+          };
+      final be = await open(t, extra: {
+        'GET /api/production/runs': (_) => (200, [run()]),
+        'POST /api/production/runs/7/undo': (_) { undone = true; return (200, run()); },
+      });
+      await t.tap(find.text('Histórico'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('Desfazer'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('Desfazer produção'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(be.calls, contains('POST /api/production/runs/7/undo'));
+      expect(find.text('Desfeita'), findsOneWidget);
+      expect(find.text('Desfazer'), findsNothing);
+    });
+
+    testWidgets('produzir com ingrediente faltando: só confirma depois de marcar "produzir mesmo assim"', (t) async {
+      final be = await open(t, extra: {
+        'POST /api/production/preview': (_) => (200, {
+              'recipe_id': 1, 'recipe': 'Brigadeiro', 'qty': 20, 'total_cost': 24.0, 'short': true,
+              'lines': [
+                {'ingredient_id': 9, 'name': 'Leite condensado', 'unit': 'g', 'needed': 800, 'stock': 500, 'after': 0, 'missing': 300, 'cost': 24.0},
+              ],
+            }),
+        'POST /api/production/runs': (_) => (201, {'id': 1}),
+      });
+      await t.tap(find.text('Produzir').first);
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.enterText(find.byType(TextField).last, '20');
+      await t.tap(find.text('Revisar'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.textContaining('faltam 300 g'), findsOneWidget);
+      expect(find.textContaining('Estoque: 500 → 0 g'), findsOneWidget);
+      // sem marcar a opção, o botão está desligado
+      await t.ensureVisible(find.text('Confirmar produção'));
+      await t.tap(find.text('Confirmar produção'), warnIfMissed: false);
+      await t.pump();
+      expect(be.calls, isNot(contains('POST /api/production/runs')));
+      await t.tap(find.byType(Checkbox));
+      await t.pump();
+      await t.tap(find.text('Confirmar produção'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(be.bodies['POST /api/production/runs'], {'recipe_id': 1, 'qty': 20, 'force': true});
+    });
+  });
+
   group('devoluções (gestão)', () {
     Map<String, dynamic> row({String status = 'solicitado', bool priority = false}) => {
           'id': 7, 'order_id': 4, 'code': 4821, 'customer': 'Maria', 'kind': 'solicitado', 'status': status, 'reason_code': 'avariado', 'priority': priority,
@@ -732,7 +818,10 @@ void main() {
       final s = be.session(store: MemoryTokenStore()..write('owner_token', 'tok'));
       await s.load();
       await pumpApp(t, be, at: '/painel/mais', session: s);
-      await t.scrollUntilVisible(find.text('Onde o cliente retira os pedidos'), 300, scrollable: find.byType(Scrollable).first);
+      // a lista é preguiçosa: o texto já existe mesmo fora da tela, então é preciso trazê-lo para dentro antes do toque
+      await t.scrollUntilVisible(find.text('Onde o cliente retira os pedidos'), 100, scrollable: find.byType(Scrollable).first);
+      await t.ensureVisible(find.text('Onde o cliente retira os pedidos'));
+      await t.pumpAndSettle();
       await t.tap(find.text('Onde o cliente retira os pedidos'));
       await t.pumpAndSettle(const Duration(milliseconds: 100));
       expect(find.text('Nenhum endereço de retirada'), findsOneWidget);

@@ -15,13 +15,13 @@ import { toast } from '@/components/ui/Toast';
 import { api } from '@/lib/client';
 import { money, moneyPrecise, number, parseNum, fieldNum } from '@/lib/format';
 import { stockStatus, unitCost } from '@shared/pricing';
-import type { Category, Ingredient } from '@shared/types';
+import type { Category, Ingredient, ProductionRow } from '@shared/types';
 
 type Draft = { id?: number; name: string; category_id: string; unit: string; stock_qty: string; package_size: string; package_cost: string; min_stock: string; supplier: string; notes: string };
 const blank: Draft = { name: '', category_id: '', unit: 'g', stock_qty: '1', package_size: '', package_cost: '', min_stock: '', supplier: '', notes: '' };
 const STATUS = { ok: { tone: 'ok', label: 'Estoque ok' }, baixo: { tone: 'warn', label: 'Estoque baixo' }, zerado: { tone: 'bad', label: 'Acabou' } } as const;
 
-export function StockManager({ ingredients, categories }: { ingredients: Ingredient[]; categories: Category[] }) {
+export function StockManager({ ingredients, categories, producible }: { ingredients: Ingredient[]; categories: Category[]; producible: ProductionRow[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<number | 'low' | null>(null);
@@ -62,6 +62,10 @@ export function StockManager({ ingredients, categories }: { ingredients: Ingredi
     try { await api(`/api/ingredients/${i.id}`, 'PATCH', { stock_qty: next }); router.refresh(); } catch (e: any) { toast.error(e.message); }
   }
 
+  // receitas com ingredientes: quantas unidades dá para produzir agora e quais ficam inviáveis por falta de ingrediente
+  const makeable = producible.filter((r) => r.can_make !== null).sort((a, b) => (a.can_make ?? 0) - (b.can_make ?? 0) || a.name.localeCompare(b.name, 'pt-BR'));
+  const blocked = makeable.filter((r) => r.can_make === 0);
+
   const perUnit = draft ? unitCost(parseNum(draft.package_cost), parseNum(draft.package_size)) : 0;
 
   return (
@@ -74,6 +78,24 @@ export function StockManager({ ingredients, categories }: { ingredients: Ingredi
           <p className={clsx('font-display mt-1 text-3xl font-semibold', low > 0 && 'text-warn')}><Counter value={low} kind="int" /></p>
         </Card>
       </div>
+
+      {makeable.length > 0 && (
+        <Card className="mb-6 p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold">Dá para produzir</h2>
+            {blocked.length > 0 ? <Badge tone="bad">{blocked.length} {blocked.length === 1 ? 'receita inviável' : 'receitas inviáveis'}</Badge> : <Badge tone="ok">Tudo viável</Badge>}
+          </div>
+          <ul className="grid gap-2 md:grid-cols-2">
+            {makeable.map((r) => (
+              <li key={r.recipe_id} className={clsx('flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-sm', r.can_make === 0 ? 'bg-bad/10' : 'bg-surface-2')}>
+                <span className="min-w-0"><span className="block truncate font-semibold">{r.name}</span>
+                  {r.can_make === 0 && r.blocking.length > 0 && <span className="block truncate text-xs text-bad">Falta: {r.blocking.join(', ')}</span>}</span>
+                <span className={clsx('tnum shrink-0 font-semibold', r.can_make === 0 && 'text-bad')}>{r.can_make === 0 ? 'Inviável' : `${number(r.can_make ?? 0)} un`}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-56 flex-1">

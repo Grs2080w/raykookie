@@ -98,6 +98,95 @@ void main() {
     expect(find.text('3× Cookie Red Velvet'), findsOneWidget);
   });
 
+  group('carrinho', () {
+    Future<void> openCart(WidgetTester t) async {
+      await t.tap(find.byTooltip('Abrir o carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('fechado, os produtos ficam como sempre (sem o +) e o selo não aparece', (t) async {
+      await open(t);
+      expect(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'), findsNothing);
+      expect(t.widget<Badge>(find.byType(Badge)).isLabelVisible, isFalse);
+    });
+
+    testWidgets('aberto: o + soma 1 unidade por toque, com selo e total', (t) async {
+      final app = await open(t);
+      await openCart(t);
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.tap(find.byTooltip('Adicionar Combo 4 cookies ao carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(app.venda.cart.itemCount, 3);
+      expect(app.venda.cart.totalCents, 6500); // 2 × 12,50 + 40,00
+      expect(find.text('Carrinho · 3 itens'), findsOneWidget);
+      expect(t.widget<Badge>(find.byType(Badge)).isLabelVisible, isTrue);
+    });
+
+    testWidgets('quantidade: o campo aceita digitar e − até zero tira o item', (t) async {
+      final app = await open(t);
+      await openCart(t);
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.enterText(find.descendant(of: find.byType(ListView).last, matching: find.byType(TextField)), '4');
+      await t.testTextInput.receiveAction(TextInputAction.done);
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(app.venda.cart.itemCount, 4);
+      for (var i = 0; i < 4; i++) {
+        await t.tap(find.byTooltip('Menos uma unidade'));
+        await t.pumpAndSettle(const Duration(milliseconds: 100));
+      }
+      expect(app.venda.cart.isEmpty, isTrue);
+      expect(find.text('Toque no + dos produtos para montar a venda.'), findsOneWidget);
+    });
+
+    testWidgets('Gerar PIX: um QR só com o total e o resumo; "Venda concluída" esvazia o carrinho', (t) async {
+      final app = await open(t);
+      await openCart(t);
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.tap(find.byTooltip('Adicionar Combo 4 cookies ao carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('Gerar PIX'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      final payload = buildPixPayload(_cfg, 65.0);
+      expect(find.byKey(ValueKey(payload)), findsOneWidget);
+      expect(find.text('2× Cookie Red Velvet'), findsOneWidget);
+      expect(find.text('1× Combo 4 cookies'), findsOneWidget);
+      expect(app.venda.cart.itemCount, 3); // gerar o Pix não esvazia
+      await t.ensureVisible(find.text('Venda concluída · limpar carrinho'));
+      await t.tap(find.text('Venda concluída · limpar carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(app.venda.cart.isEmpty, isTrue);
+      expect(find.text('Venda presencial'), findsOneWidget);
+    });
+
+    testWidgets('digitar a quantidade e tocar direto em Gerar PIX (sem confirmar o teclado) usa a quantidade nova', (t) async {
+      final app = await open(t);
+      await openCart(t);
+      await t.tap(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      final field = find.descendant(of: find.byType(ListView).last, matching: find.byType(TextField));
+      await t.tap(field);
+      await t.enterText(field, '4');
+      await t.pump();
+      await t.tap(find.text('Gerar PIX'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(app.venda.cart.itemCount, 4);
+      expect(find.byKey(ValueKey(buildPixPayload(_cfg, 50.0))), findsOneWidget); // 4 × 12,50
+    });
+
+    testWidgets('o botão voltar fecha o carrinho antes de sair da tela', (t) async {
+      await open(t);
+      await openCart(t);
+      expect(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'), findsOneWidget);
+      await t.binding.handlePopRoute();
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.byTooltip('Adicionar Cookie Red Velvet ao carrinho'), findsNothing);
+      expect(find.text('Venda presencial'), findsOneWidget);
+    });
+  });
+
   testWidgets('abre sem pedir biometria mesmo com o app trancado; sair da tela volta a trancar', (t) async {
     final bio = FakeBiometric(accepts: false);
     final app = await open(t, locked: true, bio: bio);

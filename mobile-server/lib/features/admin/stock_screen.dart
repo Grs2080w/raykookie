@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'prices_screen.dart';
+import 'production_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -14,9 +15,12 @@ import 'package:raykookie_common/ui/toast.dart';
 import 'package:raykookie_common/ui/widgets.dart';
 
 class _StockData {
-  _StockData(this.ingredients, this.categories);
+  _StockData(this.ingredients, this.categories, this.producible);
   final List<Ingredient> ingredients;
   final List<Category> categories;
+
+  /// Receitas com ingredientes e quantas unidades o estoque cobre (`can_make`), das menos para as mais viáveis.
+  final List<ProductionRow> producible;
 }
 
 class StockScreen extends StatelessWidget {
@@ -29,10 +33,17 @@ class StockScreen extends StatelessWidget {
         final r = await Future.wait([
           api.get('/api/ingredients'),
           api.get('/api/categories?kind=ingredient'),
+          // o painel "Dá para produzir" é um extra: se falhar, o estoque abre do mesmo jeito
+          api.get('/api/production/stock').catchError((Object _) => <String, dynamic>{'recipes': <dynamic>[]}),
         ]);
+        final producible = [
+          for (final e in ((r[2] as Map)['recipes'] as List? ?? const [])) ProductionRow(Map<String, dynamic>.from(e as Map)),
+        ].where((p) => p.canMake != null).toList()
+          ..sort((a, b) => a.canMake!.compareTo(b.canMake!) != 0 ? a.canMake!.compareTo(b.canMake!) : a.name.compareTo(b.name));
         return _StockData(
           [for (final e in r[0] as List) Ingredient.fromJson(e)],
           [for (final e in r[1] as List) Category.fromJson(e)],
+          producible,
         );
       },
       builder: (context, d, reload) => _StockView(data: d, reload: reload),
@@ -93,6 +104,46 @@ class _StockViewState extends State<_StockView> {
     } on ApiException catch (e) {
       Toast.error(e.message);
     }
+  }
+
+  /// Quantas unidades dá para produzir com o estoque de hoje; receita sem ingrediente suficiente aparece como inviável.
+  Widget _producible(BuildContext context, List<ProductionRow> list) {
+    final c = context.c;
+    final blocked = list.where((p) => p.canMake == 0).length;
+    return AppCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: Text('Dá para produzir', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+              if (blocked > 0) AppBadge(blocked == 1 ? '1 receita inviável' : '$blocked receitas inviáveis', tone: 'bad') else const AppBadge('Tudo viável', tone: 'ok'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final p in list)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        if (p.canMake == 0 && p.blocking.isNotEmpty) Text('Falta: ${p.blocking.join(', ')}', style: TextStyle(color: c.bad, fontSize: 12.5)),
+                      ],
+                    ),
+                  ),
+                  Text(p.canMake == 0 ? 'Inviável' : '${number(p.canMake!)} un', style: TextStyle(fontWeight: FontWeight.w800, color: p.canMake == 0 ? c.bad : null)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -157,6 +208,7 @@ class _StockViewState extends State<_StockView> {
           ],
         ),
         const SizedBox(height: 14),
+        if (widget.data.producible.isNotEmpty) ...[_producible(context, widget.data.producible), const SizedBox(height: 14)],
         TextField(
           decoration: const InputDecoration(
             hintText: 'Buscar ingrediente ou fornecedor',

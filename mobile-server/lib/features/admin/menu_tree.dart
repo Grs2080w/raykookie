@@ -21,13 +21,14 @@ class MenuSection {
 }
 
 /// Árvore do menu "Mais", na mesma ordem e nos mesmos grupos da sidebar do painel web (`frontend/lib/nav.ts`).
-/// Início, Estoque, Receitas e Pedidos não aparecem aqui: já são as abas da barra inferior.
+/// Início, Estoque de ingredientes, Receitas e Pedidos não aparecem aqui: já são as abas da barra inferior.
 const menuSections = [
   MenuSection('producao', 'Produção e catálogo', [
     MenuItem(Icons.restaurant_menu_outlined, 'Cardápio', 'O que aparece na landing page, ingredientes e combos', '/painel/cardapio'),
     MenuItem(Icons.sell_outlined, 'Categorias', 'Ingredientes, receitas e gastos', '/painel/categorias'),
   ]),
   MenuSection('estoque', 'Estoque e compras', [
+    MenuItem(Icons.inventory_outlined, 'Estoque de produção', 'Unidades prontas de cada receita e histórico de produção', '/painel/estoque-producao'),
     MenuItem(Icons.storefront_outlined, 'Fornecedores', 'Sites e lojas onde você compra, com preços', '/painel/fornecedores'),
   ]),
   MenuSection('vendas', 'Vendas e pedidos', [
