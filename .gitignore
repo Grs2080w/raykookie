@@ -41,3 +41,6 @@ downloads/*
 
 # fotos de referência de design (~100 MB): ficam só na máquina, fora do git
 raykookie-arts/referencias-designs/
+
+# binário baixado pelo CI (rhysd/actionlint); não deve ser commitado
+/actionlint
