@@ -6,7 +6,7 @@ set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 echo "[seguranca] site (cabeçalhos)..."
-node --test "$ROOT/tests/security/frontend-headers.test.mjs"
+node --test "$ROOT/tests/security/frontend-headers.test.mjs" "$ROOT/tests/security/gestao-routes.test.mjs"
 
 echo "[seguranca] backend (SQL, headers/CORS, autenticação, abusos, histórico)..."
 cd "$ROOT/backend-java"
