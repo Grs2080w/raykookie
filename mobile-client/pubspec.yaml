@@ -44,7 +44,7 @@ dependencies:
   raykookie_common:
     path: ../mobile-common
   image_picker: ^1.2.3
-  firebase_core: ^4.15.0
+  firebase_core: ^4.15.2
   firebase_messaging: ^16.7.0
   flutter_local_notifications: ^22.3.1
   url_launcher: ^6.3.2
