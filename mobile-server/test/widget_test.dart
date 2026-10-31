@@ -281,6 +281,27 @@ void main() {
       expect(find.text('—'), findsWidgets);
     });
 
+    testWidgets('histórico: depois de "Desfazer" a produção aparece como desfeita, sem o botão', (t) async {
+      var undone = false;
+      Map<String, dynamic> run() => {
+            'id': 7, 'recipe_id': 1, 'recipe': 'Brigadeiro', 'qty': 10, 'total_cost': 12.0, 'forced': false,
+            'created_at': '2026-10-30T12:00:00Z', 'undone_at': undone ? '2026-10-30T13:00:00Z' : null, 'consumed': [],
+          };
+      final be = await open(t, extra: {
+        'GET /api/production/runs': (_) => (200, [run()]),
+        'POST /api/production/runs/7/undo': (_) { undone = true; return (200, run()); },
+      });
+      await t.tap(find.text('Histórico'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('Desfazer'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      await t.tap(find.text('Desfazer produção'));
+      await t.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(be.calls, contains('POST /api/production/runs/7/undo'));
+      expect(find.text('Desfeita'), findsOneWidget);
+      expect(find.text('Desfazer'), findsNothing);
+    });
+
     testWidgets('produzir com ingrediente faltando: só confirma depois de marcar "produzir mesmo assim"', (t) async {
       final be = await open(t, extra: {
         'POST /api/production/preview': (_) => (200, {

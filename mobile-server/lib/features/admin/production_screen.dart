@@ -175,7 +175,7 @@ class _ProductionViewState extends State<_ProductionView> {
         ),
         const SizedBox(height: 12),
         if (_history)
-          _HistoryView(rows: widget.data.rows, initial: widget.data.runs, onUndo: _undo, key: ValueKey(widget.data.runs.length))
+          _HistoryView(rows: widget.data.rows, initial: widget.data.runs, onUndo: _undo)
         else ...[
           TextField(
             decoration: const InputDecoration(hintText: 'Buscar receita', prefixIcon: Icon(Icons.search_rounded)),
@@ -447,6 +447,18 @@ class _HistoryViewState extends State<_HistoryView> {
   int? _recipe;
   String _from = '', _to = '';
   int? _open;
+
+  /// Depois de "Desfazer" a tela recarrega a lista: sem filtro usa a nova, com filtro busca de novo e o mantém.
+  @override
+  void didUpdateWidget(_HistoryView old) {
+    super.didUpdateWidget(old);
+    if (identical(old.initial, widget.initial)) return;
+    if (_recipe == null && _from.isEmpty && _to.isEmpty) {
+      setState(() => _runs = widget.initial);
+    } else {
+      _load();
+    }
+  }
 
   Future<void> _load() async {
     final q = [if (_recipe != null) 'recipe=$_recipe', if (_from.isNotEmpty) 'from=$_from', if (_to.isNotEmpty) 'to=$_to'].join('&');

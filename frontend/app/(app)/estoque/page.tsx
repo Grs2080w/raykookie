@@ -9,7 +9,8 @@ export default async function Page() {
   const [ingredients, categories, production] = await Promise.all([
     apiGet<Ingredient[]>('/api/ingredients'),
     apiGet<Category[]>('/api/categories?kind=ingredient'),
-    apiGet<{ recipes: ProductionRow[]; summary: ProductionSummary }>('/api/production/stock'),
+    // o painel "Dá para produzir" é um extra: se o endpoint falhar, o estoque de ingredientes abre do mesmo jeito
+    apiGet<{ recipes: ProductionRow[]; summary: ProductionSummary }>('/api/production/stock').catch(() => ({ recipes: [] as ProductionRow[], summary: { units: 0, cost: 0, revenue: 0, profit: 0 } })),
   ]);
   return (
     <>

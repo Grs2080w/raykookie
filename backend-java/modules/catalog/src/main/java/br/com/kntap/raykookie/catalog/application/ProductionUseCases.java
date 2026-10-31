@@ -219,7 +219,8 @@ public class ProductionUseCases {
     @Transactional
     public Map<String, Object> register(OwnerId owner, Map<String, Object> body) {
 
-        // ── 1. A receita, a quantidade e os estoques de ingrediente travados (o plano usa o valor travado).
+        // ── 1. A receita, a quantidade e as travas, sempre na mesma ordem do desfazer (receita, depois ingredientes)
+        //       para as duas operações não se esperarem em volta uma da outra.
         PricedRecipe recipe = recipe(owner, body);
         BigDecimal qty = qty(body);
         Map<Long, Map<String, Object>> byId = ingredientsById(owner);
@@ -227,6 +228,7 @@ public class ProductionUseCases {
         if (first.lines().isEmpty()) {
             throw new InvalidInputException("Esta receita não tem ingredientes cadastrados.");
         }
+        BigDecimal ready = store.lockRecipeStock(owner, recipe.id());
         Map<Long, BigDecimal> locked = store.lockIngredientStock(owner,
                 first.lines().stream().map(Line::ingredientId).toList());
         ProductionPlan plan = ProductionPlan.of(recipe.row(), byId, locked, qty);
@@ -243,7 +245,6 @@ public class ProductionUseCases {
         for (Line l : plan.lines()) {
             store.setIngredientStock(owner, l.ingredientId(), l.packsAfter());
         }
-        BigDecimal ready = store.lockRecipeStock(owner, recipe.id());
         store.setRecipeStock(owner, recipe.id(), ready.add(qty));
         Map<String, Object> run = store.insertRun(owner, recipe.id(), recipe.name(), qty, plan.cost(),
                 consumedJson(plan), !plan.shortages().isEmpty());
