@@ -9,7 +9,7 @@ Quem decide é `frontend/middleware.ts`, pelo cabeçalho `Host`:
 | `raykookie.com.br` | site | redirecionam para o subdomínio de gestão | abrem |
 | `localhost`, previews da Vercel | site | abrem | abrem |
 
-Rotas do painel (primeiro segmento, lista `GESTAO_ROUTES` em `frontend/middleware.ts`): `dashboard`, `estoque`… e,
+Rotas do painel (primeiro segmento, lista `GESTAO_ROUTES` em `frontend/middleware.ts`): `dashboard`, `estoque`, `estoque-producao`… e,
 desde a paridade com o app de gestão, **`cardapio-do-site`** (Cardápio e combos; o nome é diferente de `/cardapio`
 porque esse é a página pública do site) e **`cupons`**. Rota nova do painel precisa entrar nessa lista, senão o domínio
 de gestão a manda para o site.
